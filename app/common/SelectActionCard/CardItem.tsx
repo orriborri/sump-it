@@ -26,7 +26,7 @@ export const CardItem = ({ card, isSelected, onClick }: Props) => {
         }}
       >
         <CardContent sx={{ height: "100%" }}>
-          <Typography variant="h5" component="div">
+          <Typography variant="h6" component="h3">
             {card.title}
           </Typography>
           <Typography variant="body2" color="text.secondary">

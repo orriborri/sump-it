@@ -1,15 +1,14 @@
 import { Box, FormControl, Typography } from "@mui/material";
-import SelectActionCard from "../common/SelectActionCard/SelectActionCard";
-import { useFetch } from "../lib/data/hooks";
-import { fetchMethods } from "../lib/data/methods/Metods";
-import { on } from "events";
+import SelectActionCard from "../../common/SelectActionCard/SelectActionCard";
+import { useFetch } from "../../lib/data/hooks";
+import { fetch } from "../../lib/data/methods/Metods"
 
 type Props = {
   onSelect: (key: string, id: number) => void;
 };
 
 export const ChooseMaker = ({ onSelect }: Props) => {
-  const [methods, loading] = useFetch(fetchMethods);
+  const [methods, loading] = useFetch(fetch);
   const handleChange = (id: number) => {
     onSelect("method", id);
   };

@@ -3,14 +3,16 @@ import {
   Box,
   Button,
   Card,
+  Divider,
   Paper,
   Select,
   TextField,
 } from "@mui/material";
-import { ChangeEvent, FormEvent, useState } from "react";
-import { ChooseMaker } from "./ChooseMaker";
+import { FormEvent, useState } from "react";
 import { BeanSelector } from "./BeanSelector";
 import { GrinderSelector } from "./GrinderSelector";
+import { Methods } from "./Methods/Methods";
+import { AddMethod } from "./Methods/AddMethod";
 
 type FormData = {
   methodId?: number;
@@ -37,14 +39,19 @@ const Page = () => {
           onSubmit={handleSubmit}
           sx={{ display: "flex", flexDirection: "column", gap: 2 }}
         >
-          <ChooseMaker onSelect={handleChange} />
+          <Box>
+            <Methods onSelect={handleChange} />
+          </Box>
+          <Divider />
           <BeanSelector onSelect={handleChange} />
+          <Divider />
           <GrinderSelector onSelect={handleChange} />
           <Button type="submit" variant="contained">
             Submit
           </Button>
         </Box>
       </Paper>
+      <AddMethod />
     </Box>
   );
 };

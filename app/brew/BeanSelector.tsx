@@ -2,7 +2,7 @@ import { useFetch } from "../lib/data/hooks";
 import { fetchBeans } from "../lib/data/beans/fetch";
 import { useState } from "react";
 import { Select } from "../common/Select/Select";
-import { FormControl } from "@mui/material";
+import { FormControl, Typography } from "@mui/material";
 
 type Props = {
   onSelect: (key: string, id: number) => void;
@@ -14,8 +14,13 @@ export const BeanSelector = ({ onSelect }: Props) => {
   };
 
   return (
-    <FormControl>
-      <Select items={beans} id={"beanselector"} onChange={onChange} />
-    </FormControl>
+    <>
+      <Typography variant="h5" component="h2">
+        Choose beans
+      </Typography>
+      <FormControl>
+        <Select items={beans} id={"beanselector"} onChange={onChange} />
+      </FormControl>
+    </>
   );
 };

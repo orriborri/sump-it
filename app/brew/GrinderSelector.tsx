@@ -3,7 +3,7 @@ import { fetchBeans } from "../lib/data/beans/fetch";
 import { useState } from "react";
 import { Select } from "../common/Select/Select";
 import { fetchGrinders } from "../lib/data/grinders/fetch";
-import { FormControl } from "@mui/material";
+import { FormControl, Typography } from "@mui/material";
 
 type Props = {
   onSelect: (key: string, id: number) => void;
@@ -14,14 +14,19 @@ export const GrinderSelector = ({ onSelect }: Props) => {
     onSelect("grinder", id);
   };
   return (
-    <FormControl>
-      <Select
-        items={grinders.map((it) => {
-          return { ...it, name: it.name ?? "" };
-        })}
-        id={"id"}
-        onChange={onChange}
-      />
-    </FormControl>
+    <>
+      <Typography variant="h5" component="h2">
+        Choose grinder
+      </Typography>
+      <FormControl>
+        <Select
+          items={grinders.map((it) => {
+            return { ...it, name: it.name ?? "" };
+          })}
+          id={"id"}
+          onChange={onChange}
+        />
+      </FormControl>
+    </>
   );
 };
