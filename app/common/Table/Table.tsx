@@ -2,20 +2,17 @@
 import { Table } from "@mantine/core";
 
 interface Props<T> {
-  name: string;
   columnNames: string[];
   data: T[];
 }
 
 export const TableComponent = <
   T extends Record<string, string | number | Date | null>
->({
-  name,
+  >({
   columnNames,
   data,
 }: Props<T>) => {
   const columns = data.length > 0 ? (Object.keys(data[0]) as (keyof T)[]) : [];
-
   const rows = data.map((item, index) => (
     <Table.Tr key={index}>
       {(columnNames ?? []).map((column) => (

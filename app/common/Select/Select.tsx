@@ -1,16 +1,16 @@
 import {
-  Box,
-  FormControl,
   InputLabel,
   MenuItem,
   Select as MuiSelect,
   SelectChangeEvent,
 } from "@mui/material";
 import { useState } from "react";
+
 type SelectType = {
   id: number;
   name: string;
 };
+
 type Props<T extends SelectType> = {
   items: T[];
   id: string;

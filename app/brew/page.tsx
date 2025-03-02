@@ -1,35 +1,19 @@
 "use client";
+import React from "react";
 import {
   Box,
   Button,
-  Card,
   Divider,
   Paper,
-  Select,
-  TextField,
 } from "@mui/material";
-import { FormEvent, useState } from "react";
-import { BeanSelector } from "./BeanSelector";
-import { GrinderSelector } from "./GrinderSelector";
-import { Methods } from "./Methods/Methods";
-import { AddMethod } from "./Methods/AddMethod";
+import BeanSelector from "./common/BeanSelector";
+import GrinderSelector from "./common/GrinderSelector";
+import Methods from "./common/Methods";
+import AddMethod from "./common/AddMethod";
+import { useFormHandler } from "./hooks/useFormHandler";
 
-type FormData = {
-  methodId?: number;
-  beanId?: number;
-  grinderId?: number;
-};
 const Page = () => {
-  function handleSubmit(event: FormEvent<HTMLFormElement>): void {
-    throw new Error("Function not implemented.");
-  }
-  const [formData, setFormData] = useState<FormData>();
-  const handleChange = (key: string, value: number): void => {
-    setFormData({
-      ...formData,
-      [key]: value,
-    });
-  };
+  const { handleChange, handleSubmit } = useFormHandler();
 
   return (
     <Box>

@@ -1,28 +1,25 @@
+import React, { useState } from "react";
 import {
   Box,
   Button,
+  Dialog,
   DialogTitle,
   FormControl,
   TextField,
-  Typography,
 } from "@mui/material";
-import { useState } from "react";
-import Dialog from "@mui/material/Dialog";
 import DialogContent from "@mui/material/DialogContent";
 import { create } from "../../lib/data/methods/Metods";
 
-type Props = {};
-
-export const AddMethod = (props: Props) => {
+export const AddMethod = () => {
   const [open, setOpen] = useState(false);
   const [intputField, setInputField] = useState("");
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     create(intputField);
     e.preventDefault();
     e.stopPropagation();
-
     setOpen(false);
   };
+
   return (
     <>
       <Button
