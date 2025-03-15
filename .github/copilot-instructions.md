@@ -1,19 +1,82 @@
-In react we should only have one component per file. In addion we should have the component file start with an big letter and the rest should have small starting letters.
+Notice: For now, we are following these naming conventions and folder structure in the new platform React app. Over time, we will evaluate whether to adopt these rules for other projects.
 
-The code logic should be split off to custom hooks and serverside functions in all places where it is possible.
+This documentation describes the naming conventions and the folder structure we follow.\
+Structure has been derived from the DDD (https://en.wikipedia.org/wiki/pages-driven_design) (pages Driven Design).
 
-We are also splitting componenst to common folders and to context folders. In the context folder we should only have buissness logic related components the rest should be in the common folder. One execption to this is the Page.tsx file, this is the next.js way of dooing it and it should be in the same folder as the rest of the buisness code.
+- Folder structure
+- Naming files and folder
 
-In this project we are also using kysely so we should use type saftey the whole way true the project.
-We should run pnpm run lint and fix the problems there.
+## Naming files and folders
 
-for import we want to use the @ decorator, these are definde in the tsconfig.json [./tsconfig.json]
+- Folders are always in lower camel case: /src, /pages and /fooBar.
+- React component files (`.jsx` and .tsx`) are named in upper camel case: `User.tsx, App.jsx and FooBar.tsx.
+- Normal JavaScript and TypeScript files are named in lower camel case: utils.ts, index.js and fooBar.ts.
+- Markdown files (`.md`) are named in spinal-case: foo-bar.md.
+  - The only exception to this is the readme file which is named in all capital letters: README.md.
+- Rest of the files e.g. css, json and html files are named in lower camel case: style.css, fooBar.sass and index.html.
+- Test files follow the naming pattern of the file it tests: User.test.ts, utils.test.ts and fooBar.test.ts
 
-This is an next.js project, here we need to keep track of what code should run in the front end and what should be in the backend. If it for example a database call, it should be runned on the server side whit:
-'use server' in the top of the window
+## Folder structure
 
-We the project should use postgres as defined in /home/orre/sump-it/app/lib/database.ts 
+Root of the /src -folder is divided into /common and /app.
 
-Tests
-=====
-I want to have 100% test coverage but so that we ingore the code that can't be tested resonably. The comonents should be tested for the logic and so that they actually renders, we should react testing library and vitest for this. We should try to avoid mocks where ever we can. Instead of mocking we should do refactoring of the code. And we should  test the actual functunalite and not the implementaion.
+<details open>
+<summary>Example</summary>
+
+/app
+  /pages
+/common
+/lib
+</details>
+
+### pages
+
+/pages -folder contains all files that are connected into the business logic.
+
+Files are divided into folders under pages by entity name e.g. /user, /campaign and /location.
+
+### Common
+
+/common -folder contains all files that are not directly connected into business logic e.g. button, modal and form fields.\
+If you could imagine sharing a component between projects and maybe even creating a standalone library/module out of it, then it probably should be located under /common -folder.
+
+<details open>
+<summary>Example</summary>
+
+#### Example of how files are divided into folders.
+
+_Sub folders can be created if needed so that the file list in a folder doesn't grow into too large as long as the context is clear._
+
+/app
+  /common
+    /button
+      Button.tsx
+      Button.test.ts
+      button.css
+    /modal
+      Modal.tsx
+      Modal.test.ts
+      modal.css
+      utils.ts
+      utils.test.ts
+      
+  /pages
+    /user
+      /create
+        Page.tsx
+        CreateUser.test.ts
+        createUser.css
+      /list
+        Page.tsx
+        UserList.test.ts
+        userList.css
+      Page.tsx
+      User.test.ts
+      utils.ts
+      utils.test.ts
+      user.css
+    /campaign
+      pages.tsx
+      Campaign.test.ts
+
+</details>
