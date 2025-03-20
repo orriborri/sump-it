@@ -1,12 +1,23 @@
 import { TextField } from "@mui/material";
-import { Control, Controller, FieldValues, Path, RegisterOptions } from "react-hook-form";
+import {
+  Control,
+  Controller,
+  FieldValues,
+  Path,
+  RegisterOptions,
+} from "react-hook-form";
 
 interface InputProps<F extends FieldValues> {
   control: Control<F>;
   name: keyof F;
   label: string;
   type?: string;
-  rules?: Omit<RegisterOptions<F, Path<F>>, 'valueAsNumber' | 'valueAsDate' | 'setValueAs'>;
+  disabled?: boolean;
+  onChange?: (value: number) => void;
+  rules?: Omit<
+    RegisterOptions<F, Path<F>>,
+    "valueAsNumber" | "valueAsDate" | "setValueAs"
+  >;
 }
 
 export const Input = <F extends FieldValues>({
@@ -14,7 +25,9 @@ export const Input = <F extends FieldValues>({
   name,
   label,
   type = "text",
-  rules
+  disabled = false,
+  onChange,
+  rules,
 }: InputProps<F>) => {
   return (
     <Controller
@@ -24,8 +37,15 @@ export const Input = <F extends FieldValues>({
       render={({ field, fieldState: { error } }) => (
         <TextField
           {...field}
+          onChange={(e) => {
+            field.onChange(e);
+            if (onChange && type === "number") {
+              onChange(parseFloat(e.target.value));
+            }
+          }}
           label={label}
           type={type}
+          disabled={disabled}
           fullWidth
           sx={{ mb: 1 }}
           error={!!error}
