@@ -15,9 +15,12 @@ export async function getPreviousBrewFeedback(
     .where("brews.method_id", "=", methodId)
     .select([
       "brews.grind",
+      "brews.ratio",
       "brew_feedback.too_strong",
       "brew_feedback.too_weak",
-      "brew_feedback.overall_rating"
+      "brew_feedback.is_sour",
+      "brew_feedback.is_bitter",
+      "brew_feedback.overall_rating",
     ])
     .orderBy("brews.created_at", "desc")
     .limit(5)
