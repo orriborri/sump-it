@@ -49,6 +49,7 @@ export const migrateToLatest = async () => {
   }
 
   await db.destroy()
+  
 }
 
 migrateToLatest()
