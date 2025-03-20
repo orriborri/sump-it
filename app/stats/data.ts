@@ -11,8 +11,11 @@ export type Brew = {
   water: number | null;
   dose: number | null;
   ratio: number | null;
-  strength_rating: number | null;
-  taste_balance: number | null;
+  too_strong: boolean | null;
+  too_weak: boolean | null;
+  is_sour: boolean | null;
+  is_bitter: boolean | null;
+  overall_rating: number | null;
   coffee_amount_ml: number | null;
 };
 

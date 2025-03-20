@@ -11,6 +11,9 @@ import {
   Typography,
   Box,
   IconButton,
+  Rating,
+  Stack,
+  Chip,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { useEffect, useState } from "react";
@@ -51,6 +54,8 @@ const StatsTable = () => {
               <TableCell align="right">Water (g)</TableCell>
               <TableCell align="right">Dose (g)</TableCell>
               <TableCell align="right">Ratio</TableCell>
+              <TableCell align="center">Feedback</TableCell>
+              <TableCell align="center">Rating</TableCell>
               <TableCell align="center">Actions</TableCell>
             </TableRow>
           </TableHead>
@@ -67,6 +72,27 @@ const StatsTable = () => {
                 <TableCell align="right">{brew.water}</TableCell>
                 <TableCell align="right">{brew.dose}</TableCell>
                 <TableCell align="right">{brew.ratio}</TableCell>
+                <TableCell align="center">
+                  <Stack direction="row" spacing={1} justifyContent="center">
+                    {brew.too_strong && (
+                      <Chip label="Too Strong" size="small" color="error" />
+                    )}
+                    {brew.too_weak && (
+                      <Chip label="Too Weak" size="small" color="warning" />
+                    )}
+                    {brew.is_sour && (
+                      <Chip label="Sour" size="small" color="info" />
+                    )}
+                    {brew.is_bitter && (
+                      <Chip label="Bitter" size="small" color="secondary" />
+                    )}
+                  </Stack>
+                </TableCell>
+                <TableCell align="center">
+                  {brew.overall_rating !== null && (
+                    <Rating value={brew.overall_rating} readOnly size="small" />
+                  )}
+                </TableCell>
                 <TableCell align="center">
                   <IconButton
                     onClick={() => handleDelete(brew.id)}

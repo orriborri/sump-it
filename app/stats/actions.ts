@@ -20,8 +20,11 @@ export const getBrews = async () => {
       "brews.water",
       "brews.dose",
       "brews.ratio",
-      "brew_feedback.strength_rating",
-      "brew_feedback.taste_balance",
+      "brew_feedback.too_strong",
+      "brew_feedback.too_weak",
+      "brew_feedback.is_sour",
+      "brew_feedback.is_bitter",
+      "brew_feedback.overall_rating",
       "brew_feedback.coffee_amount_ml",
     ])
     .execute();
