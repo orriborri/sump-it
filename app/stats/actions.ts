@@ -3,7 +3,7 @@
 import { db } from "../lib/database";
 import { revalidatePath } from "next/cache";
 
-export const getBrews = async () => {
+export async function getBrews() {
   return await db
     .selectFrom("brews")
     .leftJoin("beans", "beans.id", "brews.bean_id")
@@ -28,9 +28,9 @@ export const getBrews = async () => {
       "brew_feedback.coffee_amount_ml",
     ])
     .execute();
-};
+}
 
-export const deleteBrew = async (id: number) => {
-  await db.deleteFrom("brews").where("id", "=", id).execute();
+export async function deleteBrew(id: number) {
+  await db.deleteFrom("brews").where("brews.id", "=", id).execute();
   revalidatePath("/stats");
-};
+}
