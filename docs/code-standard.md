@@ -61,30 +61,36 @@ Example structure:
 ### TypeScript and Database Types
 
 - Use TypeScript for all new code
-- Use Kysely-generated types for database entities and queries
-- Avoid creating custom types for database entities
-- Define explicit types only for props interfaces and non-database types
+- Leverage Kysely's type inference system:
+  - Use Kysely-generated types from `db.d.ts` for database entities
+  - Avoid creating custom types for database entities
+  - Use `Selectable<Database["tableName"]>` for table row types
+  - For query results, use `Awaited<ReturnType<typeof queryFunction>>`
+- Define explicit types only for:
+  - Props interfaces
+  - Non-database types
+  - Complex state objects
 - Use type inference when the type is obvious
 - Use arrow functions for callbacks
 - Prefer using `const` for function declarations
 - Avoid using `var` for variable declarations
 
-Example:
+Example of proper database typing:
 
 ```typescript
-import { Database } from "@/lib/db";
-import { Selectable } from "kysely";
+import type { DB } from "@/lib/db";
+import type { Selectable } from "kysely";
 
-type Brew = Selectable<Database["brew"]>;
+// For direct table types
+type Brew = Selectable<DB["brews"]>;
+
+// For query results
+type BrewResult = Awaited<ReturnType<typeof getBrews>>[number];
 
 interface Props {
-  brew: Brew;
+  brew: BrewResult;
   onChange: (value: string) => void;
 }
-
-export const BrewComponent = ({ brew, onChange }: Props) => {
-  // Implementation
-};
 ```
 
 ### React Components
@@ -93,18 +99,23 @@ export const BrewComponent = ({ brew, onChange }: Props) => {
 - Export components as named exports
 - Keep components focused and single-responsibility
 - Place shared types in separate type files
+- Use server components by default, only add "use client" when needed
 
 ### State Management
 
 - Use React hooks for local state
 - Prefer controlled components
 - Keep state as close as possible to where it's used
+- Use server actions for data mutations
+- Implement proper loading and error states
 
-### Testing
+### Database Operations
 
-- Write tests for all new components and utilities
-- Test files should be co-located with the component
-- Follow the naming pattern: `ComponentName.test.tsx`
+- Keep database queries in server-side code only
+- Use Kysely for all database operations
+- Implement proper error handling for database operations
+- Use transactions when multiple operations need to be atomic
+- Keep complex queries in dedicated action files
 
 ## Best Practices
 
@@ -126,6 +137,7 @@ export const BrewComponent = ({ brew, onChange }: Props) => {
    - Use React.memo for expensive computations
    - Avoid unnecessary re-renders
    - Implement proper error boundaries
+   - Use proper data fetching patterns
 
 4. **Accessibility**
    - Include proper ARIA attributes
@@ -137,6 +149,7 @@ export const BrewComponent = ({ brew, onChange }: Props) => {
 - Write meaningful commit messages
 - Keep commits focused and atomic
 - Use feature branches for new development
+- Review code before merging
 
 ## Documentation
 
@@ -144,6 +157,7 @@ export const BrewComponent = ({ brew, onChange }: Props) => {
 - Include JSDoc comments for public APIs
 - Keep README files up to date
 - Document configuration requirements
+- Comment non-obvious code decisions
 
 ## Tooling
 
@@ -154,8 +168,9 @@ The project uses:
 - Next.js as the framework
 - Material-UI for components
 - Tailwind CSS for styling
+- Kysely for database operations
 
-Remember to run the appropriate linting and type checking before committing:
+Remember to run the appropriate checks before committing:
 
 ```bash
 pnpm lint
