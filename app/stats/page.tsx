@@ -21,7 +21,7 @@ import { deleteBrew, getBrews } from "./actions";
 
 type BrewResult = Awaited<ReturnType<typeof getBrews>>[number];
 
-const StatsTable = () => {
+export const StatsTable = () => {
   const [items, setItems] = useState<BrewResult[]>([]);
 
   useEffect(() => {

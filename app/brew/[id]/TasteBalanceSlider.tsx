@@ -20,7 +20,7 @@ const marks = [
   { value: 5, label: "5" },
 ];
 
-export function TasteBalanceSlider({ control }: Props) {
+export const TasteBalanceSlider = ({ control }: Props) => {
   return (
     <Box sx={{ mt: 4, px: 2 }}>
       <FormControl fullWidth>
@@ -61,4 +61,4 @@ export function TasteBalanceSlider({ control }: Props) {
       </FormControl>
     </Box>
   );
-}
+};

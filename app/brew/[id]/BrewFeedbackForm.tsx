@@ -20,7 +20,7 @@ interface Props {
   brewId: number;
 }
 
-export function BrewFeedbackForm({ brewId }: Props) {
+export const BrewFeedbackForm = ({ brewId }: Props) => {
   const { control, handleSubmit, reset } = useForm<FeedbackFormData>({
     defaultValues: {
       too_strong: false,
@@ -140,4 +140,4 @@ export function BrewFeedbackForm({ brewId }: Props) {
       </Box>
     </Paper>
   );
-}
+};

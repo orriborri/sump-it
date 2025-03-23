@@ -4,7 +4,7 @@ import { Breadcrumbs, Link as MuiLink } from "@mui/material";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-export function BreadcrumbNav() {
+export const BreadcrumbNav = () => {
   const pathname = usePathname();
   const paths = pathname.split("/").filter((p) => p);
 
@@ -30,4 +30,4 @@ export function BreadcrumbNav() {
       })}
     </Breadcrumbs>
   );
-}
+};

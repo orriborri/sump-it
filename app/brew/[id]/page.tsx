@@ -1,10 +1,8 @@
 import { db } from "@/app/lib/database";
 import { BrewFeedbackForm } from "./BrewFeedbackForm";
 
-export default async function Page({ params }: { params: { id: string } }) {
-
-
-    const brewId = parseInt(params.id);
+const Page = async ({ params }: { params: { id: string } }) => {
+  const brewId = parseInt(params.id);
 
   const brew = await db
     .selectFrom("brews")
@@ -16,8 +14,7 @@ export default async function Page({ params }: { params: { id: string } }) {
     return <div>Brew not found</div>;
   }
 
-  return (
+  return <BrewFeedbackForm brewId={brewId} />;
+};
 
-      <BrewFeedbackForm brewId={brewId} />
-  );
-}
+export default Page;

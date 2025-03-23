@@ -4,52 +4,50 @@ import {
   Controller,
   FieldValues,
   Path,
-  RegisterOptions,
+  PathValue,
 } from "react-hook-form";
 
-interface InputProps<F extends FieldValues> {
-  control: Control<F>;
-  name: keyof F;
+interface Props<T extends FieldValues> {
+  control: Control<T>;
+  name: Path<T>;
   label: string;
+  rules?: object;
   type?: string;
-  disabled?: boolean;
   onChange?: (value: number) => void;
-  rules?: Omit<
-    RegisterOptions<F, Path<F>>,
-    "valueAsNumber" | "valueAsDate" | "setValueAs"
-  >;
+  disabled?: boolean;
 }
 
-export const Input = <F extends FieldValues>({
+export const Input = <T extends FieldValues>({
   control,
   name,
   label,
-  type = "text",
-  disabled = false,
-  onChange,
   rules,
-}: InputProps<F>) => {
+  type = "text",
+  onChange,
+  disabled,
+}: Props<T>) => {
   return (
     <Controller
-      name={name as Path<F>}
+      name={name}
       control={control}
+      defaultValue={"" as PathValue<T, Path<T>>}
       rules={rules}
       render={({ field, fieldState: { error } }) => (
         <TextField
           {...field}
           onChange={(e) => {
             field.onChange(e);
-            if (onChange && type === "number") {
-              onChange(parseFloat(e.target.value));
+            if (onChange) {
+              onChange(Number(e.target.value));
             }
           }}
+          fullWidth
           label={label}
           type={type}
-          disabled={disabled}
-          fullWidth
-          sx={{ mb: 1 }}
           error={!!error}
           helperText={error?.message}
+          disabled={disabled}
+          sx={{ mb: 1 }}
         />
       )}
     />
