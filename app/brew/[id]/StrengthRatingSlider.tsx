@@ -20,7 +20,7 @@ const marks = [
   { value: 5, label: "5" },
 ];
 
-export function StrengthRatingSlider({ control }: Props) {
+export const StrengthRatingSlider = ({ control }: Props) => {
   return (
     <Box sx={{ mt: 4, px: 2 }}>
       <FormControl fullWidth>
@@ -46,4 +46,4 @@ export function StrengthRatingSlider({ control }: Props) {
       </FormControl>
     </Box>
   );
-}
+};

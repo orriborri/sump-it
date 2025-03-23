@@ -1,4 +1,3 @@
-
 import { Pool } from "pg";
 import { Kysely, PostgresDialect } from "kysely";
 import type { DB } from "./db";

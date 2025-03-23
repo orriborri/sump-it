@@ -14,10 +14,10 @@ import {
 
 interface GenericSelectProps<T, F extends FieldValues> {
   control: Control<F>;
-  name: keyof F;
+  name: Path<F>;
   label: string;
   items: T[];
-  getKey: (item: T) => string | number;
+  getKey: (item: T) => number | string;
   getValue: (item: T) => string;
   getLabel: (item: T) => string;
 }
