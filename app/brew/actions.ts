@@ -14,6 +14,7 @@ export async function getPreviousBrewFeedback(
     .where("brews.bean_id", "=", beanId)
     .where("brews.method_id", "=", methodId)
     .select([
+      "brew_feedback.id",
       "brews.grind",
       "brews.ratio",
       "brew_feedback.too_strong",
@@ -22,7 +23,7 @@ export async function getPreviousBrewFeedback(
       "brew_feedback.is_bitter",
       "brew_feedback.overall_rating",
     ])
-    .orderBy("brews.created_at", "desc")
+    .orderBy("brew_feedback.overall_rating", "desc")
     .limit(5)
     .execute();
 }

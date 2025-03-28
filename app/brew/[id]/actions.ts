@@ -23,3 +23,25 @@ export const submitBrewFeedback = async (
   await db.insertInto("brew_feedback").values(feedbackData).execute();
   revalidatePath(`/brew/${brewId}`);
 };
+
+export const getRecentBrewFeedback = async () => {
+  return await db
+    .selectFrom("brew_feedback")
+    .innerJoin("brews", "brews.id", "brew_feedback.brew_id")
+    .select([
+      "brew_feedback.id as feedback_id",
+      "brews.id as brew_id",
+      "brews.grind",
+      "brews.ratio",
+      "brew_feedback.coffee_amount_ml",
+      "brew_feedback.too_strong",
+      "brew_feedback.too_weak",
+      "brew_feedback.is_sour",
+      "brew_feedback.is_bitter",
+      "brew_feedback.overall_rating",
+      "brew_feedback.created_at",
+    ])
+    .orderBy("brew_feedback.overall_rating", "desc")
+    .limit(3)
+    .execute();
+};

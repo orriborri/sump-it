@@ -22,6 +22,7 @@ export const BrewForm = ({ beans, methods, grinders }: Props) => {
   const [previousFeedback, setPreviousFeedback] = useState<PreviousFeedback[]>(
     []
   );
+  const [selectedFeedbackId, setSelectedFeedbackId] = useState<number | null>(null);
 
   const { control, handleSubmit, watch, setValue } = useForm<BrewFormData>({
     defaultValues: {
@@ -80,12 +81,18 @@ export const BrewForm = ({ beans, methods, grinders }: Props) => {
     if (feedback.ratio) {
       setValue("ratio", feedback.ratio);
     }
+    setSelectedFeedbackId(feedback.id);
   };
 
   return (
     <Box
       component="form"
       onSubmit={onSubmit}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+        }
+      }}
       sx={{ maxWidth: 599, margin: "0 auto", padding: 2 }}
     >
       <SelectionInputs
@@ -98,6 +105,7 @@ export const BrewForm = ({ beans, methods, grinders }: Props) => {
       <PreviousFeedbackList
         feedback={previousFeedback}
         onUseAsFeedback={handleUseAsFeedback}
+        selectedFeedbackId={selectedFeedbackId}
       />
 
       <RatioInputGroup

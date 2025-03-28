@@ -1,6 +1,5 @@
 import { Box, Button, Stack } from "@mui/material";
 import Link from "next/link";
-
 const Page = () => {
   return (
     <Box>
@@ -20,6 +19,14 @@ const Page = () => {
           color="secondary"
         >
           View Stats
+        </Button>
+        <Button
+          component={Link}
+          href="/manage"
+          variant="contained"
+          color="info"
+        >
+          Manage Items
         </Button>
       </Stack>
     </Box>

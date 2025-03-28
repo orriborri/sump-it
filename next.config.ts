@@ -1,11 +1,7 @@
-import type { NextConfig } from 'next'
+import { NextConfig } from "next";
 
-const nextConfig: NextConfig = {
-  experimental: {
-    turbo: {
-      // ...
-    },
-  },
-}
+const config: NextConfig = {
+  output: "standalone",
+};
 
-export default nextConfig
+export default config;
