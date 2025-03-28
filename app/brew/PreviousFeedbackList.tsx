@@ -4,9 +4,14 @@ import type { PreviousFeedback } from "./types";
 interface Props {
   feedback: PreviousFeedback[];
   onUseAsFeedback: (feedback: PreviousFeedback) => void;
+  selectedFeedbackId: number | null;
 }
 
-export const PreviousFeedbackList = ({ feedback, onUseAsFeedback }: Props) => {
+export const PreviousFeedbackList = ({
+  feedback,
+  onUseAsFeedback,
+  selectedFeedbackId,
+}: Props) => {
   if (feedback.length === 0) return null;
 
   return (
@@ -14,7 +19,7 @@ export const PreviousFeedbackList = ({ feedback, onUseAsFeedback }: Props) => {
       <Typography variant="subtitle1" gutterBottom>
         Previous Brews Feedback:
       </Typography>
-      {feedback.map((feedback, index) => (
+      {feedback.map((feedbackItem, index) => (
         <Box
           key={index}
           sx={{
@@ -22,28 +27,43 @@ export const PreviousFeedbackList = ({ feedback, onUseAsFeedback }: Props) => {
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
+            bgcolor:
+              selectedFeedbackId === feedbackItem.id
+                ? "action.selected"
+                : "transparent",
+            p: 1,
+            borderRadius: 1,
           }}
         >
           <Box>
             <Typography variant="body2" color="text.secondary">
-              Grind: {feedback.grind}
-              {feedback.ratio && ` - Ratio: ${feedback.ratio}`}
-              {feedback.too_strong && " - Too Strong"}
-              {feedback.too_weak && " - Too Weak"}
-              {feedback.is_sour && " - Sour - You should increase the grind"}
-              {feedback.is_bitter &&
+              Grind: {feedbackItem.grind}
+              {feedbackItem.ratio && ` - Ratio: ${feedbackItem.ratio}`}
+              {feedbackItem.too_strong && " - Too Strong"}
+              {feedbackItem.too_weak && " - Too Weak"}
+              {feedbackItem.is_sour &&
+                " - Sour - You should increase the grind"}
+              {feedbackItem.is_bitter &&
                 " - Bitter - You should decrease the grind"}
             </Typography>
-            {feedback.overall_rating !== null && (
-              <Rating value={feedback.overall_rating} readOnly size="small" />
+            {feedbackItem.overall_rating !== null && (
+              <Rating
+                value={feedbackItem.overall_rating}
+                readOnly
+                size="small"
+              />
             )}
           </Box>
           <Button
             size="small"
-            variant="outlined"
-            onClick={() => onUseAsFeedback(feedback)}
+            variant={
+              selectedFeedbackId === feedbackItem.id ? "contained" : "outlined"
+            }
+            onClick={() => onUseAsFeedback(feedbackItem)}
           >
-            Use as base
+            {selectedFeedbackId === feedbackItem.id
+              ? "Currently Using"
+              : "Use as base"}
           </Button>
         </Box>
       ))}

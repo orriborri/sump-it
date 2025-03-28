@@ -9,6 +9,7 @@ export interface BrewFormData {
 }
 
 export interface PreviousFeedback {
+  id: number;
   grind: number;
   ratio: number | null;
   too_strong: boolean;
