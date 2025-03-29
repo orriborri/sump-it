@@ -1,7 +1,16 @@
-'use client'
+"use client";
 
-import { createTheme } from '@mantine/core'
+import { createTheme as createMuiTheme } from "@mui/material/styles";
 
-export const theme = createTheme({
-  /* Put your mantine theme override here */
-})
+// Create a theme instance using MUI instead of Mantine
+export const theme = createMuiTheme({
+  // Your theme customizations can go here
+  palette: {
+    primary: {
+      main: "#1976d2",
+    },
+    secondary: {
+      main: "#dc004e",
+    },
+  },
+});
