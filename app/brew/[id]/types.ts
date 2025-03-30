@@ -1,6 +1,8 @@
 import { db } from "../../lib/database";
 import type { InferResult } from "kysely";
 
+// Query used only for type inference
+type FeedbackQueryResult = InferResult<typeof feedbackQuery>[0];
 const feedbackQuery = db
   .selectFrom("brew_feedback")
   .select([
@@ -13,7 +15,7 @@ const feedbackQuery = db
   ]);
 
 export type FeedbackFormData = Omit<
-  InferResult<typeof feedbackQuery>[0],
+  FeedbackQueryResult,
   "id" | "created_at" | "brew_id"
 >;
 
