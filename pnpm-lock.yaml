@@ -122,7 +122,7 @@ importers:
         version: 0.17.0(kysely@0.27.5)(mysql2@3.12.0)(pg@8.13.3)
       kysely-ctl:
         specifier: ^0.12.0
-        version: 0.12.0(kysely@0.27.5)
+        version: 0.12.1(kysely@0.27.5)
       tailwindcss:
         specifier: 4.0.9
         version: 4.0.9
@@ -165,6 +165,10 @@ packages:
 
   '@babel/runtime@7.26.9':
     resolution: {integrity: sha512-aA63XwOkcl4xxQa3HjPMqOP6LiK0ZDv3mUPYEFXkpHbaFjtGggE1A61FjFzJnB+p7/oy2gA8E+rcBNl/zC1tMg==}
+    engines: {node: '>=6.9.0'}
+
+  '@babel/runtime@7.27.0':
+    resolution: {integrity: sha512-VtPOkrdPHZsKc/clNqyi9WUA8TINkZ4cGk63UUE3u4pmB2k+ZMQRDuIOagv8UVd6j7k0T3+RRIb7beKTebNbcw==}
     engines: {node: '>=6.9.0'}
 
   '@babel/template@7.26.9':
@@ -1122,6 +1126,11 @@ packages:
     engines: {node: '>=0.4.0'}
     hasBin: true
 
+  acorn@8.14.1:
+    resolution: {integrity: sha512-OvQ/2pUDKmgfCg++xsTX1wGxfTaszcHVcTctW4UJB4hibJx2HXxxO5UmVgyjMa+ZDsiaf5wWLXYpRWMmBI0QHg==}
+    engines: {node: '>=0.4.0'}
+    hasBin: true
+
   ajv@6.12.6:
     resolution: {integrity: sha512-j3fVLgvTo527anyYyJOGTYJbG+vnnQYvE0m5mmkc1TK+nxAppkCLMIL0aZ4dblVCNoGShhm+kzE4ZUykBoMg4g==}
 
@@ -1347,8 +1356,8 @@ packages:
   confbox@0.1.8:
     resolution: {integrity: sha512-RMtmw0iFkeR4YV+fUOSucriAQNb9g8zFR52MWCtl+cCZOFRNL6zeB395vPzFhEjjn4fMxXudmELnl/KF/WrK6w==}
 
-  consola@3.4.0:
-    resolution: {integrity: sha512-EiPU8G6dQG0GFHNR8ljnZFki/8a+cQwEQ+7wpxdChl02Q8HXlwEZWD5lqAF8vC2sEC3Tehr8hy7vErz88LHyUA==}
+  consola@3.4.2:
+    resolution: {integrity: sha512-5IKcdX0nnYavi6G7TtOhwkYzyjfJlatbjMjuLSfE2kYT5pMDOilZ4OvMhi637CcDICTmz3wARPoyhqyX1Y+XvA==}
     engines: {node: ^14.18.0 || >=16.10.0}
 
   convert-source-map@1.9.0:
@@ -2098,8 +2107,8 @@ packages:
       tedious:
         optional: true
 
-  kysely-ctl@0.12.0:
-    resolution: {integrity: sha512-V9/TsM9OkJr4K/MlkJYaduhS0Ct2wEZ0eSpjIW6Oenz3TREqrDvONJygzPqJJthVfIyCp8WEtzaovREwa9k4ag==}
+  kysely-ctl@0.12.1:
+    resolution: {integrity: sha512-WfXt/+lB3Vqhdy7osq1ghe2ZMUtIj/Qizu+H5ewdCWLLB4CYJcGt//yBvInlOVw44wvjvHHnXx3L+44t3OXJNg==}
     engines: {node: '>=18'}
     hasBin: true
     peerDependencies:
@@ -2314,8 +2323,8 @@ packages:
   ofetch@1.4.1:
     resolution: {integrity: sha512-QZj2DfGplQAr2oj9KzceK9Hwz6Whxazmn85yYeVuS3u9XTMOGMRx0kO95MQ+vLsj/S/NwBDMMLU5hpxvI6Tklw==}
 
-  ohash@2.0.9:
-    resolution: {integrity: sha512-ljz2sybhXrRpBW9LleuJPP9uxbMKW8qxFz9lLOHW2QEel78rJ1sUgaX2cBNDt49w+JleNSkhYkVOCx6RgkKn0Q==}
+  ohash@2.0.11:
+    resolution: {integrity: sha512-RdR9FQrFwNBNXAr4GixM8YaRZRJ5PUWbKYbE5eOsrwAjJW0q2REGcf79oYPsLyskQCZG1PLN+S/K1V00joZAoQ==}
 
   once@1.4.0:
     resolution: {integrity: sha512-lNaJgI+2Q5URQBkccEKHTQOPaXdUxnZZElQTZY0MFUAuaEqe1E+Nyvgdz/aIyNi6Z9MzO5dv1H8n58/GELp3+w==}
@@ -2720,6 +2729,9 @@ packages:
   std-env@3.8.0:
     resolution: {integrity: sha512-Bc3YwwCB+OzldMxOXJIIvC6cPRWr/LxOp48CdQTOkPyk/t4JWWJbrilwBd7RJzKV8QW7tJkcgAmeuLLJugl5/w==}
 
+  std-env@3.8.1:
+    resolution: {integrity: sha512-vj5lIj3Mwf9D79hBkltk5qmkFI+biIKWS2IBxEyEU3AX1tUf7AoL8nSazCOiiqQsGKIq01SClsKEzweu34uwvA==}
+
   stream-combiner@0.2.2:
     resolution: {integrity: sha512-6yHMqgLYDzQDcAkL+tjJDC5nSNuNIx0vZtRZeiPh7Saef7VHX9H5Ijn9l2VIol2zaNYlYEX6KyuT/237A58qEQ==}
 
@@ -3074,6 +3086,10 @@ snapshots:
       '@babel/types': 7.26.9
 
   '@babel/runtime@7.26.9':
+    dependencies:
+      regenerator-runtime: 0.14.1
+
+  '@babel/runtime@7.27.0':
     dependencies:
       regenerator-runtime: 0.14.1
 
@@ -3728,7 +3744,7 @@ snapshots:
   '@testing-library/dom@10.4.0':
     dependencies:
       '@babel/code-frame': 7.26.2
-      '@babel/runtime': 7.26.9
+      '@babel/runtime': 7.27.0
       '@types/aria-query': 5.0.4
       aria-query: 5.3.0
       chalk: 4.1.2
@@ -3952,6 +3968,8 @@ snapshots:
 
   acorn@8.14.0: {}
 
+  acorn@8.14.1: {}
+
   ajv@6.12.6:
     dependencies:
       fast-deep-equal: 3.1.3
@@ -4118,7 +4136,7 @@ snapshots:
       giget: 1.2.5
       jiti: 2.4.2
       mlly: 1.7.4
-      ohash: 2.0.9
+      ohash: 2.0.11
       pathe: 2.0.3
       perfect-debounce: 1.0.0
       pkg-types: 1.3.1
@@ -4178,7 +4196,7 @@ snapshots:
 
   citty@0.1.6:
     dependencies:
-      consola: 3.4.0
+      consola: 3.4.2
 
   client-only@0.0.1: {}
 
@@ -4212,7 +4230,7 @@ snapshots:
 
   confbox@0.1.8: {}
 
-  consola@3.4.0: {}
+  consola@3.4.2: {}
 
   convert-source-map@1.9.0: {}
 
@@ -4805,7 +4823,7 @@ snapshots:
   giget@1.2.5:
     dependencies:
       citty: 0.1.6
-      consola: 3.4.0
+      consola: 3.4.2
       defu: 6.1.4
       node-fetch-native: 1.6.6
       nypm: 0.5.4
@@ -5134,18 +5152,18 @@ snapshots:
       mysql2: 3.12.0
       pg: 8.13.3
 
-  kysely-ctl@0.12.0(kysely@0.27.5):
+  kysely-ctl@0.12.1(kysely@0.27.5):
     dependencies:
       c12: 2.0.4
       citty: 0.1.6
-      consola: 3.4.0
+      consola: 3.4.2
       jiti: 2.4.2
       kysely: 0.27.5
       nypm: 0.5.4
       ofetch: 1.4.1
       pathe: 2.0.3
       pkg-types: 1.3.1
-      std-env: 3.8.0
+      std-env: 3.8.1
     transitivePeerDependencies:
       - magicast
 
@@ -5232,7 +5250,7 @@ snapshots:
 
   mlly@1.7.4:
     dependencies:
-      acorn: 8.14.0
+      acorn: 8.14.1
       pathe: 2.0.3
       pkg-types: 1.3.1
       ufo: 1.5.4
@@ -5295,7 +5313,7 @@ snapshots:
   nypm@0.5.4:
     dependencies:
       citty: 0.1.6
-      consola: 3.4.0
+      consola: 3.4.2
       pathe: 2.0.3
       pkg-types: 1.3.1
       tinyexec: 0.3.2
@@ -5350,7 +5368,7 @@ snapshots:
       node-fetch-native: 1.6.6
       ufo: 1.5.4
 
-  ohash@2.0.9: {}
+  ohash@2.0.11: {}
 
   once@1.4.0:
     dependencies:
@@ -5802,6 +5820,8 @@ snapshots:
   stackback@0.0.2: {}
 
   std-env@3.8.0: {}
+
+  std-env@3.8.1: {}
 
   stream-combiner@0.2.2:
     dependencies:
