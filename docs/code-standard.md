@@ -109,6 +109,73 @@ interface Props {
 - Use server actions for data mutations
 - Implement proper loading and error states
 
+### Material UI Implementation
+
+- Use Material UI components as building blocks for interfaces
+- Follow Material Design principles for consistency and usability
+- Customize components using theme.ts for project-wide styling
+- Leverage the sx prop for component-specific styling
+- Use theme tokens for colors, spacing, and typography
+- Create custom component variants through the theme when needed
+- Avoid direct CSS when MUI styling options are available
+- Maintain accessibility when customizing MUI components
+
+#### Material UI v7 Grid System
+
+- Use the new Material UI v7 Grid component with the `size` prop:
+  - `<Grid size={12}>` for full width (all 12 columns)
+  - `<Grid size={6}>` for half width (6 of 12 columns)
+  - `<Grid size={4}>` for one-third width (4 of 12 columns)
+- For responsive layouts, use the appropriate breakpoint props:
+  - `<Grid size={{xs: 12, sm: 6, md: 4}}>`
+- Use `Grid container` for parent grid elements with appropriate spacing:
+  - `<Grid container spacing={2}>`
+- Do not use the deprecated `item` and standalone `xs/sm/md/lg` props from MUI v5
+
+Example of proper Material UI v7 Grid implementation:
+
+```tsx
+import { Grid, Typography } from "@mui/material";
+
+const GridExample = () => {
+  return (
+    <Grid container spacing={2}>
+      <Grid size={12}>
+        <Typography variant="h4">Full Width</Typography>
+      </Grid>
+      <Grid size={6}>
+        <Typography>Half Width</Typography>
+      </Grid>
+      <Grid size={6}>
+        <Typography>Half Width</Typography>
+      </Grid>
+      <Grid size={{xs: 12, sm: 6, md: 4}}>
+        <Typography>Responsive Width</Typography>
+      </Grid>
+    </Grid>
+  );
+};
+```
+
+Example of proper Material UI implementation:
+
+```tsx
+import { Box, Button, Typography } from "@mui/material";
+
+const Component = () => {
+  return (
+    <Box sx={{ p: 2, bgcolor: "background.paper" }}>
+      <Typography variant="h4" gutterBottom>
+        Title
+      </Typography>
+      <Button variant="contained" color="primary" sx={{ mt: 2 }}>
+        Action
+      </Button>
+    </Box>
+  );
+};
+```
+
 ### Database Operations
 
 - Keep database queries in server-side code only
@@ -140,9 +207,20 @@ interface Props {
    - Use proper data fetching patterns
 
 4. **Accessibility**
+
    - Include proper ARIA attributes
    - Ensure keyboard navigation
    - Maintain proper heading hierarchy
+
+5. **Material UI Best Practices**
+   - Use theme spacing consistently (theme.spacing(1) = 8px)
+   - Use MUI's breakpoints for responsive design
+   - Extend theme types for custom properties
+   - Prefer MUI's Grid and Box for layout instead of custom CSS
+   - Use Stack component for one-dimensional layouts
+   - Leverage theme.palette for consistent color usage
+   - For Grid components, always use the new `size` prop pattern
+   - Use the `Paper` component for card-like containers with elevation
 
 ## Version Control
 

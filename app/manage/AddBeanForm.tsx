@@ -13,6 +13,7 @@ export const AddBeanForm = () => {
       await addBean(data);
       reset();
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error("Failed to add bean:", error);
     }
   };

@@ -10,17 +10,16 @@ import {
   Checkbox,
   FormGroup,
   Rating,
-  Divider,
-  Grid,
   Chip,
   Card,
   CardContent,
+  Grid,
 } from "@mui/material";
 import { useForm, Controller } from "react-hook-form";
+import { format } from "date-fns";
 import { Input } from "@/app/common/Input";
 import type { FeedbackFormData, RecentBrewFeedback } from "./types";
 import { submitBrewFeedback } from "./actions";
-import { format } from "date-fns";
 
 interface Props {
   brewId: number;
@@ -43,8 +42,6 @@ export const BrewFeedbackForm = ({ brewId, recentFeedback }: Props) => {
     reset();
   });
 
-  
-
   return (
     <Stack spacing={4} sx={{ maxWidth: 600, mx: "auto" }}>
       {recentFeedback.length > 0 && (
@@ -57,17 +54,17 @@ export const BrewFeedbackForm = ({ brewId, recentFeedback }: Props) => {
               <Card key={feedback.feedback_id} variant="outlined">
                 <CardContent>
                   <Grid container spacing={2}>
-                    <Grid item xs={12}>
+                    <Grid size={12}>
                       <Typography variant="subtitle2" color="text.secondary">
                         {format(new Date(feedback.created_at), "MMM d, yyyy")}
                       </Typography>
                     </Grid>
-                    <Grid item xs={6}>
+                    <Grid size={6}>
                       <Typography variant="body2">
                         Grind: {feedback.grind ?? "Not specified"}
                       </Typography>
                     </Grid>
-                    <Grid item xs={6}>
+                    <Grid size={6}>
                       <Typography variant="body2">
                         Ratio:{" "}
                         {feedback.ratio
@@ -76,13 +73,13 @@ export const BrewFeedbackForm = ({ brewId, recentFeedback }: Props) => {
                       </Typography>
                     </Grid>
                     {feedback.coffee_amount_ml && (
-                      <Grid item xs={12}>
+                      <Grid size={12}>
                         <Typography variant="body2">
                           Coffee amount: {feedback.coffee_amount_ml} ml
                         </Typography>
                       </Grid>
                     )}
-                    <Grid item xs={12}>
+                    <Grid size={12}>
                       <Stack direction="row" spacing={1}>
                         {feedback.too_strong && (
                           <Chip
@@ -102,7 +99,7 @@ export const BrewFeedbackForm = ({ brewId, recentFeedback }: Props) => {
                         )}
                       </Stack>
                     </Grid>
-                    <Grid item xs={12}>
+                    <Grid size={12}>
                       <Typography component="span" variant="body2">
                         Rating:
                       </Typography>{" "}
@@ -200,9 +197,7 @@ export const BrewFeedbackForm = ({ brewId, recentFeedback }: Props) => {
                 render={({ field: { value, onChange } }) => (
                   <Rating
                     value={value ?? null}
-                    onChange={(_, newValue) => {
-                      onChange(newValue);
-                    }}
+                    onChange={(_, newValue) => onChange(newValue)}
                     precision={1}
                     size="large"
                   />

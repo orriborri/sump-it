@@ -1,5 +1,4 @@
-
-'use client'
+"use client";
 import { Box, Button } from "@mui/material";
 import { useForm } from "react-hook-form";
 import { Input } from "../common/Input";
@@ -13,6 +12,7 @@ export const AddGrinderForm = () => {
       await addGrinder(data);
       reset();
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error("Failed to add grinder:", error);
     }
   };
