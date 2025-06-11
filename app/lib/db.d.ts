@@ -19,28 +19,10 @@ export interface Beans {
   rostery: string | null;
 }
 
-export interface BrewFeedback {
-  brew_id: number;
-  coffee_amount_ml: number | null;
-  created_at: Generated<Timestamp>;
-  id: Generated<number>;
-  is_bitter: Generated<boolean>;
-  is_sour: Generated<boolean>;
-  overall_rating: number | null;
-  too_strong: Generated<boolean>;
-  too_weak: Generated<boolean>;
-}
-
 export interface Brews {
   bean_id: number | null;
-  created_at: Generated<Timestamp>;
-  dose: number | null;
-  grind: number | null;
-  grinder_id: number | null;
   id: Generated<number>;
   method_id: number | null;
-  ratio: number | null;
-  water: number | null;
 }
 
 export interface Grinders {
@@ -57,7 +39,6 @@ export interface Methods {
 
 export interface DB {
   beans: Beans;
-  brew_feedback: BrewFeedback;
   brews: Brews;
   grinders: Grinders;
   methods: Methods;

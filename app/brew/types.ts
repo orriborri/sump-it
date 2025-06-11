@@ -1,26 +1,21 @@
-export interface BrewFormData {
-  bean_id: number;
-  method_id: number;
-  grinder_id: number;
-  grind: number;
+import { SelectChangeEvent } from '@mui/material';
+
+export interface FormData {
+  bean_id: string;
+  method_id: string;
+  grinder_id: string;
   water: number;
   dose: number;
   ratio: number;
-}
-
-export interface PreviousFeedback {
-  id: number;
   grind: number;
-  ratio: number | null;
-  too_strong: boolean;
-  too_weak: boolean;
-  is_sour: boolean;
-  is_bitter: boolean;
-  overall_rating: number | null;
 }
 
-export interface FeedbackFormData {
-  coffee_amount_ml?: number;
-  strength_rating: number;
-  taste_balance: number;
+export interface StepProps {
+  currentStep: number;
+  formData: FormData;
+  handleChange: (e: React.ChangeEvent<HTMLInputElement> | SelectChangeEvent) => void;
+  nextStep: () => void;
+  prevStep: () => void;
+  isLastStep: boolean;
+  setFormData: (data: FormData) => void;
 }
