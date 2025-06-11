@@ -1,222 +1,90 @@
 "use client";
-
+"use client";
 import {
   Box,
   Typography,
-  Button,
-  Paper,
-  Stack,
-  FormControlLabel,
-  Checkbox,
-  FormGroup,
-  Rating,
-  Chip,
-  Card,
-  CardContent,
-  Grid,
+  ToggleButton,
+  ToggleButtonGroup,
 } from "@mui/material";
-import { useForm, Controller } from "react-hook-form";
-import { format } from "date-fns";
-import { Input } from "@/app/common/Input";
-import type { FeedbackFormData, RecentBrewFeedback } from "./types";
-import { submitBrewFeedback } from "./actions";
+import { Controller } from "react-hook-form";
 
-interface Props {
-  brewId: number;
-  recentFeedback: RecentBrewFeedback[];
-}
-
-export const BrewFeedbackForm = ({ brewId, recentFeedback }: Props) => {
-  const { control, handleSubmit, reset } = useForm<FeedbackFormData>({
-    defaultValues: {
-      too_strong: false,
-      too_weak: false,
-      is_sour: false,
-      is_bitter: false,
-      overall_rating: null,
-    },
-  });
-
-  const onSubmit = handleSubmit(async (data) => {
-    await submitBrewFeedback(brewId, data);
-    reset();
-  });
-
-  return (
-    <Stack spacing={4} sx={{ maxWidth: 600, mx: "auto" }}>
-      {recentFeedback.length > 0 && (
-        <Paper elevation={2} sx={{ p: 3 }}>
-          <Typography variant="h5" component="h2" gutterBottom>
-            Recent Brews
-          </Typography>
-          <Stack spacing={2}>
-            {recentFeedback.map((feedback) => (
-              <Card key={feedback.feedback_id} variant="outlined">
-                <CardContent>
-                  <Grid container spacing={2}>
-                    <Grid size={12}>
-                      <Typography variant="subtitle2" color="text.secondary">
-                        {format(new Date(feedback.created_at), "MMM d, yyyy")}
-                      </Typography>
-                    </Grid>
-                    <Grid size={6}>
-                      <Typography variant="body2">
-                        Grind: {feedback.grind ?? "Not specified"}
-                      </Typography>
-                    </Grid>
-                    <Grid size={6}>
-                      <Typography variant="body2">
-                        Ratio:{" "}
-                        {feedback.ratio
-                          ? `${feedback.ratio}:1`
-                          : "Not specified"}
-                      </Typography>
-                    </Grid>
-                    {feedback.coffee_amount_ml && (
-                      <Grid size={12}>
-                        <Typography variant="body2">
-                          Coffee amount: {feedback.coffee_amount_ml} ml
-                        </Typography>
-                      </Grid>
-                    )}
-                    <Grid size={12}>
-                      <Stack direction="row" spacing={1}>
-                        {feedback.too_strong && (
-                          <Chip
-                            size="small"
-                            label="Too Strong"
-                            color="warning"
-                          />
-                        )}
-                        {feedback.too_weak && (
-                          <Chip size="small" label="Too Weak" color="warning" />
-                        )}
-                        {feedback.is_sour && (
-                          <Chip size="small" label="Sour" color="error" />
-                        )}
-                        {feedback.is_bitter && (
-                          <Chip size="small" label="Bitter" color="error" />
-                        )}
-                      </Stack>
-                    </Grid>
-                    <Grid size={12}>
-                      <Typography component="span" variant="body2">
-                        Rating:
-                      </Typography>{" "}
-                      <Rating
-                        value={feedback.overall_rating ?? 0}
-                        readOnly
-                        size="small"
-                      />
-                    </Grid>
-                  </Grid>
-                </CardContent>
-              </Card>
-            ))}
-          </Stack>
-        </Paper>
+const FeedbackScale = ({
+  name,
+  label,
+  control,
+  options,
+}: {
+  name: "sourness" | "bitterness" | "strength";
+  label: string;
+  control: any;
+  options: { value: number; label: string }[];
+}) => (
+  <Box>
+    <Typography gutterBottom>{label}</Typography>
+    <Controller
+      control={control}
+      name={name}
+      defaultValue={options[Math.floor(options.length / 2)].value}
+      render={({ field }) => (
+        <ToggleButtonGroup
+          exclusive
+          value={field.value}
+          onChange={(_, val) => val !== null && field.onChange(val)}
+          size="small"
+          color="primary"
+        >
+          {options.map((opt) => (
+            <ToggleButton key={opt.value} value={opt.value}>
+              {opt.label}
+            </ToggleButton>
+          ))}
+        </ToggleButtonGroup>
       )}
+    />
+  </Box>
+);
 
-      <Paper elevation={2} sx={{ p: 3 }}>
-        <Box component="form" onSubmit={onSubmit}>
-          <Typography variant="h5" component="h2" gutterBottom>
-            Brew Feedback
-          </Typography>
+export const BrewFeedbackStep = ({ control }: { control: any }) => {
+  return (
+    <Box display="flex" flexDirection="column" gap={4}>
+      <Typography variant="h6" fontWeight={600}>
+        Brew Feedback
+      </Typography>
 
-          <Stack spacing={3} sx={{ mt: 3 }}>
-            <Input
-              control={control}
-              name="coffee_amount_ml"
-              label="How much coffee did you get? (ml)"
-              type="number"
-              rules={{
-                min: { value: 0, message: "Must be positive" },
-                max: { value: 1000, message: "Must be less than 1000" },
-              }}
-            />
+      <FeedbackScale
+        name="sourness"
+        label="Sourness"
+        control={control}
+        options={[
+          { value: 1, label: "Not sour" },
+          { value: 2, label: "Slightly sour" },
+          { value: 3, label: "Too sour" },
+        ]}
+      />
 
-            <FormGroup>
-              <Typography variant="subtitle1" gutterBottom>
-                How was the strength?
-              </Typography>
-              <Controller
-                name="too_strong"
-                control={control}
-                render={({ field: { value, onChange } }) => (
-                  <FormControlLabel
-                    control={<Checkbox checked={value} onChange={onChange} />}
-                    label="Too Strong"
-                  />
-                )}
-              />
-              <Controller
-                name="too_weak"
-                control={control}
-                render={({ field: { value, onChange } }) => (
-                  <FormControlLabel
-                    control={<Checkbox checked={value} onChange={onChange} />}
-                    label="Too Weak"
-                  />
-                )}
-              />
-            </FormGroup>
+      <FeedbackScale
+        name="bitterness"
+        label="Bitterness"
+        control={control}
+        options={[
+          { value: 1, label: "Not bitter" },
+          { value: 2, label: "Slightly bitter" },
+          { value: 3, label: "Too bitter" },
+        ]}
+      />
 
-            <FormGroup>
-              <Typography variant="subtitle1" gutterBottom>
-                How was the taste?
-              </Typography>
-              <Controller
-                name="is_sour"
-                control={control}
-                render={({ field: { value, onChange } }) => (
-                  <FormControlLabel
-                    control={<Checkbox checked={value} onChange={onChange} />}
-                    label="Sour"
-                  />
-                )}
-              />
-              <Controller
-                name="is_bitter"
-                control={control}
-                render={({ field: { value, onChange } }) => (
-                  <FormControlLabel
-                    control={<Checkbox checked={value} onChange={onChange} />}
-                    label="Bitter"
-                  />
-                )}
-              />
-            </FormGroup>
-
-            <Box>
-              <Typography variant="subtitle1" gutterBottom>
-                Overall Rating
-              </Typography>
-              <Controller
-                name="overall_rating"
-                control={control}
-                render={({ field: { value, onChange } }) => (
-                  <Rating
-                    value={value ?? null}
-                    onChange={(_, newValue) => onChange(newValue)}
-                    precision={1}
-                    size="large"
-                  />
-                )}
-              />
-            </Box>
-          </Stack>
-
-          <Button
-            type="submit"
-            variant="contained"
-            color="primary"
-            fullWidth
-            sx={{ mt: 3 }}
-          >
-            Submit Feedback
-          </Button>
-        </Box>
-      </Paper>
-    </Stack>
+      <FeedbackScale
+        name="strength"
+        label="Strength"
+        control={control}
+        options={[
+          { value: 1, label: "Very weak" },
+          { value: 2, label: "Mild" },
+          { value: 3, label: "Medium" },
+          { value: 4, label: "Strong" },
+          { value: 5, label: "Very strong" },
+        ]}
+      />
+    </Box>
   );
 };
