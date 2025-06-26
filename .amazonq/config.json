@@ -1,0 +1,10 @@
+{
+  "version": "1.0",
+  "exclude": [
+    "node_modules/**",
+    ".next/**",
+    "**/*.log",
+    "**/*.lock",
+    "**.tsbuildinfo"
+  ]
+}

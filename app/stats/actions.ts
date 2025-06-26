@@ -1,9 +1,15 @@
 "use server";
 
 import { db } from "../lib/database";
+import { BrewsModel } from "../lib/generated-models";
 import { revalidatePath } from "next/cache";
 
+// Initialize models
+const brewsModel = new BrewsModel(db);
+
 export async function getBrews() {
+  // For complex joins, we still use direct Kysely queries
+  // This is appropriate since it's a complex reporting query
   return await db
     .selectFrom("brews")
     .leftJoin("beans", "beans.id", "brews.bean_id")
@@ -31,6 +37,7 @@ export async function getBrews() {
 }
 
 export async function deleteBrew(id: number) {
-  await db.deleteFrom("brews").where("brews.id", "=", id).execute();
+  // Use the generated model for simple operations
+  await brewsModel.deleteById(id);
   revalidatePath("/stats");
 }

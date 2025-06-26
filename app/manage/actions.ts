@@ -1,6 +1,7 @@
 "use server";
 
 import { db } from "../lib/database";
+import { BeansModel, MethodsModel, GrindersModel } from "../lib/generated-models";
 
 export interface BeanFormData {
   name: string;
@@ -16,27 +17,32 @@ export interface GrinderFormData {
   name: string;
 }
 
+// Initialize models
+const beansModel = new BeansModel(db);
+const methodsModel = new MethodsModel(db);
+const grindersModel = new GrindersModel(db);
+
 export async function addBean(data: BeanFormData) {
-  return await db.insertInto("beans").values(data).execute();
+  return await beansModel.create(data);
 }
 
 export async function addMethod(data: MethodFormData) {
-  return await db.insertInto("methods").values(data).execute();
+  return await methodsModel.create(data);
 }
 
 export async function addGrinder(data: GrinderFormData) {
-  return await db.insertInto("grinders").values(data).execute();
+  return await grindersModel.create(data);
 }
 
 // Actions to get existing items for validation
 export async function getBeans() {
-  return await db.selectFrom("beans").selectAll().execute();
+  return await beansModel.findAll();
 }
 
 export async function getMethods() {
-  return await db.selectFrom("methods").selectAll().execute();
+  return await methodsModel.findAll();
 }
 
 export async function getGrinders() {
-  return await db.selectFrom("grinders").selectAll().execute();
+  return await grindersModel.findAll();
 }

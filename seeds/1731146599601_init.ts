@@ -7,7 +7,12 @@ export async function seed(db: Kysely<DB>): Promise<void> {
 	}).execute()
 	
 	await db.insertInto('grinders').values({
-		id: 1, name: "testGrinder"
+		id: 1, 
+		name: "testGrinder",
+		min_setting: 1,
+		max_setting: 40,
+		step_size: 1.0,
+		setting_type: 'numeric'
 	}).execute()
 	
 	await db.insertInto('methods').values({
