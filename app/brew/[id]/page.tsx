@@ -1,128 +1,78 @@
-"use client";
-import { useState, useEffect } from "react";
-import { Box, Typography, CircularProgress } from "@mui/material";
-import { useParams, useRouter } from "next/navigation";
-import { BrewFeedback } from "../BrewFeedback";
+import { db } from "../../lib/database";
+import { BrewsModel, BeansModel, MethodsModel, GrindersModel } from "../../lib/generated-models";
+import { Box, Typography, Alert } from "@mui/material";
+import { SharedBrewFeedback } from "./SharedBrewFeedback";
+import { notFound } from "next/navigation";
 
-// This would normally come from your database
-const fetchBrew = async (id: string) => {
-  // Simulate API call
-  await new Promise(resolve => setTimeout(resolve, 500));
-  
-  // Return mock data
-  return {
-    id: parseInt(id),
-    bean_id: 1,
-    method_id: 1,
-    grinder_id: 1,
-    water: 250,
-    dose: 15,
-    grind: 20,
-    ratio: 16.7,
-    created_at: new Date().toISOString()
-  };
-};
-
-// This would normally come from your database
-const fetchPreviousFeedback = async (beanId: number, methodId: number) => {
-  // Simulate API call
-  await new Promise(resolve => setTimeout(resolve, 300));
-  
-  // Return mock data
-  return [
-    {
-      brew_id: 123,
-      grind: 18,
-      ratio: 16,
-      too_strong: false,
-      too_weak: true,
-      is_sour: true,
-      is_bitter: false,
-      overall_rating: 3,
-      notes: "A bit sour and weak"
-    },
-    {
-      brew_id: 122,
-      grind: 16,
-      ratio: 15,
-      too_strong: true,
-      too_weak: false,
-      is_sour: false,
-      is_bitter: true,
-      overall_rating: 2.5,
-      notes: "Too bitter and strong"
-    }
-  ];
-};
-
-// This would normally save to your database
-const saveFeedback = async (feedback: any) => {
-  // Simulate API call
-  await new Promise(resolve => setTimeout(resolve, 500));
-  console.log("Saving feedback:", feedback);
-  return true;
-};
-
-export default function BrewPage() {
-  const params = useParams();
-  const router = useRouter();
-  const [brew, setBrew] = useState<any>(null);
-  const [previousFeedback, setPreviousFeedback] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [feedbackSaved, setFeedbackSaved] = useState(false);
-  
-  useEffect(() => {
-    const loadData = async () => {
-      if (params.id) {
-        const brewData = await fetchBrew(params.id as string);
-        setBrew(brewData);
-        
-        const feedback = await fetchPreviousFeedback(brewData.bean_id, brewData.method_id);
-        setPreviousFeedback(feedback);
-        
-        setLoading(false);
-      }
-    };
-    
-    loadData();
-  }, [params.id]);
-  
-  const handleSaveFeedback = async (feedback: any) => {
-    await saveFeedback(feedback);
-    setFeedbackSaved(true);
-    
-    // Redirect to stats page after a short delay
-    setTimeout(() => {
-      router.push('/stats');
-    }, 2000);
-  };
-  
-  if (loading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
-        <CircularProgress />
-      </Box>
-    );
-  }
-  
-  if (feedbackSaved) {
-    return (
-      <Box sx={{ maxWidth: 600, margin: '0 auto', mt: 4, textAlign: 'center' }}>
-        <Typography variant="h4" gutterBottom>
-          Feedback Saved!
-        </Typography>
-        <Typography>
-          Your brew feedback has been saved. Redirecting to stats...
-        </Typography>
-      </Box>
-    );
-  }
-  
-  return (
-    <BrewFeedback 
-      brewData={brew} 
-      onSaveFeedback={handleSaveFeedback}
-      previousFeedback={previousFeedback}
-    />
-  );
+interface PageProps {
+  params: Promise<{
+    id: string;
+  }>;
 }
+
+const SharedBrewPage = async ({ params }: PageProps) => {
+  const { id } = await params;
+  const brewId = parseInt(id);
+  
+  if (isNaN(brewId)) {
+    notFound();
+  }
+
+  // Initialize models
+  const brewsModel = new BrewsModel(db);
+  const beansModel = new BeansModel(db);
+  const methodsModel = new MethodsModel(db);
+  const grindersModel = new GrindersModel(db);
+
+  try {
+    // Get brew details
+    const brew = await brewsModel.findById(brewId);
+    
+    if (!brew) {
+      notFound();
+    }
+
+    // Get related data
+    const [bean, method, grinder] = await Promise.all([
+      brew.bean_id ? beansModel.findById(brew.bean_id) : null,
+      brew.method_id ? methodsModel.findById(brew.method_id) : null,
+      brew.grinder_id ? grindersModel.findById(brew.grinder_id) : null,
+    ]);
+
+    const brewDetails = {
+      ...brew,
+      bean_name: bean?.name || "Unknown Bean",
+      method_name: method?.name || "Unknown Method",
+      grinder_name: grinder?.name || "Unknown Grinder",
+      created_at: brew.created_at.toISOString(),
+    };
+
+    return (
+      <Box>
+        <Typography variant="h4" component="h1" gutterBottom>
+          Shared Brew Feedback
+        </Typography>
+        
+        <Alert severity="info" sx={{ mb: 3 }}>
+          Someone shared their coffee brew with you! Help them improve by providing feedback.
+        </Alert>
+
+        <SharedBrewFeedback brewDetails={brewDetails} />
+      </Box>
+    );
+  } catch (error) {
+    console.error("Error loading brew details:", error);
+    return (
+      <Box>
+        <Typography variant="h4" component="h1" gutterBottom>
+          Error Loading Brew
+        </Typography>
+        <Alert severity="error">
+          Sorry, we couldn&apos;t load the brew details. Please check the link and try again.
+        </Alert>
+      </Box>
+    );
+  }
+};
+
+export default SharedBrewPage;

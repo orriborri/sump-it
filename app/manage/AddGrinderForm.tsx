@@ -1,33 +1,87 @@
 "use client";
-import { Box, Button } from "@mui/material";
-import { useForm } from "react-hook-form";
-import { Input } from "../common/Input";
-import { GrinderFormData, addGrinder } from "./actions";
+import { Box, Button, TextField, Stack, Alert } from "@mui/material";
+import { useState } from "react";
+import { createGrinder } from "./grinders/actions";
+
+interface SimpleGrinderData {
+  name: string;
+}
 
 export const AddGrinderForm = () => {
-  const { control, handleSubmit, reset } = useForm<GrinderFormData>();
+  const [name, setName] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
-  const onSubmit = async (data: GrinderFormData) => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!name.trim()) {
+      setMessage({ type: 'error', text: 'Grinder name is required' });
+      return;
+    }
+
+    setIsSubmitting(true);
+    setMessage(null);
+
     try {
-      await addGrinder(data);
-      reset();
+      await createGrinder({
+        name: name.trim(),
+        min_setting: 1,
+        max_setting: 40,
+        step_size: 1.0,
+        setting_type: 'numeric'
+      });
+      
+      setName("");
+      setMessage({ type: 'success', text: 'Grinder added successfully!' });
     } catch (error) {
-      // eslint-disable-next-line no-console
+      setMessage({ type: 'error', text: 'Failed to add grinder' });
       console.error("Failed to add grinder:", error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <Box component="form" onSubmit={handleSubmit(onSubmit)}>
-      <Input
-        control={control}
-        name="name"
-        label="Grinder Name"
-        rules={{ required: "Grinder name is required" }}
-      />
-      <Button type="submit" variant="contained" color="primary">
-        Add Grinder
-      </Button>
+    <Box component="form" onSubmit={handleSubmit}>
+      <Stack spacing={2}>
+        {message && (
+          <Alert severity={message.type}>
+            {message.text}
+          </Alert>
+        )}
+        
+        <TextField
+          label="Grinder Name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          required
+          fullWidth
+          placeholder="e.g., Baratza Encore"
+          disabled={isSubmitting}
+        />
+        
+        <Button 
+          type="submit" 
+          variant="contained" 
+          color="primary"
+          disabled={isSubmitting}
+          fullWidth
+        >
+          {isSubmitting ? 'Adding...' : 'Add Grinder'}
+        </Button>
+        
+        <Box sx={{ textAlign: 'center' }}>
+          <Button
+            href="/manage/grinders/new"
+            variant="text"
+            size="small"
+            disabled={isSubmitting}
+          >
+            Need custom settings? Use advanced form
+          </Button>
+        </Box>
+      </Stack>
     </Box>
   );
 };
