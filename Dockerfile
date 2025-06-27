@@ -32,10 +32,6 @@ ENV NEXT_TELEMETRY_DISABLED=1
 # Build the application
 RUN pnpm build
 
-# Debug: Check what was actually built
-RUN ls -la .next/ || echo "No .next directory found"
-RUN ls -la .next/standalone || echo "No standalone directory found"
-
 # Production image, copy all the files and run next
 FROM base AS runner
 WORKDIR /app
