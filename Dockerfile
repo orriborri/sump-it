@@ -45,11 +45,14 @@ RUN adduser --system --uid 1001 nextjs
 COPY public ./public
 
 # Set the correct permission for prerender cache
-RUN mkdir -p .next
-RUN chown nextjs:nodejs .next
+RUN mkdir -p .next/static
+RUN chown -R nextjs:nodejs .next
 
 # Copy Next.js build output - use pre-built artifacts from CI
+# First copy standalone (contains server.js and minimal runtime)
 COPY --chown=nextjs:nodejs .next/standalone ./
+
+# Then copy static assets if they exist
 COPY --chown=nextjs:nodejs .next/static ./.next/static
 
 USER nextjs
