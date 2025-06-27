@@ -1,37 +1,30 @@
-# Use the official Node.js 20 image as base (matching your CI)
+# Use the official Node.js 20 image as base
 FROM node:20-alpine AS base
 
 # Install pnpm and enable corepack
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
-# Install dependencies only when needed
+# Install dependencies
 FROM base AS deps
-# Install libc6-compat for alpine compatibility
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
-# Copy package files and install dependencies
 COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile --prod
 
-# Build stage (only used when no pre-built artifacts are available)
+# Build stage
 FROM base AS builder
 WORKDIR /app
 
-# Copy node_modules from deps stage
 COPY --from=deps /app/node_modules ./node_modules
-
-# Copy source code
 COPY . .
 
-# Set production environment and disable telemetry
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Build the application (this step can be skipped if using pre-built artifacts)
 RUN pnpm build
 
-# Production image with pre-built artifacts support
+# Production stage
 FROM base AS runner
 WORKDIR /app
 
@@ -41,19 +34,21 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-# Copy the public folder
+# Copy public folder
 COPY public ./public
 
-# Set the correct permission for prerender cache
-RUN mkdir -p .next/static
-RUN chown -R nextjs:nodejs .next
+# Copy build output from builder (will work both with and without pre-built artifacts)
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Copy Next.js build output - use pre-built artifacts from CI
-# First copy standalone (contains server.js and minimal runtime)
-COPY --chown=nextjs:nodejs .next/standalone ./
+USER nextjs
 
-# Then copy static assets if they exist
-COPY --chown=nextjs:nodejs .next/static ./.next/static
+EXPOSE 3000
+
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
+
+CMD ["node", "server.js"]
 
 USER nextjs
 
