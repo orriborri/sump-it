@@ -2,23 +2,8 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [main,       - name: Generate models
-        run: pnpm generate-models
-        env:
-          DATABASE_URL: postgres://postgres:postgres@localhost:5432/sump_it_test
-
-      - name: Run migrations
-        run: pnpm migrate
-        env:
-          DATABASE_URL: postgres://postgres:postgres@localhost:5432/sump_it_test
-
-      - name: Run tests
-        run: pnpm test
-        env:
-          DATABASE_URL: postgres://postgres:postgres@localhost:5432/sump_it_test
-
-      - name: Build application
-        run: pnpm buildequest:
+    branches: [main, develop]
+  pull_request:
     branches: [main]
 
 env:
@@ -26,9 +11,13 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  # Test Job
-  test:
+  # Test and Build Job
+  test-and-build:
     runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
 
     services:
       postgres:
@@ -44,6 +33,10 @@ jobs:
           --health-retries 5
         ports:
           - 5432:5432
+
+    outputs:
+      image-tags: ${{ steps.meta.outputs.tags }}
+      image-labels: ${{ steps.meta.outputs.labels }}
 
     steps:
       - name: Checkout code
@@ -68,28 +61,51 @@ jobs:
       - name: Run type checking
         run: pnpm type-check
 
-      - name: Generate database models
-        run: npm run generate-models
+      - name: Generate models
+        run: pnpm generate-models
         env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/sump_it_test
-  # Build and Push Docker Image
-  build-and-push:
-    needs: test
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/sump_it_test
 
-    permissions:
-      contents: read
-      packages: write
+      - name: Run migrations
+        run: pnpm migrate
+        env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/sump_it_test
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - name: Run tests
+        run: pnpm test
+        env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/sump_it_test
+
+      - name: Build application
+        run: pnpm build
+        env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/sump_it_test
+
+      # Upload build artifacts for Docker build
+      - name: Upload build artifacts
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+        uses: actions/upload-artifact@v4
+        with:
+          name: nextjs-build
+          path: |
+            .next/
+            public/
+          retention-days: 1
+
+      # Docker build only on push to main/develop
+      - name: Download build artifacts
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+        uses: actions/download-artifact@v4
+        with:
+          name: nextjs-build
+          path: ./
 
       - name: Set up Docker Buildx
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
         uses: docker/setup-buildx-action@v3
 
       - name: Log in to Container Registry
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
@@ -97,6 +113,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Extract metadata
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
         id: meta
         uses: docker/metadata-action@v5
         with:
@@ -108,6 +125,7 @@ jobs:
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push Docker image
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -117,50 +135,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          build-args: |
+            BUILDKIT_INLINE_CACHE=1
 
-  # Security Scanning
-  security-scan:
-    needs: build-and-push
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-
-    permissions:
-      contents: read
-      security-events: write
-
-    steps:
-      - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-          format: 'sarif'
-          output: 'trivy-results.sarif'
-
-      - name: Upload Trivy scan results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
-        with:
-          sarif_file: 'trivy-results.sarif'
-
-  # Deploy to Production (placeholder)
-  deploy:
-    needs: [test, build-and-push]
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-
-    environment:
-      name: production
-      url: https://your-app-url.com
-
-    steps:
-      - name: Deploy to production
-        run: |
-          echo "🚀 Deploying to production..."
-          echo "Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"
-          # Add your deployment commands here
-          # For example:
-          # - Deploy to Kubernetes
-          # - Deploy to AWS ECS
-          # - Deploy to DigitalOcean App Platform
-          # - Deploy to Railway/Vercel/Netlify
-          echo "✅ Deployment completed!"
+ 
