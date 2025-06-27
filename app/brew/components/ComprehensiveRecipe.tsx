@@ -96,7 +96,7 @@ export const ComprehensiveRecipe: React.FC<ComprehensiveRecipeProps> = ({
               <GrindSettingInput
                 formData={formData}
                 updateFormData={updateFormData}
-                grinderId={formData.grinder_id}
+                grinderId={formData.grinder_id.toString()}
               />
             </Paper>
 

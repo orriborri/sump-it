@@ -13,6 +13,8 @@ interface BrewWorkflowProps {
   grinders: RuntimeType<Grinders>[];
 }
 
+export type { BrewWorkflowProps };
+
 export const BrewWorkflow = ({ beans, methods, grinders }: BrewWorkflowProps) => {
   const { state, actions } = useBrewWorkflow();
 

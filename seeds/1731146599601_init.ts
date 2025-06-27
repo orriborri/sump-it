@@ -1,4 +1,4 @@
-import { DB } from '@/app/lib/db'
+import { DB } from '@/app/lib/db.d'
 import type { Kysely } from 'kysely'
 
 export async function seed(db: Kysely<DB>): Promise<void> {

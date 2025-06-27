@@ -1,5 +1,8 @@
 import { db } from "../../lib/database";
-import { BrewsModel, BeansModel, MethodsModel, GrindersModel } from "../../lib/generated-models";
+import { BrewsModel } from "../../lib/generated-models/Brews";
+import { BeansModel } from "../../lib/generated-models/Beans";
+import { MethodsModel } from "../../lib/generated-models/Methods";
+import { GrindersModel } from "../../lib/generated-models/Grinders";
 import { Box, Typography, Alert } from "@mui/material";
 import { SharedBrewFeedback } from "./SharedBrewFeedback";
 import { notFound } from "next/navigation";

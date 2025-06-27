@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from '@/app/lib/database';
-import { GrindersModel } from '@/app/lib/generated-models';
+import { GrindersModel } from '@/app/lib/generated-models/Grinders';
 
 export interface GrinderSettings {
   id: number;

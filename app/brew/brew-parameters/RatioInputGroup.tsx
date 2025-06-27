@@ -22,7 +22,7 @@ import { useRatioCalculation } from "./useRatioCalculation";
 interface RatioInputGroupProps extends FormControlProps {
   waterValue: number;
   doseValue: number;
-  ratioValue: number;
+  ratioValue: number | string;
 }
 
 export const RatioInputGroup = ({
@@ -37,7 +37,7 @@ export const RatioInputGroup = ({
   const { updateWater, updateDose } = useRatioCalculation({
     water: waterValue,
     dose: doseValue,
-    ratio: ratioValue,
+    ratio: typeof ratioValue === 'string' ? parseFloat(ratioValue) : ratioValue,
     setValue
   });
 
@@ -51,7 +51,7 @@ export const RatioInputGroup = ({
     return { text: "Weak", color: "error" };
   };
   
-  const ratioDesc = getRatioDescription(ratioValue);
+  const ratioDesc = getRatioDescription(Number(ratioValue) || 0);
 
   useEffect(() => {
     if (!isRatioLocked && doseValue && waterValue) {
@@ -146,7 +146,7 @@ export const RatioInputGroup = ({
                 </IconButton>
               </Tooltip>
               
-              {ratioValue > 0 && (
+              {Number(ratioValue) > 0 && (
                 <Chip 
                   label={ratioDesc.text} 
                   color={ratioDesc.color} 
@@ -166,6 +166,7 @@ export const RatioInputGroup = ({
               render={({ field }) => (
                 <Slider
                   {...field}
+                  value={Number(field.value) || 0}
                   onChange={(_, value) => {
                     field.onChange(value);
                     // When ratio slider changes, update water based on current dose

@@ -25,7 +25,7 @@ interface BrewDetails {
   water: number | null;
   dose: number | null;
   grind: number | null;
-  ratio: number | null;
+  ratio: string | null; // Changed to string to match database Numeric type
   created_at: string;
   bean_name: string;
   method_name: string;

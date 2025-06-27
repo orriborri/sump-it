@@ -10,7 +10,7 @@ import {
 } from "@mui/material";
 import type { Beans, Methods, Grinders } from "@/app/lib/db.d";
 import { RuntimeType } from "@/app/lib/types";
-import type { UseFormReturn } from "../useForm";
+import type { UseFormReturn } from "./useForm";
 import { MOCK_BEANS, MOCK_METHODS, MOCK_GRINDERS } from "./constants";
 
 interface BeanSelectorProps {
@@ -64,14 +64,14 @@ export const BeanSelector: React.FC<BeanSelectorProps> = ({
           labelId="bean-select-label"
           id="bean-select"
           name="bean_id"
-          value={form.formData.bean_id}
+          value={form.formData.bean_id.toString()}
           label="Coffee Beans"
           onChange={(e) =>
-            form.updateFormData({ bean_id: e.target.value as string })
+            form.updateFormData({ bean_id: parseInt(e.target.value) })
           }
         >
           {availableBeans.map((bean) => (
-            <MenuItem key={bean.id} value={bean.id}>
+            <MenuItem key={bean.id} value={bean.id.toString()}>
               {bean.name}
             </MenuItem>
           ))}
@@ -84,14 +84,14 @@ export const BeanSelector: React.FC<BeanSelectorProps> = ({
           labelId="method-select-label"
           id="method-select"
           name="method_id"
-          value={form.formData.method_id}
+          value={form.formData.method_id.toString()}
           label="Brewing Method"
           onChange={(e) =>
-            form.updateFormData({ method_id: e.target.value as string })
+            form.updateFormData({ method_id: parseInt(e.target.value) })
           }
         >
           {availableMethods.map((method) => (
-            <MenuItem key={method.id} value={method.id}>
+            <MenuItem key={method.id} value={method.id.toString()}>
               {method.name}
             </MenuItem>
           ))}
@@ -104,14 +104,14 @@ export const BeanSelector: React.FC<BeanSelectorProps> = ({
           labelId="grinder-select-label"
           id="grinder-select"
           name="grinder_id"
-          value={form.formData.grinder_id}
+          value={form.formData.grinder_id.toString()}
           label="Grinder"
           onChange={(e) =>
-            form.updateFormData({ grinder_id: e.target.value as string })
+            form.updateFormData({ grinder_id: parseInt(e.target.value) })
           }
         >
           {availableGrinders.map((grinder) => (
-            <MenuItem key={grinder.id} value={grinder.id}>
+            <MenuItem key={grinder.id} value={grinder.id.toString()}>
               {grinder.name}
             </MenuItem>
           ))}

@@ -1,7 +1,8 @@
 "use server";
 
 import { db } from "../../lib/database";
-import { BrewsModel, BrewFeedbackModel } from "../../lib/generated-models";
+import { BrewsModel } from "../../lib/generated-models/Brews";
+import { BrewFeedbackModel } from "../../lib/generated-models/BrewFeedback";
 import { FormData } from "./types";
 
 // Initialize models
@@ -10,13 +11,13 @@ const feedbackModel = new BrewFeedbackModel(db);
 
 export interface BrewWithFeedback {
   id: number;
-  bean_id: number;
-  method_id: number;
-  grinder_id: number;
-  water: number;
-  dose: number;
-  grind: number;
-  ratio: number;
+  bean_id: number | null;
+  method_id: number | null;
+  grinder_id: number | null;
+  water: number | null;
+  dose: number | null;
+  grind: number | null;
+  ratio: string | null; // Changed to string to match database Numeric type
   created_at: string;
   feedback?: {
     overall_rating: number | null;
@@ -125,10 +126,10 @@ export async function suggestOptimalParameters(
     // Calculate average of good brews
     const avgParams = brewsWithGoodFeedback.reduce(
       (acc, brew) => ({
-        water: acc.water + brew.water,
-        dose: acc.dose + brew.dose,
-        grind: acc.grind + brew.grind,
-        ratio: acc.ratio + brew.ratio,
+        water: acc.water + (brew.water ?? 0),
+        dose: acc.dose + (brew.dose ?? 0),
+        grind: acc.grind + (brew.grind ?? 0),
+        ratio: acc.ratio + (Number(brew.ratio) || 0),
       }),
       { water: 0, dose: 0, grind: 0, ratio: 0 }
     );
@@ -154,10 +155,10 @@ export async function suggestOptimalParameters(
   if (brews.length > 0) {
     const latest = brews[0];
     return {
-      water: latest.water,
-      dose: latest.dose,
-      grind: latest.grind,
-      ratio: latest.ratio,
+      water: latest.water ?? 250,
+      dose: latest.dose ?? 15,
+      grind: latest.grind ?? 20,
+      ratio: Number(latest.ratio) || 17,
       confidence: 'low',
       reasoning: 'Based on your most recent brew (no feedback available)'
     };
@@ -173,7 +174,7 @@ function analyzeAndSuggestImprovements(brews: BrewWithFeedback[]): ParameterSugg
     water: baseBrew.water,
     dose: baseBrew.dose,
     grind: baseBrew.grind,
-    ratio: baseBrew.ratio
+    ratio: Number(baseBrew.ratio) || 0
   };
 
   let reasoning = "Adjusted based on feedback: ";
@@ -193,28 +194,31 @@ function analyzeAndSuggestImprovements(brews: BrewWithFeedback[]): ParameterSugg
   // Apply adjustments based on feedback patterns
   if (feedbackCounts.tooStrong > feedbackCounts.tooWeak) {
     // Reduce strength by increasing ratio or decreasing dose
-    adjustedParams.ratio = Math.min(adjustedParams.ratio + 1, 20);
+    adjustedParams.ratio = Math.min((adjustedParams.ratio ?? 0) + 1, 20);
     adjustments.push("increased ratio to reduce strength");
   } else if (feedbackCounts.tooWeak > feedbackCounts.tooStrong) {
     // Increase strength by decreasing ratio or increasing dose
-    adjustedParams.ratio = Math.max(adjustedParams.ratio - 1, 10);
+    adjustedParams.ratio = Math.max((adjustedParams.ratio ?? 0) - 1, 10);
     adjustments.push("decreased ratio to increase strength");
   }
 
   if (feedbackCounts.sour > 0) {
     // Reduce sourness by increasing extraction (finer grind or more water)
-    adjustedParams.grind = Math.max(adjustedParams.grind - 1, 1);
+    adjustedParams.grind = Math.max((adjustedParams.grind ?? 0) - 1, 1);
     adjustments.push("finer grind to reduce sourness");
   }
 
   if (feedbackCounts.bitter > 0) {
     // Reduce bitterness by decreasing extraction (coarser grind or less water)
-    adjustedParams.grind = adjustedParams.grind + 1;
+    adjustedParams.grind = (adjustedParams.grind ?? 0) + 1;
     adjustments.push("coarser grind to reduce bitterness");
   }
 
   return {
-    ...adjustedParams,
+    water: adjustedParams.water ?? 250,
+    dose: adjustedParams.dose ?? 15,
+    grind: adjustedParams.grind ?? 20,
+    ratio: adjustedParams.ratio ?? 17,
     confidence: brews.length >= 3 ? 'medium' : 'low',
     reasoning: reasoning + adjustments.join(", ")
   };
@@ -277,10 +281,10 @@ export async function saveBrew(data: FormData) {
       bean_id: Number(data.bean_id),
       method_id: Number(data.method_id),
       grinder_id: Number(data.grinder_id),
-      water: data.water,
-      dose: data.dose,
-      grind: data.grind,
-      ratio: data.ratio,
+      water: data.water ? Math.round(Number(data.water)) : null,
+      dose: data.dose ? Math.round(Number(data.dose)) : null,
+      grind: data.grind ? Math.round(Number(data.grind)) : null,
+      ratio: data.ratio ? String(data.ratio) : null,
     });
     
     return { success: true, brew: savedBrew };

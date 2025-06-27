@@ -101,7 +101,7 @@ export default function FormWrapper({ beans, methods, grinders }: FormWrapperPro
         {currentView === 'feedback' && brewData && (
           <EnhancedBrewFeedback 
             brewData={brewData}
-            brewId={brewId}
+            brewId={brewId ?? undefined}
             onSaveFeedback={handleSaveFeedback}
           />
         )}

@@ -12,6 +12,38 @@ import path from "path";
 const DB_INTERFACE_FILE = "./app/lib/db.d.ts";
 const OUTPUT_DIR = "./app/lib/generated-models";
 
+// Joined table configurations
+const JOINED_TABLES = {
+  brews: {
+    joins: [
+      { table: 'beans', on: 'brews.bean_id = beans.id', type: 'left' },
+      { table: 'methods', on: 'brews.method_id = methods.id', type: 'left' },
+      { table: 'grinders', on: 'brews.grinder_id = grinders.id', type: 'left' },
+      { table: 'brew_feedback', on: 'brews.id = brew_feedback.brew_id', type: 'left' }
+    ],
+    selectFields: [
+      'brews.id',
+      'brews.bean_id',
+      'brews.method_id',
+      'brews.grinder_id',
+      'brews.water',
+      'brews.dose',
+      'brews.grind',
+      'brews.ratio',
+      'brews.created_at',
+      'beans.name as bean_name',
+      'methods.name as method_name', 
+      'grinders.name as grinder_name',
+      'brew_feedback.overall_rating',
+      'brew_feedback.too_strong',
+      'brew_feedback.too_weak',
+      'brew_feedback.is_sour',
+      'brew_feedback.is_bitter',
+      'brew_feedback.coffee_amount_ml'
+    ]
+  }
+};
+
 /**
  * Generates model classes for all tables in the DB interface
  */
@@ -50,6 +82,9 @@ async function generate(): Promise<void> {
     tableNames.push(tableName);
   }
 
+  // Generate joined table types and queries
+  await generateJoinedTables(project, sourceFile);
+
   // Generate index file to export all models
   await generateIndexFile(tableNames);
 }
@@ -61,9 +96,9 @@ function generateModelClass(tableName: string, interfaceName: string, tableInter
   const properties = tableInterface.getProperties();
   
   // Identify primary key and timestamp fields
-  const primaryKey = properties.find(p => p.getName() === 'id') ? 'id' : properties[0].getName();
-  const hasCreatedAt = properties.some(p => p.getName() === 'created_at');
-  const hasUpdatedAt = properties.some(p => p.getName() === 'updated_at');
+  const primaryKey = properties.find((p: { getName: () => string; }) => p.getName() === 'id') ? 'id' : properties[0].getName();
+  const hasCreatedAt = properties.some((p: { getName: () => string; }) => p.getName() === 'created_at');
+  const hasUpdatedAt = properties.some((p: { getName: () => string; }) => p.getName() === 'updated_at');
   
   // Generate auto-generated fields list
   const autoFields = ['id', hasCreatedAt && 'created_at', hasUpdatedAt && 'updated_at'].filter(Boolean);
@@ -193,6 +228,144 @@ export class ${interfaceName}Model {
 }
 
 /**
+ * Generates joined table types and query functions
+ */
+async function generateJoinedTables(project: any, sourceFile: any): Promise<void> {
+  for (const [tableName, config] of Object.entries(JOINED_TABLES)) {
+    const interfaceName = toPascalCase(tableName);
+    const joinedTypeName = `${interfaceName}WithJoins`;
+    
+    // Generate the joined type interface
+    const joinedType = generateJoinedTypeInterface(tableName, config, sourceFile);
+    
+    // Generate the query functions
+    const queryFunctions = generateJoinedQueryFunctions(tableName, interfaceName, joinedTypeName, config);
+    
+    const code = `import { Kysely } from 'kysely';
+import { DB } from '../db.d';
+import { ${interfaceName}Select } from './${interfaceName}';
+
+${joinedType}
+
+/**
+ * ${interfaceName} Joined Queries - Provides queries with joined data
+ */
+export class ${interfaceName}JoinedQueries {
+  constructor(private db: Kysely<DB>) {}
+
+${queryFunctions}
+}
+`;
+
+    await fs.writeFile(path.join(OUTPUT_DIR, `${interfaceName}Joined.ts`), code);
+    console.log(`✅ Generated: ${interfaceName}Joined.ts`);
+  }
+}
+
+/**
+ * Generates the TypeScript interface for joined table data
+ */
+function generateJoinedTypeInterface(tableName: string, config: any, sourceFile: any): string {
+  const interfaceName = toPascalCase(tableName);
+  const joinedTypeName = `${interfaceName}WithJoins`;
+  
+  // Get base table properties
+  const baseInterface = sourceFile.getInterface(interfaceName);
+  const baseProperties = baseInterface ? baseInterface.getProperties() : [];
+  
+  // Generate joined properties based on select fields
+  let joinedProperties = '';
+  
+  config.selectFields.forEach((field: string) => {
+    if (field.includes(' as ')) {
+      const [, alias] = field.split(' as ');
+      const cleanAlias = alias.trim();
+      
+      // Determine type based on field name
+      let type = 'string';
+      if (cleanAlias.includes('rating')) type = 'number | null';
+      else if (cleanAlias.includes('_strong') || cleanAlias.includes('_weak') || 
+               cleanAlias.includes('is_sour') || cleanAlias.includes('is_bitter')) {
+        type = 'boolean | null';
+      } else if (cleanAlias.includes('_ml') || cleanAlias.includes('amount')) {
+        type = 'number | null';
+      } else {
+        type = 'string | null';
+      }
+      
+      joinedProperties += `  ${cleanAlias}?: ${type};\n`;
+    }
+  });
+  
+  return `export interface ${joinedTypeName} extends ${interfaceName}Select {
+${joinedProperties}}`;
+}
+
+/**
+ * Generates query functions for joined data
+ */
+function generateJoinedQueryFunctions(tableName: string, interfaceName: string, joinedTypeName: string, config: any): string {
+  const joins = config.joins.map((join: any) => {
+    const [leftTable, leftColumn] = join.on.split(' = ')[0].split('.');
+    const [rightTable, rightColumn] = join.on.split(' = ')[1].split('.');
+    return `      .${join.type}Join('${join.table}', '${leftTable}.${leftColumn}', '${rightTable}.${rightColumn}')`;
+  }).join('\n');
+  
+  const selectFields = config.selectFields.map((field: string) => `'${field}'`).join(',\n        ');
+  
+  return `  /**
+   * Find ${tableName} with all joined data by parameters
+   */
+  async findByParameters(
+    beanId: number,
+    methodId: number,
+    grinderId: number
+  ): Promise<${joinedTypeName}[]> {
+    return await this.db
+      .selectFrom('${tableName}')
+${joins}
+      .where('${tableName}.bean_id', '=', beanId)
+      .where('${tableName}.method_id', '=', methodId)
+      .where('${tableName}.grinder_id', '=', grinderId)
+      .select([
+        ${selectFields}
+      ])
+      .orderBy('${tableName}.created_at', 'desc')
+      .execute() as ${joinedTypeName}[];
+  }
+
+  /**
+   * Find ${tableName} with all joined data by id
+   */
+  async findByIdWithJoins(id: number): Promise<${joinedTypeName} | undefined> {
+    return await this.db
+      .selectFrom('${tableName}')
+${joins}
+      .where('${tableName}.id', '=', id)
+      .select([
+        ${selectFields}
+      ])
+      .executeTakeFirst() as ${joinedTypeName} | undefined;
+  }
+
+  /**
+   * Find top rated ${tableName} with all joined data
+   */
+  async findTopRated(limit: number = 10): Promise<${joinedTypeName}[]> {
+    return await this.db
+      .selectFrom('${tableName}')
+${joins}
+      .where('brew_feedback.overall_rating', '>=', 4)
+      .select([
+        ${selectFields}
+      ])
+      .orderBy('brew_feedback.overall_rating', 'desc')
+      .limit(limit)
+      .execute() as ${joinedTypeName}[];
+  }`;
+}
+
+/**
  * Get the TypeScript type for the primary key
  */
 function getPrimaryKeyType(properties: any[], primaryKey: string): string {
@@ -212,7 +385,9 @@ async function generateIndexFile(tableNames: string[]): Promise<void> {
   const imports = tableNames
     .map(name => {
       const pascalName = toPascalCase(name);
-      return `export { ${pascalName}Model } from './${pascalName}';`;
+      const hasJoined = JOINED_TABLES[name as keyof typeof JOINED_TABLES];
+      const joinedImport = hasJoined ? `export { ${pascalName}JoinedQueries } from './${pascalName}Joined';` : '';
+      return `export { ${pascalName}Model } from './${pascalName}';\n${joinedImport}`;
     })
     .join('\n');
   
@@ -222,7 +397,9 @@ ${imports}
 // Re-export types for convenience
 ${tableNames.map(name => {
   const pascalName = toPascalCase(name);
-  return `export type { ${pascalName}Select, ${pascalName}Insert, ${pascalName}Update } from './${pascalName}';`;
+  const hasJoined = JOINED_TABLES[name as keyof typeof JOINED_TABLES];
+  const joinedType = hasJoined ? `export type { ${pascalName}WithJoins } from './${pascalName}Joined';` : '';
+  return `export type { ${pascalName}Select, ${pascalName}Insert, ${pascalName}Update } from './${pascalName}';\n${joinedType}`;
 }).join('\n')}
 `;
 

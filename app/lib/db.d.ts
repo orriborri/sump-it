@@ -9,6 +9,8 @@ export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
   ? ColumnType<S, I | undefined, U>
   : ColumnType<T, T | undefined, T>;
 
+export type Numeric = ColumnType<string, number | string, number | string>;
+
 export type Timestamp = ColumnType<Date, Date | string, Date | string>;
 
 export interface Beans {
@@ -39,14 +41,18 @@ export interface Brews {
   grinder_id: number | null;
   id: Generated<number>;
   method_id: number | null;
-  ratio: number | null;
+  ratio: Numeric | null;
   water: number | null;
 }
 
 export interface Grinders {
   created_at: Generated<Timestamp>;
   id: Generated<number>;
+  max_setting: Generated<number | null>;
+  min_setting: Generated<number | null>;
   name: string | null;
+  setting_type: Generated<string | null>;
+  step_size: Generated<number | null>;
 }
 
 export interface Methods {

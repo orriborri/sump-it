@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from '@/app/lib/database';
-import { GrindersModel } from '@/app/lib/generated-models';
+import { GrindersModel } from '@/app/lib/generated-models/Grinders';
 import { redirect } from 'next/navigation';
 
 export interface GrinderFormData {
@@ -35,7 +35,7 @@ export async function updateGrinder(id: number, data: GrinderFormData) {
   try {
     const grindersModel = new GrindersModel(db);
     
-    await grindersModel.update(id, {
+    await grindersModel.updateById(id, {
       name: data.name,
       min_setting: data.min_setting,
       max_setting: data.max_setting,
@@ -53,7 +53,7 @@ export async function updateGrinder(id: number, data: GrinderFormData) {
 export async function deleteGrinder(id: number) {
   try {
     const grindersModel = new GrindersModel(db);
-    await grindersModel.delete(id);
+    await grindersModel.deleteById(id);
     redirect('/manage/grinders');
   } catch (error) {
     console.error('Error deleting grinder:', error);

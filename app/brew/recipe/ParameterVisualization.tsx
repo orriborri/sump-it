@@ -6,7 +6,6 @@ import {
   Card,
   CardContent,
   Slider,
-  Grid,
   Button,
   Stack,
   Chip,
@@ -24,7 +23,8 @@ export const ParameterVisualization: React.FC<ParameterVisualizationProps> = ({
 }) => {
   // Calculate parameter ranges from historical data
   const getParameterRange = (param: keyof Pick<BrewWithFeedback, 'water' | 'dose' | 'grind' | 'ratio'>) => {
-    const values = brews.map(brew => brew[param]);
+    const values = brews.map(brew => brew[param]).filter((value): value is number => value !== null);
+    if (values.length === 0) return { min: 0, max: 100, avg: 50 };
     const min = Math.min(...values);
     const max = Math.max(...values);
     const avg = Math.round(values.reduce((a, b) => a + b, 0) / values.length);
@@ -68,10 +68,15 @@ export const ParameterVisualization: React.FC<ParameterVisualizationProps> = ({
   };
 
   const calculateSimilarity = (brew: BrewWithFeedback, params: typeof adjustedParams) => {
+    // Handle null values by providing defaults or skipping calculation
+    if (brew.water === null || brew.dose === null || brew.grind === null || brew.ratio === null) {
+      return 0; // Return low similarity for incomplete data
+    }
+
     const waterDiff = Math.abs(brew.water - params.water) / Math.max(brew.water, params.water);
     const doseDiff = Math.abs(brew.dose - params.dose) / Math.max(brew.dose, params.dose);
     const grindDiff = Math.abs(brew.grind - params.grind) / Math.max(brew.grind, params.grind);
-    const ratioDiff = Math.abs(brew.ratio - params.ratio) / Math.max(brew.ratio, params.ratio);
+    const ratioDiff = Math.abs(Number(brew.ratio) - params.ratio) / Math.max(Number(brew.ratio), params.ratio);
     
     return 1 - (waterDiff + doseDiff + grindDiff + ratioDiff) / 4;
   };
@@ -99,9 +104,18 @@ export const ParameterVisualization: React.FC<ParameterVisualizationProps> = ({
           Adjust parameters and see how they compare to your brewing history
         </Typography>
 
-        <Grid container spacing={3}>
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: {
+              xs: '1fr',
+              md: '2fr 1fr'
+            },
+            gap: 3
+          }}
+        >
           {/* Parameter Sliders */}
-          <Grid item xs={12} md={8}>
+          <Box>
             <Stack spacing={3}>
               {/* Water Slider */}
               <Box>
@@ -189,10 +203,10 @@ export const ParameterVisualization: React.FC<ParameterVisualizationProps> = ({
                 Use These Parameters
               </Button>
             </Box>
-          </Grid>
+          </Box>
 
           {/* Similar Brews Preview */}
-          <Grid item xs={12} md={4}>
+          <Box>
             <Typography variant="subtitle2" gutterBottom>
               Similar Previous Brews
             </Typography>
@@ -240,8 +254,8 @@ export const ParameterVisualization: React.FC<ParameterVisualizationProps> = ({
                 No similar brews found with current parameters
               </Typography>
             )}
-          </Grid>
-        </Grid>
+          </Box>
+        </Box>
       </CardContent>
     </Card>
   );

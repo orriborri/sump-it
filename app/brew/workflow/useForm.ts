@@ -19,9 +19,9 @@ export interface UseFormReturn {
 export const useForm = (): UseFormReturn => {
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState<FormData>({
-    bean_id: "",
-    method_id: "",
-    grinder_id: "",
+    bean_id: 0,
+    method_id: 0,
+    grinder_id: 0,
     water: INITIAL_WATER,
     dose: INITIAL_DOSE,
     ratio: INITIAL_RATIO,

@@ -5,7 +5,6 @@ import {
   Typography,
   Card,
   CardContent,
-  Grid,
   Skeleton,
   Button,
   Chip,
@@ -69,17 +68,17 @@ export const SmartRecipe: React.FC<SmartRecipeProps> = ({
       try {
         // Fetch previous brews with feedback
         const brews = await getBrewsWithFeedback(
-          formData.bean_id,
-          formData.method_id,
-          formData.grinder_id
+          formData.bean_id.toString(),
+          formData.method_id.toString(),
+          formData.grinder_id.toString()
         );
         setPreviousBrews(brews);
 
         // Get intelligent recommendation via server action
         const smartRecommendation = await getBrewRecommendation(
-          formData.bean_id,
-          formData.method_id,
-          formData.grinder_id
+          formData.bean_id.toString(),
+          formData.method_id.toString(),
+          formData.grinder_id.toString()
         );
         setRecommendation(smartRecommendation);
 
@@ -113,10 +112,10 @@ export const SmartRecipe: React.FC<SmartRecipeProps> = ({
   const handleSelectBrew = (brew: BrewWithFeedback) => {
     console.log('Selecting brew:', brew); // Debug log
     updateFormData({
-      water: brew.water,
-      dose: brew.dose,
-      grind: brew.grind,
-      ratio: brew.ratio,
+      water: brew.water ?? undefined,
+      dose: brew.dose ?? undefined,
+      grind: brew.grind ?? undefined,
+      ratio: brew.ratio ?? undefined,
     });
     
     // Set this brew as the selected one
@@ -152,13 +151,11 @@ export const SmartRecipe: React.FC<SmartRecipeProps> = ({
           Analyzing your brewing history...
         </Typography>
         <Skeleton variant="rectangular" height={120} sx={{ mb: 2 }} />
-        <Grid container spacing={2}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' }, gap: 2 }}>
           {[1, 2, 3].map((i) => (
-            <Grid item xs={12} sm={6} md={4} key={i}>
-              <Skeleton variant="rectangular" height={140} />
-            </Grid>
+            <Skeleton key={i} variant="rectangular" height={140} />
           ))}
-        </Grid>
+        </Box>
       </Box>
     );
   }
@@ -287,7 +284,7 @@ export const SmartRecipe: React.FC<SmartRecipeProps> = ({
             Click on any brew to use its parameters as a starting point.
           </Typography>
 
-          <Grid container spacing={2}>
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' }, gap: 2 }}>
             {previousBrews.map((brew) => {
               const feedbackIssues = getFeedbackSummary(brew);
               const hasGoodRating = brew.feedback?.overall_rating && brew.feedback.overall_rating >= 4;
@@ -296,33 +293,33 @@ export const SmartRecipe: React.FC<SmartRecipeProps> = ({
               const isSelected = selectedBrewId === brew.id;
               
               return (
-                <Grid item xs={12} sm={6} md={4} key={brew.id}>
-                  <Card
-                    sx={{
-                      cursor: "pointer",
-                      "&:hover": { 
-                        boxShadow: 3,
-                        transform: 'translateY(-2px)',
-                        transition: 'all 0.2s ease-in-out'
-                      },
-                      border: isSelected ? '3px solid' : hasGoodRating ? '2px solid' : '1px solid',
-                      borderColor: isSelected ? 'primary.main' : hasGoodRating ? 'success.main' : 'divider',
-                      bgcolor: isSelected ? 'primary.light' : 'background.paper',
-                      height: '100%',
-                      width: '100%',
-                      maxWidth: '100%',
-                      userSelect: 'none',
-                    }}
-                    onClick={() => handleSelectBrew(brew)}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        handleSelectBrew(brew);
-                      }
-                    }}
-                  >
+                <Card
+                  key={brew.id}
+                  sx={{
+                    cursor: "pointer",
+                    "&:hover": {
+                      boxShadow: 3,
+                      transform: 'translateY(-2px)',
+                      transition: 'all 0.2s ease-in-out'
+                    },
+                    border: isSelected ? '3px solid' : hasGoodRating ? '2px solid' : '1px solid',
+                    borderColor: isSelected ? 'primary.main' : hasGoodRating ? 'success.main' : 'divider',
+                    bgcolor: isSelected ? 'primary.light' : 'background.paper',
+                    height: '100%',
+                    width: '100%',
+                    maxWidth: '100%',
+                    userSelect: 'none',
+                  }}
+                  onClick={() => handleSelectBrew(brew)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      handleSelectBrew(brew);
+                    }
+                  }}
+                >
                     <CardContent>
                       <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 1 }}>
                         <Typography variant="subtitle1">
@@ -369,11 +366,10 @@ export const SmartRecipe: React.FC<SmartRecipeProps> = ({
                         {new Date(brew.created_at).toLocaleDateString()}
                       </Typography>
                     </CardContent>
-                  </Card>
-                </Grid>
+                </Card>
               );
             })}
-          </Grid>
+            </Box>
         </Box>
       )}
     </Box>

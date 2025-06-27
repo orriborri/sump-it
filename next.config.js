@@ -3,6 +3,9 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  typescript: {
+    ignoreBuildErrors: false, // Keep TypeScript errors visible
+  },
   serverExternalPackages: ['pg', 'kysely'],
   webpack: (config, { isServer }) => {
     if (!isServer) {

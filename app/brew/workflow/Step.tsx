@@ -7,19 +7,15 @@ import { FormStepper } from "./Stepper";
 import { EnhancedRecipe } from "../recipe/EnhancedRecipe";
 import { GrindSettingInput } from "../brew-parameters/GrindSettingInput";
 import { WaterDoseInputGroup } from "../brew-parameters/WaterDoseInputGroup";
+import type { RuntimeType } from "@/app/lib/types";
+import type { Beans, Methods, Grinders } from "@/app/lib/db.d";
 
 interface StepProps {
   form: UseFormReturn;
   onSubmit?: () => void;
-  beans?: {
-    id: number;
-    name: string | null;
-    created_at: Date;
-    roster: string | null;
-    rostery: string | null;
-  }[];
-  methods?: { id: number; name: string; created_at: Date }[];
-  grinders?: { id: number; name: string; created_at: Date }[];
+  beans?: RuntimeType<Beans>[];
+  methods?: RuntimeType<Methods>[];
+  grinders?: RuntimeType<Grinders>[];
 }
 
 export const Step: React.FC<StepProps> = ({

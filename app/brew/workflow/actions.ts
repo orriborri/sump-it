@@ -1,34 +1,33 @@
 "use server";
 
 import { db } from "../../lib/database";
-import { BrewsModel, BrewFeedbackModel } from "../../lib/generated-models";
+import { BrewsModel } from "../../lib/generated-models/Brews";
+import { BrewFeedbackModel } from "../../lib/generated-models/BrewFeedback";
+import { BrewsJoinedQueries } from "../../lib/generated-models/BrewsJoined";
 import { FormData } from "./types";
 
 // Initialize models
 const brewsModel = new BrewsModel(db);
 const feedbackModel = new BrewFeedbackModel(db);
+const brewsJoined = new BrewsJoinedQueries(db);
+
+import { BrewsWithJoins } from "../../lib/generated-models/BrewsJoined";
 
 export async function getPreviousBrews(
   bean_id: string,
   method_id: string,
   grinder_id: string
-) {
+): Promise<BrewsWithJoins[]> {
   if (!bean_id || !method_id || !grinder_id) {
     return [];
   }
 
   try {
-    const previousBrews = await db
-      .selectFrom("brews")
-      .where("bean_id", "=", Number(bean_id))
-      .where("method_id", "=", Number(method_id))
-      .where("grinder_id", "=", Number(grinder_id))
-      .orderBy("rating", "desc")
-      .limit(6)
-      .selectAll()
-      .execute();
-
-    return previousBrews;
+    return await brewsJoined.findByParameters(
+      Number(bean_id),
+      Number(method_id), 
+      Number(grinder_id)
+    );
   } catch (error) {
     console.error("Error fetching previous brews:", error);
     return [];

@@ -1,7 +1,9 @@
 import { db } from "../lib/database";
 import { Box, Typography } from "@mui/material";
-import { BrewWorkflow } from './components';
-import { BeansModel, MethodsModel, GrindersModel } from "../lib/generated-models";
+import { BrewWorkflow } from './components/BrewWorkflow';
+import { BeansModel } from "../lib/generated-models/Beans";
+import { MethodsModel } from "../lib/generated-models/Methods";
+import { GrindersModel } from "../lib/generated-models/Grinders";
 
 const Page = async () => {
   // Initialize models with database connection

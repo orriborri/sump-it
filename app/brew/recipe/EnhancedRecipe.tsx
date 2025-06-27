@@ -5,7 +5,6 @@ import {
   Typography,
   Card,
   CardContent,
-  Grid,
   Skeleton,
   Button,
   Chip,
@@ -49,17 +48,17 @@ export const EnhancedRecipe: React.FC<EnhancedRecipeProps> = ({
       try {
         // Fetch previous brews with feedback
         const brews = await getBrewsWithFeedback(
-          formData.bean_id,
-          formData.method_id,
-          formData.grinder_id
+          formData.bean_id.toString(),
+          formData.method_id.toString(),
+          formData.grinder_id.toString()
         );
         setPreviousBrews(brews);
 
         // Get optimal parameter suggestion
         const optimalSuggestion = await suggestOptimalParameters(
-          formData.bean_id,
-          formData.method_id,
-          formData.grinder_id
+          formData.bean_id.toString(),
+          formData.method_id.toString(),
+          formData.grinder_id.toString()
         );
         setSuggestion(optimalSuggestion);
 
@@ -87,10 +86,10 @@ export const EnhancedRecipe: React.FC<EnhancedRecipeProps> = ({
 
   const handleSelectBrew = (brew: BrewWithFeedback) => {
     updateFormData({
-      water: brew.water,
-      dose: brew.dose,
-      grind: brew.grind,
-      ratio: brew.ratio,
+      water: brew.water ?? undefined,
+      dose: brew.dose ?? undefined,
+      grind: brew.grind ?? undefined,
+      ratio: brew.ratio ?? undefined,
     });
   };
 
@@ -122,13 +121,23 @@ export const EnhancedRecipe: React.FC<EnhancedRecipeProps> = ({
           Analyzing your brewing history...
         </Typography>
         <Skeleton variant="rectangular" height={120} sx={{ mb: 2 }} />
-        <Grid container spacing={2}>
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: {
+              xs: '1fr',
+              sm: 'repeat(2, 1fr)',
+              md: 'repeat(3, 1fr)'
+            },
+            gap: 2
+          }}
+        >
           {[1, 2, 3].map((i) => (
-            <Grid item xs={12} sm={6} md={4} key={i}>
+            <Box key={i}>
               <Skeleton variant="rectangular" height={140} />
-            </Grid>
+            </Box>
           ))}
-        </Grid>
+        </Box>
       </Box>
     );
   }
@@ -221,13 +230,23 @@ export const EnhancedRecipe: React.FC<EnhancedRecipeProps> = ({
             Click on any brew to use its parameters as a starting point.
           </Typography>
 
-          <Grid container spacing={2}>
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: {
+                  xs: '1fr',
+                  sm: 'repeat(2, 1fr)',
+                  md: 'repeat(3, 1fr)'
+                },
+                gap: 2
+              }}
+            >
             {previousBrews.map((brew) => {
               const feedbackIssues = getFeedbackSummary(brew);
               const hasGoodRating = brew.feedback?.overall_rating && brew.feedback.overall_rating >= 4;
               
               return (
-                <Grid item xs={12} sm={6} md={4} key={brew.id}>
+                <Box key={brew.id}>
                   <Card
                     sx={{
                       cursor: "pointer",
@@ -275,10 +294,10 @@ export const EnhancedRecipe: React.FC<EnhancedRecipeProps> = ({
                       </Typography>
                     </CardContent>
                   </Card>
-                </Grid>
+                </Box>
               );
             })}
-          </Grid>
+            </Box>
         </Box>
       )}
     </Box>

@@ -5,34 +5,22 @@ import {
   Typography,
   Card,
   CardContent,
-  Grid,
   Skeleton,
 } from "@mui/material";
 import { FormData } from "../workflow/types";
 import { getPreviousBrews } from "../workflow/actions";
-
-interface Brew {
-  id: number;
-  bean_id: number;
-  method_id: number;
-  grinder_id: number;
-  water: number;
-  dose: number;
-  grind: number;
-  ratio: number;
-  created_at: string;
-}
+import { BrewsWithJoins } from "../../lib/generated-models/BrewsJoined";
 
 interface RecipeProps {
   formData: FormData;
-  updateFormData: (data: Partial<FormData>) => void;
+  updateFormData: (updates: Partial<FormData>) => void;
 }
 
 export const Recipe: React.FC<RecipeProps> = ({
   formData,
   updateFormData,
 }) => {
-  const [previousBrews, setPreviousBrews] = useState<Brew[]>([]);
+  const [previousBrews, setPreviousBrews] = useState<BrewsWithJoins[]>([]);
   const [loading, setLoading] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
@@ -46,9 +34,9 @@ export const Recipe: React.FC<RecipeProps> = ({
       setLoading(true);
       try {
         const brews = await getPreviousBrews(
-          formData.bean_id,
-          formData.method_id,
-          formData.grinder_id
+          formData.bean_id.toString(),
+          formData.method_id.toString(),
+          formData.grinder_id.toString()
         );
         setPreviousBrews(brews);
       } catch (error) {
@@ -62,12 +50,12 @@ export const Recipe: React.FC<RecipeProps> = ({
     fetchBrews();
   }, [formData.bean_id, formData.method_id, formData.grinder_id]);
 
-  const handleSelectBrew = (brew: Brew) => {
+  const handleSelectBrew = (brew: BrewsWithJoins) => {
     updateFormData({
-      water: brew.water,
-      dose: brew.dose,
-      grind: brew.grind,
-      ratio: brew.ratio,
+      water: brew.water ?? undefined,
+      dose: brew.dose ?? undefined,
+      grind: brew.grind ?? undefined,
+      ratio: brew.ratio ?? undefined,
     });
   };
 
@@ -77,13 +65,23 @@ export const Recipe: React.FC<RecipeProps> = ({
         <Typography variant="h6" gutterBottom>
           Loading previous brews...
         </Typography>
-        <Grid container spacing={2}>
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: {
+              xs: '1fr',
+              sm: 'repeat(2, 1fr)',
+              md: 'repeat(3, 1fr)'
+            },
+            gap: 2
+          }}
+        >
           {[1, 2, 3].map((i) => (
-            <Grid item xs={12} sm={6} md={4} key={i}>
+            <Box key={i}>
               <Skeleton variant="rectangular" height={140} />
-            </Grid>
+            </Box>
           ))}
-        </Grid>
+        </Box>
       </Box>
     );
   }
@@ -110,9 +108,19 @@ export const Recipe: React.FC<RecipeProps> = ({
         Select a previous brew to use its parameters as a starting point.
       </Typography>
 
-      <Grid container spacing={2}>
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: {
+            xs: '1fr',
+            sm: 'repeat(2, 1fr)',
+            md: 'repeat(3, 1fr)'
+          },
+          gap: 2
+        }}
+      >
         {previousBrews.map((brew) => (
-          <Grid item xs={12} sm={6} md={4} key={brew.id}>
+          <Box key={brew.id}>
             <Card
               sx={{
                 cursor: "pointer",
@@ -135,9 +143,9 @@ export const Recipe: React.FC<RecipeProps> = ({
                 </Typography>
               </CardContent>
             </Card>
-          </Grid>
+          </Box>
         ))}
-      </Grid>
+      </Box>
     </Box>
   );
 };

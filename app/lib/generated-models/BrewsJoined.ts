@@ -1,66 +1,33 @@
-import { BaseRepository } from './BaseRepository';
-import { DB } from '../db.d';
 import { Kysely } from 'kysely';
+import { DB } from '../db.d';
+import { BrewsSelect } from './Brews';
 
-export interface BrewWithDetails {
-  id: number;
-  bean_id: number | null;
-  method_id: number | null;
-  grinder_id: number | null;
-  water: number | null;
-  dose: number | null;
-  grind: number | null;
-  ratio: number | null;
-  created_at: Date;
-  bean_name?: string;
-  method_name?: string;
-  grinder_name?: string;
-  feedback?: {
-    overall_rating: number | null;
-    too_strong: boolean;
-    too_weak: boolean;
-    is_sour: boolean;
-    is_bitter: boolean;
-    coffee_amount_ml: number | null;
-  };
+export interface BrewsWithJoins extends BrewsSelect {
+  bean_name?: string | null;
+  method_name?: string | null;
+  grinder_name?: string | null;
 }
 
-export interface CreateBrewData {
-  bean_id: number;
-  method_id: number;
-  grinder_id: number;
-  water: number;
-  dose: number;
-  grind: number;
-  ratio: number;
-}
+/**
+ * Brews Joined Queries - Provides queries with joined data
+ */
+export class BrewsJoinedQueries {
+  constructor(private db: Kysely<DB>) {}
 
-export class BrewRepository extends BaseRepository<'brews'> {
-  constructor(db: Kysely<DB>) {
-    super(db, 'brews');
-  }
-
-  async create(data: CreateBrewData) {
-    const [result] = await this.db
-      .insertInto('brews')
-      .values(data)
-      .returning('id')
-      .execute();
-    
-    return this.findById(result.id);
-  }
-
+  /**
+   * Find brews with all joined data by parameters
+   */
   async findByParameters(
     beanId: number,
     methodId: number,
     grinderId: number
-  ): Promise<BrewWithDetails[]> {
+  ): Promise<BrewsWithJoins[]> {
     return await this.db
       .selectFrom('brews')
-      .leftJoin('brew_feedback', 'brews.id', 'brew_feedback.brew_id')
       .leftJoin('beans', 'brews.bean_id', 'beans.id')
       .leftJoin('methods', 'brews.method_id', 'methods.id')
       .leftJoin('grinders', 'brews.grinder_id', 'grinders.id')
+      .leftJoin('brew_feedback', 'brews.id', 'brew_feedback.brew_id')
       .where('brews.bean_id', '=', beanId)
       .where('brews.method_id', '=', methodId)
       .where('brews.grinder_id', '=', grinderId)
@@ -85,15 +52,19 @@ export class BrewRepository extends BaseRepository<'brews'> {
         'brew_feedback.coffee_amount_ml'
       ])
       .orderBy('brews.created_at', 'desc')
-      .execute() as BrewWithDetails[];
+      .execute() as BrewsWithJoins[];
   }
 
-  async findWithDetails(id: number): Promise<BrewWithDetails | undefined> {
-    const result = await this.db
+  /**
+   * Find brews with all joined data by id
+   */
+  async findByIdWithJoins(id: number): Promise<BrewsWithJoins | undefined> {
+    return await this.db
       .selectFrom('brews')
       .leftJoin('beans', 'brews.bean_id', 'beans.id')
       .leftJoin('methods', 'brews.method_id', 'methods.id')
       .leftJoin('grinders', 'brews.grinder_id', 'grinders.id')
+      .leftJoin('brew_feedback', 'brews.id', 'brew_feedback.brew_id')
       .where('brews.id', '=', id)
       .select([
         'brews.id',
@@ -107,20 +78,27 @@ export class BrewRepository extends BaseRepository<'brews'> {
         'brews.created_at',
         'beans.name as bean_name',
         'methods.name as method_name',
-        'grinders.name as grinder_name'
+        'grinders.name as grinder_name',
+        'brew_feedback.overall_rating',
+        'brew_feedback.too_strong',
+        'brew_feedback.too_weak',
+        'brew_feedback.is_sour',
+        'brew_feedback.is_bitter',
+        'brew_feedback.coffee_amount_ml'
       ])
-      .executeTakeFirst();
-
-    return result as BrewWithDetails | undefined;
+      .executeTakeFirst() as BrewsWithJoins | undefined;
   }
 
-  async findTopRated(limit: number = 10): Promise<BrewWithDetails[]> {
+  /**
+   * Find top rated brews with all joined data
+   */
+  async findTopRated(limit: number = 10): Promise<BrewsWithJoins[]> {
     return await this.db
       .selectFrom('brews')
-      .leftJoin('brew_feedback', 'brews.id', 'brew_feedback.brew_id')
       .leftJoin('beans', 'brews.bean_id', 'beans.id')
       .leftJoin('methods', 'brews.method_id', 'methods.id')
       .leftJoin('grinders', 'brews.grinder_id', 'grinders.id')
+      .leftJoin('brew_feedback', 'brews.id', 'brew_feedback.brew_id')
       .where('brew_feedback.overall_rating', '>=', 4)
       .select([
         'brews.id',
@@ -144,6 +122,6 @@ export class BrewRepository extends BaseRepository<'brews'> {
       ])
       .orderBy('brew_feedback.overall_rating', 'desc')
       .limit(limit)
-      .execute() as BrewWithDetails[];
+      .execute() as BrewsWithJoins[];
   }
 }
