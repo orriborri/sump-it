@@ -1,5 +1,5 @@
-"use client";
-import React, { useState } from 'react';
+'use client'
+import React, { useState } from 'react'
 import {
   Box,
   TextField,
@@ -13,77 +13,80 @@ import {
   Select,
   MenuItem,
   Alert,
-  Slider
-} from '@mui/material';
-import { Save, Cancel } from '@mui/icons-material';
+  Slider,
+} from '@mui/material'
+import { Save, Cancel } from '@mui/icons-material'
 
 interface GrinderFormData {
-  name: string;
-  min_setting: number;
-  max_setting: number;
-  step_size: number;
-  setting_type: string;
+  name: string
+  min_setting: number
+  max_setting: number
+  step_size: number
+  setting_type: string
 }
 
 interface GrinderFormProps {
-  initialData?: Partial<GrinderFormData>;
-  onSubmit: (data: GrinderFormData) => Promise<void>;
-  onCancel: () => void;
-  isEditing?: boolean;
+  initialData?: Partial<GrinderFormData>
+  onSubmit: (_data: GrinderFormData) => Promise<void>
+  onCancel: () => void
+  isEditing?: boolean
 }
 
 export const GrinderForm: React.FC<GrinderFormProps> = ({
   initialData,
   onSubmit,
   onCancel,
-  isEditing = false
+  isEditing = false,
 }) => {
   const [formData, setFormData] = useState<GrinderFormData>({
     name: initialData?.name || '',
     min_setting: initialData?.min_setting || 1,
     max_setting: initialData?.max_setting || 40,
     step_size: initialData?.step_size || 1.0,
-    setting_type: initialData?.setting_type || 'numeric'
-  });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+    setting_type: initialData?.setting_type || 'numeric',
+  })
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  const handleChange = (field: keyof GrinderFormData, value: string | number) => {
+  const handleChange = (
+    field: keyof GrinderFormData,
+    value: string | number
+  ) => {
     setFormData(prev => ({
       ...prev,
-      [field]: value
-    }));
-    setError(null);
-  };
+      [field]: value,
+    }))
+    setError(null)
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
+    e.preventDefault()
+
     // Validation
     if (!formData.name.trim()) {
-      setError('Grinder name is required');
-      return;
-    }
-    
-    if (formData.min_setting >= formData.max_setting) {
-      setError('Minimum setting must be less than maximum setting');
-      return;
-    }
-    
-    if (formData.step_size <= 0) {
-      setError('Step size must be greater than 0');
-      return;
+      setError('Grinder name is required')
+      return
     }
 
-    setIsSubmitting(true);
-    try {
-      await onSubmit(formData);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-    } finally {
-      setIsSubmitting(false);
+    if (formData.min_setting >= formData.max_setting) {
+      setError('Minimum setting must be less than maximum setting')
+      return
     }
-  };
+
+    if (formData.step_size <= 0) {
+      setError('Step size must be greater than 0')
+      return
+    }
+
+    setIsSubmitting(true)
+    try {
+      await onSubmit(formData)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
 
   return (
     <Card>
@@ -104,7 +107,7 @@ export const GrinderForm: React.FC<GrinderFormProps> = ({
             <TextField
               label="Grinder Name"
               value={formData.name}
-              onChange={(e) => handleChange('name', e.target.value)}
+              onChange={e => handleChange('name', e.target.value)}
               required
               fullWidth
               placeholder="e.g., Baratza Encore, Comandante C40"
@@ -116,7 +119,7 @@ export const GrinderForm: React.FC<GrinderFormProps> = ({
               <Select
                 value={formData.setting_type}
                 label="Setting Type"
-                onChange={(e) => handleChange('setting_type', e.target.value)}
+                onChange={e => handleChange('setting_type', e.target.value)}
               >
                 <MenuItem value="numeric">Numeric (1, 2, 3...)</MenuItem>
                 <MenuItem value="stepped">Stepped (A1, A2, B1...)</MenuItem>
@@ -130,7 +133,9 @@ export const GrinderForm: React.FC<GrinderFormProps> = ({
                 label="Minimum Setting"
                 type="number"
                 value={formData.min_setting}
-                onChange={(e) => handleChange('min_setting', parseInt(e.target.value) || 1)}
+                onChange={e =>
+                  handleChange('min_setting', parseInt(e.target.value) || 1)
+                }
                 inputProps={{ min: 0, max: 100 }}
                 required
                 fullWidth
@@ -139,7 +144,9 @@ export const GrinderForm: React.FC<GrinderFormProps> = ({
                 label="Maximum Setting"
                 type="number"
                 value={formData.max_setting}
-                onChange={(e) => handleChange('max_setting', parseInt(e.target.value) || 40)}
+                onChange={e =>
+                  handleChange('max_setting', parseInt(e.target.value) || 40)
+                }
                 inputProps={{ min: 1, max: 200 }}
                 required
                 fullWidth
@@ -151,7 +158,9 @@ export const GrinderForm: React.FC<GrinderFormProps> = ({
               label="Step Size"
               type="number"
               value={formData.step_size}
-              onChange={(e) => handleChange('step_size', parseFloat(e.target.value) || 1)}
+              onChange={e =>
+                handleChange('step_size', parseFloat(e.target.value) || 1)
+              }
               inputProps={{ min: 0.1, max: 10, step: 0.1 }}
               required
               fullWidth
@@ -164,31 +173,44 @@ export const GrinderForm: React.FC<GrinderFormProps> = ({
                 <Typography variant="subtitle2" gutterBottom>
                   Preview
                 </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ mb: 2 }}
+                >
                   This is how your grinder settings will appear:
                 </Typography>
-                
+
                 <Stack spacing={2}>
                   <Typography variant="body2">
-                    <strong>Range:</strong> {formData.min_setting} - {formData.max_setting}
+                    <strong>Range:</strong> {formData.min_setting} -{' '}
+                    {formData.max_setting}
                   </Typography>
                   <Typography variant="body2">
                     <strong>Step:</strong> {formData.step_size}
                   </Typography>
-                  
+
                   {/* Preview Slider */}
                   <Box sx={{ px: 2 }}>
                     <Typography variant="caption" gutterBottom display="block">
                       Sample slider:
                     </Typography>
                     <Slider
-                      value={Math.round((formData.min_setting + formData.max_setting) / 2)}
+                      value={Math.round(
+                        (formData.min_setting + formData.max_setting) / 2
+                      )}
                       min={formData.min_setting}
                       max={formData.max_setting}
                       step={formData.step_size}
                       marks={[
-                        { value: formData.min_setting, label: formData.min_setting.toString() },
-                        { value: formData.max_setting, label: formData.max_setting.toString() }
+                        {
+                          value: formData.min_setting,
+                          label: formData.min_setting.toString(),
+                        },
+                        {
+                          value: formData.max_setting,
+                          label: formData.max_setting.toString(),
+                        },
                       ]}
                       disabled
                       size="small"
@@ -214,12 +236,16 @@ export const GrinderForm: React.FC<GrinderFormProps> = ({
                 disabled={isSubmitting}
                 startIcon={<Save />}
               >
-                {isSubmitting ? 'Saving...' : isEditing ? 'Update Grinder' : 'Add Grinder'}
+                {isSubmitting
+                  ? 'Saving...'
+                  : isEditing
+                    ? 'Update Grinder'
+                    : 'Add Grinder'}
               </Button>
             </Stack>
           </Stack>
         </Box>
       </CardContent>
     </Card>
-  );
-};
+  )
+}

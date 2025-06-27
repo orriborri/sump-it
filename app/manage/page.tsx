@@ -1,22 +1,17 @@
-import { 
-  Box, 
-  Typography, 
-  Card, 
-  CardContent, 
-  Button, 
+import {
+  Box,
+  Typography,
+  Card,
+  CardContent,
+  Button,
   Stack,
-  Divider
-} from "@mui/material";
-import { 
-  Coffee, 
-  LocalCafe, 
-  Settings,
-  Add
-} from "@mui/icons-material";
-import Link from "next/link";
-import { AddBeanForm } from "./AddBeanForm";
-import { AddMethodForm } from "./AddMethodForm";
-import { AddGrinderForm } from "./AddGrinderForm";
+  Divider,
+} from '@mui/material'
+import { Coffee, LocalCafe, Settings, Add } from '@mui/icons-material'
+import Link from 'next/link'
+import { AddBeanForm } from './AddBeanForm'
+import { AddMethodForm } from './AddMethodForm'
+import { AddGrinderForm } from './AddGrinderForm'
 
 const ManagePage = () => {
   return (
@@ -34,8 +29,8 @@ const ManagePage = () => {
           <Typography variant="h6" gutterBottom>
             Quick Actions
           </Typography>
-          <Stack 
-            direction={{ xs: 'column', sm: 'row' }} 
+          <Stack
+            direction={{ xs: 'column', sm: 'row' }}
             spacing={2}
             sx={{ gap: 2 }}
           >
@@ -66,14 +61,23 @@ const ManagePage = () => {
       <Divider sx={{ my: 4 }} />
 
       {/* Add Forms */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' }, gap: 4 }}>
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' },
+          gap: 4,
+        }}
+      >
         <Card>
           <CardContent>
-            <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
+            <Stack
+              direction="row"
+              alignItems="center"
+              spacing={1}
+              sx={{ mb: 2 }}
+            >
               <Coffee color="primary" />
-              <Typography variant="h6">
-                Add New Bean
-              </Typography>
+              <Typography variant="h6">Add New Bean</Typography>
             </Stack>
             <AddBeanForm />
           </CardContent>
@@ -81,11 +85,14 @@ const ManagePage = () => {
 
         <Card>
           <CardContent>
-            <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
+            <Stack
+              direction="row"
+              alignItems="center"
+              spacing={1}
+              sx={{ mb: 2 }}
+            >
               <LocalCafe color="primary" />
-              <Typography variant="h6">
-                Add New Method
-              </Typography>
+              <Typography variant="h6">Add New Method</Typography>
             </Stack>
             <AddMethodForm />
           </CardContent>
@@ -93,18 +100,21 @@ const ManagePage = () => {
 
         <Card>
           <CardContent>
-            <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
+            <Stack
+              direction="row"
+              alignItems="center"
+              spacing={1}
+              sx={{ mb: 2 }}
+            >
               <Settings color="primary" />
-              <Typography variant="h6">
-                Add New Grinder
-              </Typography>
+              <Typography variant="h6">Add New Grinder</Typography>
             </Stack>
             <AddGrinderForm />
           </CardContent>
         </Card>
       </Box>
     </Box>
-  );
-};
+  )
+}
 
-export default ManagePage;
+export default ManagePage

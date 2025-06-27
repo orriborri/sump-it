@@ -1,41 +1,41 @@
-"use server";
+'use server'
 
-import { db } from "../../lib/database";
-import { BrewsModel } from "../../lib/generated-models/Brews";
-import { BrewFeedbackModel } from "../../lib/generated-models/BrewFeedback";
-import { FormData } from "./types";
+import { db } from '../../lib/database'
+import { BrewsModel } from '../../lib/generated-models/Brews'
+import { BrewFeedbackModel } from '../../lib/generated-models/BrewFeedback'
+import { FormData } from './types'
 
 // Initialize models
-const brewsModel = new BrewsModel(db);
-const feedbackModel = new BrewFeedbackModel(db);
+const brewsModel = new BrewsModel(db)
+const feedbackModel = new BrewFeedbackModel(db)
 
 export interface BrewWithFeedback {
-  id: number;
-  bean_id: number | null;
-  method_id: number | null;
-  grinder_id: number | null;
-  water: number | null;
-  dose: number | null;
-  grind: number | null;
-  ratio: string | null; // Changed to string to match database Numeric type
-  created_at: string;
+  id: number
+  bean_id: number | null
+  method_id: number | null
+  grinder_id: number | null
+  water: number | null
+  dose: number | null
+  grind: number | null
+  ratio: string | null // Changed to string to match database Numeric type
+  created_at: string
   feedback?: {
-    overall_rating: number | null;
-    too_strong: boolean;
-    too_weak: boolean;
-    is_sour: boolean;
-    is_bitter: boolean;
-    coffee_amount_ml: number | null;
-  };
+    overall_rating: number | null
+    too_strong: boolean
+    too_weak: boolean
+    is_sour: boolean
+    is_bitter: boolean
+    coffee_amount_ml: number | null
+  }
 }
 
 export interface ParameterSuggestion {
-  water: number;
-  dose: number;
-  grind: number;
-  ratio: number;
-  confidence: 'high' | 'medium' | 'low';
-  reasoning: string;
+  water: number
+  dose: number
+  grind: number
+  ratio: number
+  confidence: 'high' | 'medium' | 'low'
+  reasoning: string
 }
 
 export async function getBrewsWithFeedback(
@@ -44,35 +44,35 @@ export async function getBrewsWithFeedback(
   grinder_id: string
 ): Promise<BrewWithFeedback[]> {
   if (!bean_id || !method_id || !grinder_id) {
-    return [];
+    return []
   }
 
   try {
     const brewsWithFeedback = await db
-      .selectFrom("brews")
-      .leftJoin("brew_feedback", "brews.id", "brew_feedback.brew_id")
-      .where("brews.bean_id", "=", Number(bean_id))
-      .where("brews.method_id", "=", Number(method_id))
-      .where("brews.grinder_id", "=", Number(grinder_id))
+      .selectFrom('brews')
+      .leftJoin('brew_feedback', 'brews.id', 'brew_feedback.brew_id')
+      .where('brews.bean_id', '=', Number(bean_id))
+      .where('brews.method_id', '=', Number(method_id))
+      .where('brews.grinder_id', '=', Number(grinder_id))
       .select([
-        "brews.id",
-        "brews.bean_id",
-        "brews.method_id", 
-        "brews.grinder_id",
-        "brews.water",
-        "brews.dose",
-        "brews.grind",
-        "brews.ratio",
-        "brews.created_at",
-        "brew_feedback.overall_rating",
-        "brew_feedback.too_strong",
-        "brew_feedback.too_weak",
-        "brew_feedback.is_sour",
-        "brew_feedback.is_bitter",
-        "brew_feedback.coffee_amount_ml"
+        'brews.id',
+        'brews.bean_id',
+        'brews.method_id',
+        'brews.grinder_id',
+        'brews.water',
+        'brews.dose',
+        'brews.grind',
+        'brews.ratio',
+        'brews.created_at',
+        'brew_feedback.overall_rating',
+        'brew_feedback.too_strong',
+        'brew_feedback.too_weak',
+        'brew_feedback.is_sour',
+        'brew_feedback.is_bitter',
+        'brew_feedback.coffee_amount_ml',
       ])
-      .orderBy("brews.created_at", "desc")
-      .execute();
+      .orderBy('brews.created_at', 'desc')
+      .execute()
 
     return brewsWithFeedback.map(brew => ({
       id: brew.id,
@@ -84,18 +84,21 @@ export async function getBrewsWithFeedback(
       grind: brew.grind,
       ratio: brew.ratio,
       created_at: brew.created_at.toISOString(),
-      feedback: brew.overall_rating !== null ? {
-        overall_rating: brew.overall_rating,
-        too_strong: brew.too_strong || false,
-        too_weak: brew.too_weak || false,
-        is_sour: brew.is_sour || false,
-        is_bitter: brew.is_bitter || false,
-        coffee_amount_ml: brew.coffee_amount_ml
-      } : undefined
-    }));
+      feedback:
+        brew.overall_rating !== null
+          ? {
+              overall_rating: brew.overall_rating,
+              too_strong: brew.too_strong || false,
+              too_weak: brew.too_weak || false,
+              is_sour: brew.is_sour || false,
+              is_bitter: brew.is_bitter || false,
+              coffee_amount_ml: brew.coffee_amount_ml,
+            }
+          : undefined,
+    }))
   } catch (error) {
-    console.error("Error fetching brews with feedback:", error);
-    return [];
+    console.error('Error fetching brews with feedback:', error)
+    return []
   }
 }
 
@@ -104,23 +107,24 @@ export async function suggestOptimalParameters(
   method_id: string,
   grinder_id: string
 ): Promise<ParameterSuggestion | null> {
-  const brews = await getBrewsWithFeedback(bean_id, method_id, grinder_id);
-  
+  const brews = await getBrewsWithFeedback(bean_id, method_id, grinder_id)
+
   if (brews.length === 0) {
     // No history - provide default parameters based on method
-    return getDefaultParameters(method_id);
+    return getDefaultParameters(method_id)
   }
 
   // Filter brews with feedback and good ratings
-  const brewsWithGoodFeedback = brews.filter(brew => 
-    brew.feedback && 
-    brew.feedback.overall_rating && 
-    brew.feedback.overall_rating >= 4 &&
-    !brew.feedback.too_strong &&
-    !brew.feedback.too_weak &&
-    !brew.feedback.is_sour &&
-    !brew.feedback.is_bitter
-  );
+  const brewsWithGoodFeedback = brews.filter(
+    brew =>
+      brew.feedback &&
+      brew.feedback.overall_rating &&
+      brew.feedback.overall_rating >= 4 &&
+      !brew.feedback.too_strong &&
+      !brew.feedback.too_weak &&
+      !brew.feedback.is_sour &&
+      !brew.feedback.is_bitter
+  )
 
   if (brewsWithGoodFeedback.length > 0) {
     // Calculate average of good brews
@@ -132,86 +136,91 @@ export async function suggestOptimalParameters(
         ratio: acc.ratio + (Number(brew.ratio) || 0),
       }),
       { water: 0, dose: 0, grind: 0, ratio: 0 }
-    );
+    )
 
-    const count = brewsWithGoodFeedback.length;
+    const count = brewsWithGoodFeedback.length
     return {
       water: Math.round(avgParams.water / count),
       dose: Math.round(avgParams.dose / count),
       grind: Math.round(avgParams.grind / count),
       ratio: Math.round(avgParams.ratio / count),
       confidence: count >= 3 ? 'high' : count >= 2 ? 'medium' : 'low',
-      reasoning: `Based on ${count} previous brew${count > 1 ? 's' : ''} with good feedback (rating 4+ stars)`
-    };
+      reasoning: `Based on ${count} previous brew${count > 1 ? 's' : ''} with good feedback (rating 4+ stars)`,
+    }
   }
 
   // Analyze feedback to suggest improvements
-  const brewsWithFeedback = brews.filter(brew => brew.feedback);
+  const brewsWithFeedback = brews.filter(brew => brew.feedback)
   if (brewsWithFeedback.length > 0) {
-    return analyzeAndSuggestImprovements(brewsWithFeedback);
+    return analyzeAndSuggestImprovements(brewsWithFeedback)
   }
 
   // Fallback to most recent brew
   if (brews.length > 0) {
-    const latest = brews[0];
+    const latest = brews[0]
     return {
       water: latest.water ?? 250,
       dose: latest.dose ?? 15,
       grind: latest.grind ?? 20,
       ratio: Number(latest.ratio) || 17,
       confidence: 'low',
-      reasoning: 'Based on your most recent brew (no feedback available)'
-    };
+      reasoning: 'Based on your most recent brew (no feedback available)',
+    }
   }
 
-  return null;
+  return null
 }
 
-function analyzeAndSuggestImprovements(brews: BrewWithFeedback[]): ParameterSuggestion {
+function analyzeAndSuggestImprovements(
+  brews: BrewWithFeedback[]
+): ParameterSuggestion {
   // Get the most recent brew as base
-  const baseBrew = brews[0];
+  const baseBrew = brews[0]
   let adjustedParams = {
     water: baseBrew.water,
     dose: baseBrew.dose,
     grind: baseBrew.grind,
-    ratio: Number(baseBrew.ratio) || 0
-  };
+    ratio: Number(baseBrew.ratio) || 0,
+  }
 
-  let reasoning = "Adjusted based on feedback: ";
-  const adjustments: string[] = [];
+  let reasoning = 'Adjusted based on feedback: '
+  const adjustments: string[] = []
 
   // Analyze common feedback patterns
-  const feedbackCounts = brews.reduce((acc, brew) => {
-    if (brew.feedback) {
-      if (brew.feedback.too_strong) acc.tooStrong++;
-      if (brew.feedback.too_weak) acc.tooWeak++;
-      if (brew.feedback.is_sour) acc.sour++;
-      if (brew.feedback.is_bitter) acc.bitter++;
-    }
-    return acc;
-  }, { tooStrong: 0, tooWeak: 0, sour: 0, bitter: 0 });
+  const feedbackCounts = brews.reduce(
+    (acc, brew) => {
+      if (brew.feedback) {
+        if (brew.feedback.too_strong) acc.tooStrong++
+        if (brew.feedback.too_weak) acc.tooWeak++
+        if (brew.feedback.is_sour) acc.sour++
+        if (brew.feedback.is_bitter) acc.bitter++
+      }
+      return acc
+    },
+    { tooStrong: 0, tooWeak: 0, sour: 0, bitter: 0 }
+  )
 
   // Apply adjustments based on feedback patterns
   if (feedbackCounts.tooStrong > feedbackCounts.tooWeak) {
     // Reduce strength by increasing ratio or decreasing dose
-    adjustedParams.ratio = Math.min((adjustedParams.ratio ?? 0) + 1, 20);
-    adjustments.push("increased ratio to reduce strength");
+    adjustedParams.ratio = Math.min((adjustedParams.ratio ?? 0) + 1, 20)
+    adjustments.push('increased ratio to reduce strength')
   } else if (feedbackCounts.tooWeak > feedbackCounts.tooStrong) {
     // Increase strength by decreasing ratio or increasing dose
-    adjustedParams.ratio = Math.max((adjustedParams.ratio ?? 0) - 1, 10);
-    adjustments.push("decreased ratio to increase strength");
+    adjustedParams.ratio = Math.max((adjustedParams.ratio ?? 0) - 1, 10)
+    adjustments.push('decreased ratio to increase strength')
   }
 
   if (feedbackCounts.sour > 0) {
     // Reduce sourness by increasing extraction (finer grind or more water)
-    adjustedParams.grind = Math.max((adjustedParams.grind ?? 0) - 1, 1);
-    adjustments.push("finer grind to reduce sourness");
+    adjustedParams.grind = Math.max((adjustedParams.grind ?? 0) - 1, 1)
+    adjustments.push('finer grind to reduce sourness')
   }
 
   if (feedbackCounts.bitter > 0) {
     // Reduce bitterness by decreasing extraction (coarser grind or less water)
-    adjustedParams.grind = (adjustedParams.grind ?? 0) + 1;
-    adjustments.push("coarser grind to reduce bitterness");
+    adjustedParams.grind = (adjustedParams.grind ?? 0) + 1
+    adjustments.push('coarser grind to reduce bitterness')
   }
 
   return {
@@ -220,49 +229,51 @@ function analyzeAndSuggestImprovements(brews: BrewWithFeedback[]): ParameterSugg
     grind: adjustedParams.grind ?? 20,
     ratio: adjustedParams.ratio ?? 17,
     confidence: brews.length >= 3 ? 'medium' : 'low',
-    reasoning: reasoning + adjustments.join(", ")
-  };
+    reasoning: reasoning + adjustments.join(', '),
+  }
 }
 
-async function getDefaultParameters(method_id: string): Promise<ParameterSuggestion> {
+async function getDefaultParameters(
+  method_id: string
+): Promise<ParameterSuggestion> {
   // Get method name to provide appropriate defaults
   try {
     const method = await db
-      .selectFrom("methods")
-      .where("id", "=", Number(method_id))
-      .select("name")
-      .executeTakeFirst();
+      .selectFrom('methods')
+      .where('id', '=', Number(method_id))
+      .select('name')
+      .executeTakeFirst()
 
-    const methodName = method?.name?.toLowerCase() || "";
+    const methodName = method?.name?.toLowerCase() || ''
 
     // Default parameters based on common brewing methods
-    let defaults = { water: 250, dose: 15, grind: 20, ratio: 17 }; // Generic defaults
+    let defaults = { water: 250, dose: 15, grind: 20, ratio: 17 } // Generic defaults
 
-    if (methodName.includes("espresso")) {
-      defaults = { water: 60, dose: 18, grind: 5, ratio: 3 };
-    } else if (methodName.includes("pour over") || methodName.includes("v60")) {
-      defaults = { water: 250, dose: 15, grind: 15, ratio: 17 };
-    } else if (methodName.includes("french press")) {
-      defaults = { water: 350, dose: 21, grind: 30, ratio: 17 };
-    } else if (methodName.includes("aeropress")) {
-      defaults = { water: 200, dose: 12, grind: 12, ratio: 17 };
+    if (methodName.includes('espresso')) {
+      defaults = { water: 60, dose: 18, grind: 5, ratio: 3 }
+    } else if (methodName.includes('pour over') || methodName.includes('v60')) {
+      defaults = { water: 250, dose: 15, grind: 15, ratio: 17 }
+    } else if (methodName.includes('french press')) {
+      defaults = { water: 350, dose: 21, grind: 30, ratio: 17 }
+    } else if (methodName.includes('aeropress')) {
+      defaults = { water: 200, dose: 12, grind: 12, ratio: 17 }
     }
 
     return {
       ...defaults,
       confidence: 'low',
-      reasoning: `Default parameters for ${methodName || 'this brewing method'} (no previous brews found)`
-    };
+      reasoning: `Default parameters for ${methodName || 'this brewing method'} (no previous brews found)`,
+    }
   } catch (error) {
-    console.error("Error getting method name:", error);
+    console.error('Error getting method name:', error)
     return {
       water: 250,
       dose: 15,
       grind: 20,
       ratio: 17,
       confidence: 'low',
-      reasoning: 'Generic default parameters (no previous brews found)'
-    };
+      reasoning: 'Generic default parameters (no previous brews found)',
+    }
   }
 }
 
@@ -272,7 +283,7 @@ export async function getPreviousBrews(
   method_id: string,
   grinder_id: string
 ) {
-  return getBrewsWithFeedback(bean_id, method_id, grinder_id);
+  return getBrewsWithFeedback(bean_id, method_id, grinder_id)
 }
 
 export async function saveBrew(data: FormData) {
@@ -285,12 +296,12 @@ export async function saveBrew(data: FormData) {
       dose: data.dose ? Math.round(Number(data.dose)) : null,
       grind: data.grind ? Math.round(Number(data.grind)) : null,
       ratio: data.ratio ? String(data.ratio) : null,
-    });
-    
-    return { success: true, brew: savedBrew };
+    })
+
+    return { success: true, brew: savedBrew }
   } catch (error) {
-    console.error('Error saving brew:', error);
-    return { success: false, error: 'Failed to save brew' };
+    console.error('Error saving brew:', error)
+    return { success: false, error: 'Failed to save brew' }
   }
 }
 
@@ -304,11 +315,11 @@ export async function saveBrewFeedback(brewId: number, feedback: any) {
       is_sour: feedback.is_sour || false,
       is_bitter: feedback.is_bitter || false,
       overall_rating: feedback.overall_rating || null,
-    });
-    
-    return { success: true, feedback: savedFeedback };
+    })
+
+    return { success: true, feedback: savedFeedback }
   } catch (error) {
-    console.error('Error saving feedback:', error);
-    return { success: false, error: 'Failed to save feedback' };
+    console.error('Error saving feedback:', error)
+    return { success: false, error: 'Failed to save feedback' }
   }
 }

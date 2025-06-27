@@ -1,25 +1,25 @@
-"use client";
-import React from "react";
-import { 
-  Stepper, 
-  Step, 
-  StepLabel, 
+'use client'
+import React from 'react'
+import {
+  Stepper,
+  Step,
+  StepLabel,
   StepContent,
   Box,
   Typography,
-  Paper
-} from "@mui/material";
+  Paper,
+} from '@mui/material'
 
 interface FormStepperProps {
-  steps: string[];
-  activeStep: number;
-  children?: React.ReactNode;
+  steps: string[]
+  activeStep: number
+  children?: React.ReactNode
 }
 
-export const FormStepper: React.FC<FormStepperProps> = ({ 
-  steps, 
+export const FormStepper: React.FC<FormStepperProps> = ({
+  steps,
   activeStep,
-  children 
+  children,
 }) => {
   return (
     <Box sx={{ width: '100%' }}>
@@ -27,8 +27,8 @@ export const FormStepper: React.FC<FormStepperProps> = ({
         {steps.map((label, index) => (
           <Step key={label}>
             <StepLabel>
-              <Typography 
-                variant="h6" 
+              <Typography
+                variant="h6"
                 fontWeight={activeStep === index ? 600 : 400}
                 color={activeStep === index ? 'primary' : 'text.secondary'}
               >
@@ -37,15 +37,15 @@ export const FormStepper: React.FC<FormStepperProps> = ({
             </StepLabel>
             {activeStep === index && (
               <StepContent>
-                <Paper 
-                  elevation={1} 
-                  sx={{ 
-                    p: { xs: 2, sm: 3 }, 
-                    mt: 2, 
+                <Paper
+                  elevation={1}
+                  sx={{
+                    p: { xs: 2, sm: 3 },
+                    mt: 2,
                     mb: 2,
                     bgcolor: 'background.paper',
                     border: 1,
-                    borderColor: 'primary.light'
+                    borderColor: 'primary.light',
                   }}
                 >
                   {children}
@@ -56,5 +56,5 @@ export const FormStepper: React.FC<FormStepperProps> = ({
         ))}
       </Stepper>
     </Box>
-  );
-};
+  )
+}

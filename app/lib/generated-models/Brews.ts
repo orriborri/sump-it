@@ -9,7 +9,7 @@ export type BrewsUpdate = Updateable<DB['brews']>;
  * Brews Model - Provides CRUD operations for the brews table
  */
 export class BrewsModel {
-  constructor(private db: Kysely<DB>) {}
+  constructor(private db: Kysely<DB>) {} // eslint-disable-line no-unused-vars
 
   /**
    * Create a new brew record

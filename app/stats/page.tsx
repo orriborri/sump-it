@@ -1,4 +1,4 @@
-"use client";
+'use client'
 
 import {
   Table,
@@ -14,36 +14,36 @@ import {
   Rating,
   Stack,
   Chip,
-} from "@mui/material";
-import DeleteIcon from "@mui/icons-material/Delete";
-import { useEffect, useState } from "react";
-import { deleteBrew, getBrews } from "./actions";
+} from '@mui/material'
+import DeleteIcon from '@mui/icons-material/Delete'
+import { useEffect, useState } from 'react'
+import { deleteBrew, getBrews } from './actions'
 
-type BrewResult = Awaited<ReturnType<typeof getBrews>>[number];
+type BrewResult = Awaited<ReturnType<typeof getBrews>>[number]
 
 const StatsTable = () => {
-  const [items, setItems] = useState<BrewResult[]>([]);
+  const [items, setItems] = useState<BrewResult[]>([])
 
   useEffect(() => {
     const fetchItems = async () => {
-      const brews = await getBrews();
-      setItems(brews);
-    };
-    fetchItems();
-  }, []);
+      const brews = await getBrews()
+      setItems(brews)
+    }
+    fetchItems()
+  }, [])
 
   const handleDelete = async (id: number) => {
-    await deleteBrew(id);
-    const brews = await getBrews();
-    setItems(brews);
-  };
+    await deleteBrew(id)
+    const brews = await getBrews()
+    setItems(brews)
+  }
 
   return (
     <Box sx={{ p: 4 }}>
       <Typography variant="h4" component="h1" sx={{ mb: 4 }}>
         Statistics
       </Typography>
-      <TableContainer component={Paper} sx={{ maxHeight: "70vh" }}>
+      <TableContainer component={Paper} sx={{ maxHeight: '70vh' }}>
         <Table stickyHeader>
           <TableHead>
             <TableRow>
@@ -61,7 +61,7 @@ const StatsTable = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {items.map((brew) => (
+            {items.map(brew => (
               <TableRow key={brew.id} hover>
                 <TableCell>
                   {new Date(brew.created_at).toLocaleDateString()}
@@ -110,7 +110,7 @@ const StatsTable = () => {
         </Table>
       </TableContainer>
     </Box>
-  );
-};
+  )
+}
 
-export default StatsTable;
+export default StatsTable

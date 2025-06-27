@@ -9,7 +9,7 @@ export type GrindersUpdate = Updateable<DB['grinders']>;
  * Grinders Model - Provides CRUD operations for the grinders table
  */
 export class GrindersModel {
-  constructor(private db: Kysely<DB>) {}
+  constructor(private db: Kysely<DB>) {} // eslint-disable-line no-unused-vars
 
   /**
    * Create a new grinder record

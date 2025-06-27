@@ -1,16 +1,16 @@
 /**
  * Model Generator with CRUD Operations
- * 
+ *
  * This script generates TypeScript model classes for database tables with full CRUD operations.
  * Each model provides type-safe database access using Kysely query builder.
  */
-import { Project } from "ts-morph";
-import fs from "fs/promises";
-import path from "path";
+import { Project } from 'ts-morph'
+import fs from 'fs/promises'
+import path from 'path'
 
 // Configuration constants
-const DB_INTERFACE_FILE = "./app/lib/db.d.ts";
-const OUTPUT_DIR = "./app/lib/generated-models";
+const DB_INTERFACE_FILE = './app/lib/db.d.ts'
+const OUTPUT_DIR = './app/lib/generated-models'
 
 // Joined table configurations
 const JOINED_TABLES = {
@@ -19,7 +19,11 @@ const JOINED_TABLES = {
       { table: 'beans', on: 'brews.bean_id = beans.id', type: 'left' },
       { table: 'methods', on: 'brews.method_id = methods.id', type: 'left' },
       { table: 'grinders', on: 'brews.grinder_id = grinders.id', type: 'left' },
-      { table: 'brew_feedback', on: 'brews.id = brew_feedback.brew_id', type: 'left' }
+      {
+        table: 'brew_feedback',
+        on: 'brews.id = brew_feedback.brew_id',
+        type: 'left',
+      },
     ],
     selectFields: [
       'brews.id',
@@ -32,77 +36,94 @@ const JOINED_TABLES = {
       'brews.ratio',
       'brews.created_at',
       'beans.name as bean_name',
-      'methods.name as method_name', 
+      'methods.name as method_name',
       'grinders.name as grinder_name',
       'brew_feedback.overall_rating',
       'brew_feedback.too_strong',
       'brew_feedback.too_weak',
       'brew_feedback.is_sour',
       'brew_feedback.is_bitter',
-      'brew_feedback.coffee_amount_ml'
-    ]
-  }
-};
+      'brew_feedback.coffee_amount_ml',
+    ],
+  },
+}
 
 /**
  * Generates model classes for all tables in the DB interface
  */
 async function generate(): Promise<void> {
-  const project = new Project();
-  project.addSourceFileAtPath(DB_INTERFACE_FILE);
+  const project = new Project()
+  project.addSourceFileAtPath(DB_INTERFACE_FILE)
 
-  const sourceFile = project.getSourceFileOrThrow(DB_INTERFACE_FILE);
-  const dbInterface = sourceFile.getInterfaceOrThrow("DB");
+  const sourceFile = project.getSourceFileOrThrow(DB_INTERFACE_FILE)
+  const dbInterface = sourceFile.getInterfaceOrThrow('DB')
 
   // Clean and recreate output directory
   await fs.rm(OUTPUT_DIR, { recursive: true, force: true }).catch(() => {
     // Directory might not exist, which is fine
-  });
-  await fs.mkdir(OUTPUT_DIR, { recursive: true });
+  })
+  await fs.mkdir(OUTPUT_DIR, { recursive: true })
 
-  const tableNames: string[] = [];
+  const tableNames: string[] = []
 
   // Generate a model class for each table in the DB interface
   for (const prop of dbInterface.getProperties()) {
-    const tableName = prop.getName();
-    const interfaceName = toPascalCase(tableName);
-    
+    const tableName = prop.getName()
+    const interfaceName = toPascalCase(tableName)
+
     // Get the interface for this table
-    const tableInterface = sourceFile.getInterface(interfaceName);
+    const tableInterface = sourceFile.getInterface(interfaceName)
     if (!tableInterface) {
-      console.warn(`⚠️ No interface found for table ${tableName}, skipping`);
-      continue;
+      console.warn(`⚠️ No interface found for table ${tableName}, skipping`)
+      continue
     }
 
-    const code = generateModelClass(tableName, interfaceName, tableInterface);
-    
-    await fs.writeFile(path.join(OUTPUT_DIR, `${interfaceName}.ts`), code);
-    console.log(`✅ Generated: ${interfaceName}.ts`);
-    
-    tableNames.push(tableName);
+    const code = generateModelClass(tableName, interfaceName, tableInterface)
+
+    await fs.writeFile(path.join(OUTPUT_DIR, `${interfaceName}.ts`), code)
+    console.log(`✅ Generated: ${interfaceName}.ts`)
+
+    tableNames.push(tableName)
   }
 
   // Generate joined table types and queries
-  await generateJoinedTables(project, sourceFile);
+  await generateJoinedTables(project, sourceFile)
 
   // Generate index file to export all models
-  await generateIndexFile(tableNames);
+  await generateIndexFile(tableNames)
 }
 
 /**
  * Generates the model class code with full CRUD operations
  */
-function generateModelClass(tableName: string, interfaceName: string, tableInterface: any): string {
-  const properties = tableInterface.getProperties();
-  
+function generateModelClass(
+  tableName: string,
+  interfaceName: string,
+  tableInterface: any
+): string {
+  const properties = tableInterface.getProperties()
+
   // Identify primary key and timestamp fields
-  const primaryKey = properties.find((p: { getName: () => string; }) => p.getName() === 'id') ? 'id' : properties[0].getName();
-  const hasCreatedAt = properties.some((p: { getName: () => string; }) => p.getName() === 'created_at');
-  const hasUpdatedAt = properties.some((p: { getName: () => string; }) => p.getName() === 'updated_at');
-  
+  const primaryKey = properties.find(
+    (p: { getName: () => string }) => p.getName() === 'id'
+  )
+    ? 'id'
+    : properties[0].getName()
+  const hasCreatedAt = properties.some(
+    (p: { getName: () => string }) => p.getName() === 'created_at'
+  )
+  const hasUpdatedAt = properties.some(
+    (p: { getName: () => string }) => p.getName() === 'updated_at'
+  )
+
   // Generate auto-generated fields list
-  const autoFields = ['id', hasCreatedAt && 'created_at', hasUpdatedAt && 'updated_at'].filter(Boolean);
-  const createFields = autoFields.length > 0 ? autoFields.map(f => `'${f}'`).join(' | ') : 'never';
+  const autoFields = [
+    'id',
+    hasCreatedAt && 'created_at',
+    hasUpdatedAt && 'updated_at',
+  ].filter(Boolean)
+  const createFields =
+    autoFields.length > 0 ? autoFields.map(f => `'${f}'`).join(' | ') : 'never'
 
   return `import { Kysely, Selectable, Insertable, Updateable } from 'kysely';
 import { DB } from '../db.d';
@@ -224,23 +245,35 @@ export class ${interfaceName}Model {
       .returningAll()
       .execute();
   }
-}`;
+}`
 }
 
 /**
  * Generates joined table types and query functions
  */
-async function generateJoinedTables(project: any, sourceFile: any): Promise<void> {
+async function generateJoinedTables(
+  project: any,
+  sourceFile: any
+): Promise<void> {
   for (const [tableName, config] of Object.entries(JOINED_TABLES)) {
-    const interfaceName = toPascalCase(tableName);
-    const joinedTypeName = `${interfaceName}WithJoins`;
-    
+    const interfaceName = toPascalCase(tableName)
+    const joinedTypeName = `${interfaceName}WithJoins`
+
     // Generate the joined type interface
-    const joinedType = generateJoinedTypeInterface(tableName, config, sourceFile);
-    
+    const joinedType = generateJoinedTypeInterface(
+      tableName,
+      config,
+      sourceFile
+    )
+
     // Generate the query functions
-    const queryFunctions = generateJoinedQueryFunctions(tableName, interfaceName, joinedTypeName, config);
-    
+    const queryFunctions = generateJoinedQueryFunctions(
+      tableName,
+      interfaceName,
+      joinedTypeName,
+      config
+    )
+
     const code = `import { Kysely } from 'kysely';
 import { DB } from '../db.d';
 import { ${interfaceName}Select } from './${interfaceName}';
@@ -255,64 +288,81 @@ export class ${interfaceName}JoinedQueries {
 
 ${queryFunctions}
 }
-`;
+`
 
-    await fs.writeFile(path.join(OUTPUT_DIR, `${interfaceName}Joined.ts`), code);
-    console.log(`✅ Generated: ${interfaceName}Joined.ts`);
+    await fs.writeFile(path.join(OUTPUT_DIR, `${interfaceName}Joined.ts`), code)
+    console.log(`✅ Generated: ${interfaceName}Joined.ts`)
   }
 }
 
 /**
  * Generates the TypeScript interface for joined table data
  */
-function generateJoinedTypeInterface(tableName: string, config: any, sourceFile: any): string {
-  const interfaceName = toPascalCase(tableName);
-  const joinedTypeName = `${interfaceName}WithJoins`;
-  
+function generateJoinedTypeInterface(
+  tableName: string,
+  config: any,
+  sourceFile: any
+): string {
+  const interfaceName = toPascalCase(tableName)
+  const joinedTypeName = `${interfaceName}WithJoins`
+
   // Get base table properties
-  const baseInterface = sourceFile.getInterface(interfaceName);
-  const baseProperties = baseInterface ? baseInterface.getProperties() : [];
-  
+  const baseInterface = sourceFile.getInterface(interfaceName)
+  const baseProperties = baseInterface ? baseInterface.getProperties() : []
+
   // Generate joined properties based on select fields
-  let joinedProperties = '';
-  
+  let joinedProperties = ''
+
   config.selectFields.forEach((field: string) => {
     if (field.includes(' as ')) {
-      const [, alias] = field.split(' as ');
-      const cleanAlias = alias.trim();
-      
+      const [, alias] = field.split(' as ')
+      const cleanAlias = alias.trim()
+
       // Determine type based on field name
-      let type = 'string';
-      if (cleanAlias.includes('rating')) type = 'number | null';
-      else if (cleanAlias.includes('_strong') || cleanAlias.includes('_weak') || 
-               cleanAlias.includes('is_sour') || cleanAlias.includes('is_bitter')) {
-        type = 'boolean | null';
+      let type = 'string'
+      if (cleanAlias.includes('rating')) type = 'number | null'
+      else if (
+        cleanAlias.includes('_strong') ||
+        cleanAlias.includes('_weak') ||
+        cleanAlias.includes('is_sour') ||
+        cleanAlias.includes('is_bitter')
+      ) {
+        type = 'boolean | null'
       } else if (cleanAlias.includes('_ml') || cleanAlias.includes('amount')) {
-        type = 'number | null';
+        type = 'number | null'
       } else {
-        type = 'string | null';
+        type = 'string | null'
       }
-      
-      joinedProperties += `  ${cleanAlias}?: ${type};\n`;
+
+      joinedProperties += `  ${cleanAlias}?: ${type};\n`
     }
-  });
-  
+  })
+
   return `export interface ${joinedTypeName} extends ${interfaceName}Select {
-${joinedProperties}}`;
+${joinedProperties}}`
 }
 
 /**
  * Generates query functions for joined data
  */
-function generateJoinedQueryFunctions(tableName: string, interfaceName: string, joinedTypeName: string, config: any): string {
-  const joins = config.joins.map((join: any) => {
-    const [leftTable, leftColumn] = join.on.split(' = ')[0].split('.');
-    const [rightTable, rightColumn] = join.on.split(' = ')[1].split('.');
-    return `      .${join.type}Join('${join.table}', '${leftTable}.${leftColumn}', '${rightTable}.${rightColumn}')`;
-  }).join('\n');
-  
-  const selectFields = config.selectFields.map((field: string) => `'${field}'`).join(',\n        ');
-  
+function generateJoinedQueryFunctions(
+  tableName: string,
+  interfaceName: string,
+  joinedTypeName: string,
+  config: any
+): string {
+  const joins = config.joins
+    .map((join: any) => {
+      const [leftTable, leftColumn] = join.on.split(' = ')[0].split('.')
+      const [rightTable, rightColumn] = join.on.split(' = ')[1].split('.')
+      return `      .${join.type}Join('${join.table}', '${leftTable}.${leftColumn}', '${rightTable}.${rightColumn}')`
+    })
+    .join('\n')
+
+  const selectFields = config.selectFields
+    .map((field: string) => `'${field}'`)
+    .join(',\n        ')
+
   return `  /**
    * Find ${tableName} with all joined data by parameters
    */
@@ -362,20 +412,20 @@ ${joins}
       .orderBy('brew_feedback.overall_rating', 'desc')
       .limit(limit)
       .execute() as ${joinedTypeName}[];
-  }`;
+  }`
 }
 
 /**
  * Get the TypeScript type for the primary key
  */
 function getPrimaryKeyType(properties: any[], primaryKey: string): string {
-  const pkProp = properties.find(p => p.getName() === primaryKey);
-  if (!pkProp) return 'number';
-  
-  const type = pkProp.getType().getText();
-  if (type.includes('string')) return 'string';
-  if (type.includes('number')) return 'number';
-  return 'number'; // default
+  const pkProp = properties.find(p => p.getName() === primaryKey)
+  if (!pkProp) return 'number'
+
+  const type = pkProp.getType().getText()
+  if (type.includes('string')) return 'string'
+  if (type.includes('number')) return 'number'
+  return 'number' // default
 }
 
 /**
@@ -384,27 +434,33 @@ function getPrimaryKeyType(properties: any[], primaryKey: string): string {
 async function generateIndexFile(tableNames: string[]): Promise<void> {
   const imports = tableNames
     .map(name => {
-      const pascalName = toPascalCase(name);
-      const hasJoined = JOINED_TABLES[name as keyof typeof JOINED_TABLES];
-      const joinedImport = hasJoined ? `export { ${pascalName}JoinedQueries } from './${pascalName}Joined';` : '';
-      return `export { ${pascalName}Model } from './${pascalName}';\n${joinedImport}`;
+      const pascalName = toPascalCase(name)
+      const hasJoined = JOINED_TABLES[name as keyof typeof JOINED_TABLES]
+      const joinedImport = hasJoined
+        ? `export { ${pascalName}JoinedQueries } from './${pascalName}Joined';`
+        : ''
+      return `export { ${pascalName}Model } from './${pascalName}';\n${joinedImport}`
     })
-    .join('\n');
-  
+    .join('\n')
+
   const code = `// Auto-generated model exports
 ${imports}
 
 // Re-export types for convenience
-${tableNames.map(name => {
-  const pascalName = toPascalCase(name);
-  const hasJoined = JOINED_TABLES[name as keyof typeof JOINED_TABLES];
-  const joinedType = hasJoined ? `export type { ${pascalName}WithJoins } from './${pascalName}Joined';` : '';
-  return `export type { ${pascalName}Select, ${pascalName}Insert, ${pascalName}Update } from './${pascalName}';\n${joinedType}`;
-}).join('\n')}
-`;
+${tableNames
+  .map(name => {
+    const pascalName = toPascalCase(name)
+    const hasJoined = JOINED_TABLES[name as keyof typeof JOINED_TABLES]
+    const joinedType = hasJoined
+      ? `export type { ${pascalName}WithJoins } from './${pascalName}Joined';`
+      : ''
+    return `export type { ${pascalName}Select, ${pascalName}Insert, ${pascalName}Update } from './${pascalName}';\n${joinedType}`
+  })
+  .join('\n')}
+`
 
-  await fs.writeFile(path.join(OUTPUT_DIR, "index.ts"), code);
-  console.log("✅ Generated: index.ts");
+  await fs.writeFile(path.join(OUTPUT_DIR, 'index.ts'), code)
+  console.log('✅ Generated: index.ts')
 }
 
 /**
@@ -414,11 +470,11 @@ function toPascalCase(str: string): string {
   return str
     .split('_')
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join('');
+    .join('')
 }
 
 // Execute the generator
-generate().catch((error) => {
-  console.error("❌ Error generating models:", error);
-  process.exit(1);
-});
+generate().catch(error => {
+  console.error('❌ Error generating models:', error)
+  process.exit(1)
+})

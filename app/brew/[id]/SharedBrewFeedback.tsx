@@ -1,5 +1,5 @@
-"use client";
-import React, { useState } from "react";
+'use client'
+import React, { useState } from 'react'
 import {
   Box,
   Typography,
@@ -14,26 +14,26 @@ import {
   Divider,
   Alert,
   Chip,
-} from "@mui/material";
-import { saveBrewFeedback } from "../workflow/enhanced-actions";
+} from '@mui/material'
+import { saveBrewFeedback } from '../workflow/enhanced-actions'
 
 interface BrewDetails {
-  id: number;
-  bean_id: number | null;
-  method_id: number | null;
-  grinder_id: number | null;
-  water: number | null;
-  dose: number | null;
-  grind: number | null;
-  ratio: string | null; // Changed to string to match database Numeric type
-  created_at: string;
-  bean_name: string;
-  method_name: string;
-  grinder_name: string;
+  id: number
+  bean_id: number | null
+  method_id: number | null
+  grinder_id: number | null
+  water: number | null
+  dose: number | null
+  grind: number | null
+  ratio: string | null // Changed to string to match database Numeric type
+  created_at: string
+  bean_name: string
+  method_name: string
+  grinder_name: string
 }
 
 interface SharedBrewFeedbackProps {
-  brewDetails: BrewDetails;
+  brewDetails: BrewDetails
 }
 
 export const SharedBrewFeedback: React.FC<SharedBrewFeedbackProps> = ({
@@ -46,44 +46,44 @@ export const SharedBrewFeedback: React.FC<SharedBrewFeedbackProps> = ({
     too_weak: false,
     is_sour: false,
     is_bitter: false,
-    notes: "",
-  });
+    notes: '',
+  })
 
-  const [submitted, setSubmitted] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [submitted, setSubmitted] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const handleFeedbackChange = (field: string, value: any) => {
     setFeedback(prev => ({
       ...prev,
-      [field]: value
-    }));
-  };
+      [field]: value,
+    }))
+  }
 
   const handleSubmit = async () => {
     if (feedback.overall_rating === 0) {
-      setError("Please provide an overall rating");
-      return;
+      setError('Please provide an overall rating')
+      return
     }
 
-    setSubmitting(true);
-    setError(null);
+    setSubmitting(true)
+    setError(null)
 
     try {
-      const result = await saveBrewFeedback(brewDetails.id, feedback);
-      
+      const result = await saveBrewFeedback(brewDetails.id, feedback)
+
       if (result.success) {
-        setSubmitted(true);
+        setSubmitted(true)
       } else {
-        setError(result.error || "Failed to save feedback");
+        setError(result.error || 'Failed to save feedback')
       }
     } catch (error) {
-      console.error("Error submitting feedback:", error);
-      setError("An unexpected error occurred");
+      console.error('Error submitting feedback:', error)
+      setError('An unexpected error occurred')
     } finally {
-      setSubmitting(false);
+      setSubmitting(false)
     }
-  };
+  }
 
   if (submitted) {
     return (
@@ -96,7 +96,7 @@ export const SharedBrewFeedback: React.FC<SharedBrewFeedbackProps> = ({
             Your feedback has been saved and will help improve future brews.
           </Typography>
         </Alert>
-        
+
         <Card>
           <CardContent>
             <Typography variant="h6" gutterBottom>
@@ -108,40 +108,44 @@ export const SharedBrewFeedback: React.FC<SharedBrewFeedbackProps> = ({
               <Chip label={brewDetails.grinder_name} color="info" />
             </Stack>
             <Typography variant="body2">
-              {brewDetails.water || 0}ml water • {brewDetails.dose || 0}g coffee • 
-              1:{brewDetails.ratio || 0} ratio • Grind setting {brewDetails.grind || 0}
+              {brewDetails.water || 0}ml water • {brewDetails.dose || 0}g coffee
+              • 1:{brewDetails.ratio || 0} ratio • Grind setting{' '}
+              {brewDetails.grind || 0}
             </Typography>
           </CardContent>
         </Card>
       </Box>
-    );
+    )
   }
 
   return (
     <Box>
       {/* Brew Details */}
-      <Card sx={{ mb: 3, bgcolor: 'primary.light', color: 'primary.contrastText' }}>
+      <Card
+        sx={{ mb: 3, bgcolor: 'primary.light', color: 'primary.contrastText' }}
+      >
         <CardContent>
           <Typography variant="h6" gutterBottom>
             Brew Details
           </Typography>
           <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ mb: 2 }}>
-            <Chip 
-              label={brewDetails.bean_name} 
+            <Chip
+              label={brewDetails.bean_name}
               sx={{ bgcolor: 'primary.dark', color: 'primary.contrastText' }}
             />
-            <Chip 
-              label={brewDetails.method_name} 
+            <Chip
+              label={brewDetails.method_name}
               sx={{ bgcolor: 'primary.dark', color: 'primary.contrastText' }}
             />
-            <Chip 
-              label={brewDetails.grinder_name} 
+            <Chip
+              label={brewDetails.grinder_name}
               sx={{ bgcolor: 'primary.dark', color: 'primary.contrastText' }}
             />
           </Stack>
           <Typography variant="body1">
-            {brewDetails.water || 0}ml water • {brewDetails.dose || 0}g coffee • 
-            1:{brewDetails.ratio || 0} ratio • Grind setting {brewDetails.grind || 0}
+            {brewDetails.water || 0}ml water • {brewDetails.dose || 0}g coffee •
+            1:{brewDetails.ratio || 0} ratio • Grind setting{' '}
+            {brewDetails.grind || 0}
           </Typography>
           <Typography variant="body2" sx={{ mt: 1, opacity: 0.8 }}>
             Brewed on {new Date(brewDetails.created_at).toLocaleDateString()}
@@ -155,7 +159,7 @@ export const SharedBrewFeedback: React.FC<SharedBrewFeedbackProps> = ({
           <Typography variant="h6" gutterBottom>
             How did this brew taste?
           </Typography>
-          
+
           <Stack spacing={3}>
             {/* Overall Rating */}
             <Box>
@@ -164,7 +168,9 @@ export const SharedBrewFeedback: React.FC<SharedBrewFeedbackProps> = ({
               </Typography>
               <Rating
                 value={feedback.overall_rating}
-                onChange={(_, value) => handleFeedbackChange('overall_rating', value || 0)}
+                onChange={(_, value) =>
+                  handleFeedbackChange('overall_rating', value || 0)
+                }
                 size="large"
               />
             </Box>
@@ -179,7 +185,12 @@ export const SharedBrewFeedback: React.FC<SharedBrewFeedbackProps> = ({
               <TextField
                 type="number"
                 value={feedback.coffee_amount_ml}
-                onChange={(e) => handleFeedbackChange('coffee_amount_ml', parseInt(e.target.value) || 0)}
+                onChange={e =>
+                  handleFeedbackChange(
+                    'coffee_amount_ml',
+                    parseInt(e.target.value) || 0
+                  )
+                }
                 label="Amount in ml"
                 variant="outlined"
                 size="small"
@@ -202,7 +213,9 @@ export const SharedBrewFeedback: React.FC<SharedBrewFeedbackProps> = ({
                   control={
                     <Checkbox
                       checked={feedback.too_strong}
-                      onChange={(e) => handleFeedbackChange('too_strong', e.target.checked)}
+                      onChange={e =>
+                        handleFeedbackChange('too_strong', e.target.checked)
+                      }
                     />
                   }
                   label="Too strong"
@@ -211,7 +224,9 @@ export const SharedBrewFeedback: React.FC<SharedBrewFeedbackProps> = ({
                   control={
                     <Checkbox
                       checked={feedback.too_weak}
-                      onChange={(e) => handleFeedbackChange('too_weak', e.target.checked)}
+                      onChange={e =>
+                        handleFeedbackChange('too_weak', e.target.checked)
+                      }
                     />
                   }
                   label="Too weak"
@@ -220,7 +235,9 @@ export const SharedBrewFeedback: React.FC<SharedBrewFeedbackProps> = ({
                   control={
                     <Checkbox
                       checked={feedback.is_sour}
-                      onChange={(e) => handleFeedbackChange('is_sour', e.target.checked)}
+                      onChange={e =>
+                        handleFeedbackChange('is_sour', e.target.checked)
+                      }
                     />
                   }
                   label="Sour"
@@ -229,7 +246,9 @@ export const SharedBrewFeedback: React.FC<SharedBrewFeedbackProps> = ({
                   control={
                     <Checkbox
                       checked={feedback.is_bitter}
-                      onChange={(e) => handleFeedbackChange('is_bitter', e.target.checked)}
+                      onChange={e =>
+                        handleFeedbackChange('is_bitter', e.target.checked)
+                      }
                     />
                   }
                   label="Bitter"
@@ -248,7 +267,7 @@ export const SharedBrewFeedback: React.FC<SharedBrewFeedbackProps> = ({
                 multiline
                 rows={3}
                 value={feedback.notes}
-                onChange={(e) => handleFeedbackChange('notes', e.target.value)}
+                onChange={e => handleFeedbackChange('notes', e.target.value)}
                 placeholder="Any other observations about this brew..."
                 variant="outlined"
                 fullWidth
@@ -274,9 +293,9 @@ export const SharedBrewFeedback: React.FC<SharedBrewFeedbackProps> = ({
           disabled={submitting}
           size="large"
         >
-          {submitting ? "Submitting..." : "Submit Feedback"}
+          {submitting ? 'Submitting...' : 'Submit Feedback'}
         </Button>
       </Box>
     </Box>
-  );
-};
+  )
+}

@@ -3,23 +3,23 @@ import {
   InputLabel,
   MenuItem,
   Select as MuiSelect,
-} from "@mui/material";
+} from '@mui/material'
 import {
   Control,
   Controller,
   FieldValues,
   Path,
   PathValue,
-} from "react-hook-form";
+} from 'react-hook-form'
 
 interface GenericSelectProps<T, F extends FieldValues> {
-  control: Control<F>;
-  name: Path<F>;
-  label: string;
-  items: T[];
-  getKey: (item: T) => number | string;
-  getValue: (item: T) => string;
-  getLabel: (item: T) => string;
+  control: Control<F>
+  name: Path<F>
+  label: string
+  items: T[]
+  getKey: (_item: T) => number | string
+  getValue: (_item: T) => string
+  getLabel: (_item: T) => string
 }
 
 export const Select = <T, F extends FieldValues>({
@@ -35,12 +35,12 @@ export const Select = <T, F extends FieldValues>({
     <Controller
       name={name as Path<F>}
       control={control}
-      defaultValue={"" as PathValue<F, Path<F>>}
+      defaultValue={'' as PathValue<F, Path<F>>}
       render={({ field }) => (
         <FormControl fullWidth sx={{ mb: 1 }}>
           <InputLabel>{label}</InputLabel>
           <MuiSelect {...field} label={label}>
-            {items.map((item) => (
+            {items.map(item => (
               <MenuItem key={getKey(item)} value={getValue(item)}>
                 {getLabel(item)}
               </MenuItem>
@@ -49,5 +49,5 @@ export const Select = <T, F extends FieldValues>({
         </FormControl>
       )}
     />
-  );
-};
+  )
+}

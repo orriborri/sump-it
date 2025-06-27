@@ -1,21 +1,21 @@
-"use client";
-import React from "react";
-import { Box, Button, Typography, Stack } from "@mui/material";
-import { BeanSelector } from "./BeanSelector";
-import type { UseFormReturn } from "./useForm";
-import { FormStepper } from "./Stepper";
-import { EnhancedRecipe } from "../recipe/EnhancedRecipe";
-import { GrindSettingInput } from "../brew-parameters/GrindSettingInput";
-import { WaterDoseInputGroup } from "../brew-parameters/WaterDoseInputGroup";
-import type { RuntimeType } from "@/app/lib/types";
-import type { Beans, Methods, Grinders } from "@/app/lib/db.d";
+'use client'
+import React from 'react'
+import { Box, Button, Typography, Stack } from '@mui/material'
+import { BeanSelector } from './BeanSelector'
+import type { UseFormReturn } from './useForm'
+import { FormStepper } from './Stepper'
+import { EnhancedRecipe } from '../recipe/EnhancedRecipe'
+import { GrindSettingInput } from '../brew-parameters/GrindSettingInput'
+import { WaterDoseInputGroup } from '../brew-parameters/WaterDoseInputGroup'
+import type { RuntimeType } from '@/app/lib/types'
+import type { Beans, Methods, Grinders } from '@/app/lib/db.d'
 
 interface StepProps {
-  form: UseFormReturn;
-  onSubmit?: () => void;
-  beans?: RuntimeType<Beans>[];
-  methods?: RuntimeType<Methods>[];
-  grinders?: RuntimeType<Grinders>[];
+  form: UseFormReturn
+  onSubmit?: () => void
+  beans?: RuntimeType<Beans>[]
+  methods?: RuntimeType<Methods>[]
+  grinders?: RuntimeType<Grinders>[]
 }
 
 export const Step: React.FC<StepProps> = ({
@@ -26,11 +26,11 @@ export const Step: React.FC<StepProps> = ({
   grinders,
 }) => {
   const steps = [
-    "Select Bean & Brew",
-    "Recipe",
-    "Grind Setting",
-    "Water Dosing",
-  ];
+    'Select Bean & Brew',
+    'Recipe',
+    'Grind Setting',
+    'Water Dosing',
+  ]
 
   const renderStepContent = () => {
     switch (form.currentStep) {
@@ -48,7 +48,7 @@ export const Step: React.FC<StepProps> = ({
               grinders={grinders}
             />
           </Box>
-        );
+        )
       case 1:
         // Selection step - Reference
         return (
@@ -61,7 +61,7 @@ export const Step: React.FC<StepProps> = ({
               updateFormData={form.updateFormData}
             />
           </Box>
-        );
+        )
       case 2:
         // Grind Setting step
         return (
@@ -74,7 +74,7 @@ export const Step: React.FC<StepProps> = ({
               updateFormData={form.updateFormData}
             />
           </Box>
-        );
+        )
       case 3:
         // Water Dosing step
         return (
@@ -87,18 +87,24 @@ export const Step: React.FC<StepProps> = ({
               updateFormData={form.updateFormData}
             />
           </Box>
-        );
+        )
 
       default:
-        return null;
+        return null
     }
-  };
+  }
 
-  const { currentStep, prevStep, nextStep, formData, updateFormData } = form;
-  const isLastStep = currentStep === steps.length - 1;
+  const {
+    currentStep,
+    prevStep,
+    nextStep,
+    formData: _formData,
+    updateFormData: _updateFormData,
+  } = form
+  const isLastStep = currentStep === steps.length - 1
 
   return (
-    <Box sx={{ width: "100%" }}>
+    <Box sx={{ width: '100%' }}>
       <FormStepper steps={steps} activeStep={currentStep} />
 
       <Box sx={{ mt: 4, mb: 4 }}>{renderStepContent()}</Box>
@@ -117,9 +123,9 @@ export const Step: React.FC<StepProps> = ({
           onClick={isLastStep ? onSubmit : nextStep}
           type="button"
         >
-          {isLastStep ? "Start Brewing" : "Next"}
+          {isLastStep ? 'Start Brewing' : 'Next'}
         </Button>
       </Stack>
     </Box>
-  );
-};
+  )
+}

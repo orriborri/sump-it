@@ -1,54 +1,45 @@
-"use client";
-import React, { useState } from "react";
-import {
-  Box,
-  Typography,
-  Card,
-  CardContent,
-  Skeleton,
-} from "@mui/material";
-import { FormData } from "../workflow/types";
-import { getPreviousBrews } from "../workflow/actions";
-import { BrewsWithJoins } from "../../lib/generated-models/BrewsJoined";
+'use client'
+import React, { useState } from 'react'
+import { Box, Typography, Card, CardContent, Skeleton } from '@mui/material'
+import { FormData } from '../workflow/types'
+import { getPreviousBrews } from '../workflow/actions'
+import { BrewsWithJoins } from '../../lib/generated-models/BrewsJoined'
 
 interface RecipeProps {
-  formData: FormData;
-  updateFormData: (updates: Partial<FormData>) => void;
+  formData: FormData
+  updateFormData: (_updates: Partial<FormData>) => void
 }
 
-export const Recipe: React.FC<RecipeProps> = ({
-  formData,
-  updateFormData,
-}) => {
-  const [previousBrews, setPreviousBrews] = useState<BrewsWithJoins[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [loaded, setLoaded] = useState(false);
+export const Recipe: React.FC<RecipeProps> = ({ formData, updateFormData }) => {
+  const [previousBrews, setPreviousBrews] = useState<BrewsWithJoins[]>([])
+  const [loading, setLoading] = useState(false)
+  const [loaded, setLoaded] = useState(false)
 
   React.useEffect(() => {
     const fetchBrews = async () => {
       if (!formData.bean_id || !formData.method_id || !formData.grinder_id) {
-        setPreviousBrews([]);
-        return;
+        setPreviousBrews([])
+        return
       }
 
-      setLoading(true);
+      setLoading(true)
       try {
         const brews = await getPreviousBrews(
           formData.bean_id.toString(),
           formData.method_id.toString(),
           formData.grinder_id.toString()
-        );
-        setPreviousBrews(brews);
+        )
+        setPreviousBrews(brews)
       } catch (error) {
-        console.error("Error fetching brews:", error);
+        console.error('Error fetching brews:', error)
       } finally {
-        setLoading(false);
-        setLoaded(true);
+        setLoading(false)
+        setLoaded(true)
       }
-    };
+    }
 
-    fetchBrews();
-  }, [formData.bean_id, formData.method_id, formData.grinder_id]);
+    fetchBrews()
+  }, [formData.bean_id, formData.method_id, formData.grinder_id])
 
   const handleSelectBrew = (brew: BrewsWithJoins) => {
     updateFormData({
@@ -56,8 +47,8 @@ export const Recipe: React.FC<RecipeProps> = ({
       dose: brew.dose ?? undefined,
       grind: brew.grind ?? undefined,
       ratio: brew.ratio ?? undefined,
-    });
-  };
+    })
+  }
 
   if (loading) {
     return (
@@ -71,19 +62,19 @@ export const Recipe: React.FC<RecipeProps> = ({
             gridTemplateColumns: {
               xs: '1fr',
               sm: 'repeat(2, 1fr)',
-              md: 'repeat(3, 1fr)'
+              md: 'repeat(3, 1fr)',
             },
-            gap: 2
+            gap: 2,
           }}
         >
-          {[1, 2, 3].map((i) => (
+          {[1, 2, 3].map(i => (
             <Box key={i}>
               <Skeleton variant="rectangular" height={140} />
             </Box>
           ))}
         </Box>
       </Box>
-    );
+    )
   }
 
   if (loaded && previousBrews.length === 0) {
@@ -96,7 +87,7 @@ export const Recipe: React.FC<RecipeProps> = ({
           Continue to set up a new brew with your selected parameters.
         </Typography>
       </Box>
-    );
+    )
   }
 
   return (
@@ -114,17 +105,17 @@ export const Recipe: React.FC<RecipeProps> = ({
           gridTemplateColumns: {
             xs: '1fr',
             sm: 'repeat(2, 1fr)',
-            md: 'repeat(3, 1fr)'
+            md: 'repeat(3, 1fr)',
           },
-          gap: 2
+          gap: 2,
         }}
       >
-        {previousBrews.map((brew) => (
+        {previousBrews.map(brew => (
           <Box key={brew.id}>
             <Card
               sx={{
-                cursor: "pointer",
-                "&:hover": { boxShadow: 3 },
+                cursor: 'pointer',
+                '&:hover': { boxShadow: 3 },
               }}
               onClick={() => handleSelectBrew(brew)}
             >
@@ -147,5 +138,5 @@ export const Recipe: React.FC<RecipeProps> = ({
         ))}
       </Box>
     </Box>
-  );
-};
+  )
+}

@@ -12,7 +12,7 @@ export interface BrewsWithJoins extends BrewsSelect {
  * Brews Joined Queries - Provides queries with joined data
  */
 export class BrewsJoinedQueries {
-  constructor(private db: Kysely<DB>) {}
+  constructor(private db: Kysely<DB>) {} // eslint-disable-line no-unused-vars
 
   /**
    * Find brews with all joined data by parameters

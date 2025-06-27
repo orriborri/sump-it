@@ -1,20 +1,21 @@
-import { TextField } from "@mui/material";
+import { TextField } from '@mui/material'
 import {
   Control,
   Controller,
   FieldValues,
   Path,
   PathValue,
-} from "react-hook-form";
+} from 'react-hook-form'
 
 interface Props<T extends FieldValues> {
-  control: Control<T>;
-  name: Path<T>;
-  label: string;
-  rules?: object;
-  type?: string;
-  onChange?: (value: number) => void;
-  disabled?: boolean;
+  control: Control<T>
+  name: Path<T>
+  label: string
+  rules?: object
+  type?: string
+  // eslint-disable-next-line no-unused-vars
+  onChange?: (value: number) => void
+  disabled?: boolean
 }
 
 export const Input = <T extends FieldValues>({
@@ -22,7 +23,7 @@ export const Input = <T extends FieldValues>({
   name,
   label,
   rules,
-  type = "text",
+  type = 'text',
   onChange,
   disabled,
 }: Props<T>) => {
@@ -30,15 +31,15 @@ export const Input = <T extends FieldValues>({
     <Controller
       name={name}
       control={control}
-      defaultValue={"" as PathValue<T, Path<T>>}
+      defaultValue={'' as PathValue<T, Path<T>>}
       rules={rules}
       render={({ field, fieldState: { error } }) => (
         <TextField
           {...field}
-          onChange={(e) => {
-            field.onChange(e);
+          onChange={e => {
+            field.onChange(e)
             if (onChange) {
-              onChange(Number(e.target.value));
+              onChange(Number(e.target.value))
             }
           }}
           fullWidth
@@ -51,5 +52,5 @@ export const Input = <T extends FieldValues>({
         />
       )}
     />
-  );
-};
+  )
+}

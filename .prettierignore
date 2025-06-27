@@ -1,0 +1,44 @@
+# Dependencies
+node_modules/
+pnpm-lock.yaml
+
+# Build outputs
+.next/
+out/
+dist/
+build/
+
+# Generated files
+*.d.ts
+migrations/db-types.ts
+app/lib/db.d.ts
+app/lib/generated-models/
+
+# Config files that should maintain their structure
+*.config.js
+*.config.ts
+*.config.mjs
+
+# Documentation that may have specific formatting
+README.md
+docs/
+
+# Database files
+*.sql
+seeds/
+migrations/
+
+# Docker files
+Dockerfile*
+docker-compose*.yml
+docker-compose*.yaml
+
+# IDE files
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# Environment files
+.env*

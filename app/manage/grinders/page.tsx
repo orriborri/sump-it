@@ -1,4 +1,4 @@
-import React from 'react';
+import React from 'react'
 import {
   Box,
   Typography,
@@ -14,25 +14,30 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Paper
-} from '@mui/material';
-import { Edit, Add } from '@mui/icons-material';
-import Link from 'next/link';
-import { db } from '@/app/lib/database';
-import { GrindersModel } from '@/app/lib/generated-models/Grinders';
-import { DeleteGrinderButton } from './DeleteGrinderButton';
+  Paper,
+} from '@mui/material'
+import { Edit, Add } from '@mui/icons-material'
+import Link from 'next/link'
+import { db } from '@/app/lib/database'
+import { GrindersModel } from '@/app/lib/generated-models/Grinders'
+import { DeleteGrinderButton } from './DeleteGrinderButton'
 
 async function getGrinders() {
-  const grindersModel = new GrindersModel(db);
-  return await grindersModel.findAll();
+  const grindersModel = new GrindersModel(db)
+  return await grindersModel.findAll()
 }
 
 export default async function GrindersPage() {
-  const grinders = await getGrinders();
+  const grinders = await getGrinders()
 
   return (
     <Box sx={{ p: 3 }}>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
+      <Stack
+        direction="row"
+        justifyContent="space-between"
+        alignItems="center"
+        sx={{ mb: 3 }}
+      >
         <Typography variant="h4" component="h1">
           Manage Grinders
         </Typography>
@@ -58,7 +63,7 @@ export default async function GrindersPage() {
             </TableRow>
           </TableHead>
           <TableBody>
-            {grinders.map((grinder) => (
+            {grinders.map(grinder => (
               <TableRow key={grinder.id}>
                 <TableCell>
                   <Typography variant="subtitle1" fontWeight={600}>
@@ -66,21 +71,21 @@ export default async function GrindersPage() {
                   </Typography>
                 </TableCell>
                 <TableCell>
-                  <Chip 
+                  <Chip
                     label={`${grinder.min_setting || 1} - ${grinder.max_setting || 40}`}
                     color="primary"
                     variant="outlined"
                   />
                 </TableCell>
                 <TableCell>
-                  <Chip 
+                  <Chip
                     label={grinder.step_size || 1}
                     color="secondary"
                     variant="outlined"
                   />
                 </TableCell>
                 <TableCell>
-                  <Chip 
+                  <Chip
                     label={grinder.setting_type || 'numeric'}
                     color="info"
                     variant="outlined"
@@ -96,7 +101,7 @@ export default async function GrindersPage() {
                     >
                       <Edit />
                     </IconButton>
-                    <DeleteGrinderButton 
+                    <DeleteGrinderButton
                       grinderId={grinder.id}
                       grinderName={grinder.name || 'Unknown Grinder'}
                     />
@@ -129,5 +134,5 @@ export default async function GrindersPage() {
         </Card>
       )}
     </Box>
-  );
+  )
 }
