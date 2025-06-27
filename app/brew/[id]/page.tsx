@@ -7,6 +7,9 @@ import { Box, Typography, Alert } from '@mui/material'
 import { SharedBrewFeedback } from './SharedBrewFeedback'
 import { notFound } from 'next/navigation'
 
+// Force dynamic rendering since we need database access
+export const dynamic = 'force-dynamic'
+
 interface PageProps {
   params: Promise<{
     id: string

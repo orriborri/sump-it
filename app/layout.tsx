@@ -5,7 +5,12 @@ import { Header } from './common/Header'
 export const metadata = {
   title: 'Sump It',
   description: 'Coffee brewing app',
-  viewport: 'width=device-width, initial-scale=1, maximum-scale=1',
+}
+
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
 }
 
 const RootLayout = ({ children }: { children: React.ReactNode }) => {

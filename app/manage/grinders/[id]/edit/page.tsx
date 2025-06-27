@@ -6,6 +6,9 @@ import { db } from '@/app/lib/database'
 import { GrindersModel } from '@/app/lib/generated-models/Grinders'
 import { EditGrinderClient } from './EditGrinderClient'
 
+// Force dynamic rendering since we need database access
+export const dynamic = 'force-dynamic'
+
 async function getGrinder(id: string) {
   try {
     const grindersModel = new GrindersModel(db)
