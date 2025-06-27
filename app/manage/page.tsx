@@ -5,7 +5,6 @@ import {
   CardContent, 
   Button, 
   Stack,
-  Grid,
   Divider
 } from "@mui/material";
 import { 
@@ -46,7 +45,7 @@ const ManagePage = () => {
               variant="contained"
               startIcon={<Settings />}
               size="large"
-              fullWidth={{ xs: true, sm: false }}
+              fullWidth
             >
               Manage Grinders
             </Button>
@@ -56,7 +55,7 @@ const ManagePage = () => {
               variant="outlined"
               startIcon={<Add />}
               size="large"
-              fullWidth={{ xs: true, sm: false }}
+              fullWidth
             >
               Add New Grinder
             </Button>
@@ -67,49 +66,43 @@ const ManagePage = () => {
       <Divider sx={{ my: 4 }} />
 
       {/* Add Forms */}
-      <Grid container spacing={4}>
-        <Grid item xs={12} md={4}>
-          <Card>
-            <CardContent>
-              <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
-                <Coffee color="primary" />
-                <Typography variant="h6">
-                  Add New Bean
-                </Typography>
-              </Stack>
-              <AddBeanForm />
-            </CardContent>
-          </Card>
-        </Grid>
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' }, gap: 4 }}>
+        <Card>
+          <CardContent>
+            <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
+              <Coffee color="primary" />
+              <Typography variant="h6">
+                Add New Bean
+              </Typography>
+            </Stack>
+            <AddBeanForm />
+          </CardContent>
+        </Card>
 
-        <Grid item xs={12} md={4}>
-          <Card>
-            <CardContent>
-              <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
-                <LocalCafe color="primary" />
-                <Typography variant="h6">
-                  Add New Method
-                </Typography>
-              </Stack>
-              <AddMethodForm />
-            </CardContent>
-          </Card>
-        </Grid>
+        <Card>
+          <CardContent>
+            <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
+              <LocalCafe color="primary" />
+              <Typography variant="h6">
+                Add New Method
+              </Typography>
+            </Stack>
+            <AddMethodForm />
+          </CardContent>
+        </Card>
 
-        <Grid item xs={12} md={4}>
-          <Card>
-            <CardContent>
-              <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
-                <Settings color="primary" />
-                <Typography variant="h6">
-                  Add New Grinder
-                </Typography>
-              </Stack>
-              <AddGrinderForm />
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
+        <Card>
+          <CardContent>
+            <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
+              <Settings color="primary" />
+              <Typography variant="h6">
+                Add New Grinder
+              </Typography>
+            </Stack>
+            <AddGrinderForm />
+          </CardContent>
+        </Card>
+      </Box>
     </Box>
   );
 };

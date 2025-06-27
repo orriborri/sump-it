@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "../lib/database";
-import { BrewsModel } from "../lib/generated-models";
+import { BrewsModel } from "../lib/generated-models/Brews";
 import { revalidatePath } from "next/cache";
 
 // Initialize models

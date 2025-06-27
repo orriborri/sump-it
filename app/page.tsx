@@ -15,7 +15,7 @@ const Page = () => {
           variant="contained"
           color="primary"
           size="large"
-          fullWidth={{ xs: true, sm: false }}
+          fullWidth
         >
           Let&apos;s brew coffee
         </Button>
@@ -25,7 +25,7 @@ const Page = () => {
           variant="contained"
           color="secondary"
           size="large"
-          fullWidth={{ xs: true, sm: false }}
+          fullWidth
         >
           View Stats
         </Button>
@@ -35,7 +35,7 @@ const Page = () => {
           variant="contained"
           color="info"
           size="large"
-          fullWidth={{ xs: true, sm: false }}
+          fullWidth
         >
           Manage Items
         </Button>
@@ -45,7 +45,7 @@ const Page = () => {
           variant="outlined"
           color="primary"
           size="large"
-          fullWidth={{ xs: true, sm: false }}
+          fullWidth
         >
           Manage Grinders
         </Button>

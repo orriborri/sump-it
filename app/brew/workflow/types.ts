@@ -1,10 +1,10 @@
 export interface FormData {
-  bean_id: string;
-  method_id: string;
-  grinder_id: string;
+  bean_id: number;
+  method_id: number;
+  grinder_id: number;
   water: number;
   dose: number;
-  ratio: number;
+  ratio: number | string; // Can be decimal value like 16.67
   grind: number;
 }
 

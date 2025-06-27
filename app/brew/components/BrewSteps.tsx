@@ -6,21 +6,17 @@ import type { UseFormReturn } from "../workflow/useForm";
 import { FormStepper } from "../workflow/Stepper";
 import { CompactVerticalStepper } from "./CompactVerticalStepper";
 import { ComprehensiveRecipe } from "./ComprehensiveRecipe";
+import type { RuntimeType } from "@/app/lib/types";
+import type { Beans, Methods, Grinders } from "@/app/lib/db.d";
 
 interface BrewStepsProps {
   form: UseFormReturn;
   onSubmit?: () => void;
   isLoading?: boolean;
   stepperStyle?: 'vertical' | 'compact';
-  beans?: {
-    id: number;
-    name: string | null;
-    created_at: Date;
-    roster: string | null;
-    rostery: string | null;
-  }[];
-  methods?: { id: number; name: string; created_at: Date }[];
-  grinders?: { id: number; name: string; created_at: Date }[];
+  beans?: RuntimeType<Beans>[];
+  methods?: RuntimeType<Methods>[];
+  grinders?: RuntimeType<Grinders>[];
 }
 
 export const BrewSteps: React.FC<BrewStepsProps> = ({
@@ -79,7 +75,7 @@ export const BrewSteps: React.FC<BrewStepsProps> = ({
     switch (currentStep) {
       case 0:
         // Check if all required selections are made (including auto-selections)
-        return !!(form.formData.bean_id && form.formData.method_id && form.formData.grinder_id);
+        return !!(form.formData.bean_id > 0 && form.formData.method_id > 0 && form.formData.grinder_id > 0);
       case 1:
         return !!(form.formData.water && form.formData.dose && form.formData.grind && form.formData.ratio);
       default:
@@ -105,7 +101,7 @@ export const BrewSteps: React.FC<BrewStepsProps> = ({
         disabled={currentStep === 0 || isLoading}
         onClick={prevStep}
         size="large"
-        fullWidth={{ xs: true, sm: false }}
+        fullWidth
       >
         Back
       </Button>
@@ -117,7 +113,7 @@ export const BrewSteps: React.FC<BrewStepsProps> = ({
         disabled={!canProceed || isLoading}
         type="button"
         size="large"
-        fullWidth={{ xs: true, sm: false }}
+        fullWidth
         startIcon={isLoading ? <CircularProgress size={20} /> : undefined}
       >
         {isLoading 

@@ -300,7 +300,7 @@ export const BrewFeedback: React.FC<BrewFeedbackProps> = ({
             startIcon={<Share />}
             onClick={handleShare}
             disabled={!brewId}
-            fullWidth={{ xs: true, sm: false }}
+            fullWidth
           >
             Share for Feedback
           </Button>
@@ -310,7 +310,7 @@ export const BrewFeedback: React.FC<BrewFeedbackProps> = ({
             startIcon={<Refresh />}
             onClick={onReset}
             disabled={isSubmitting}
-            fullWidth={{ xs: true, sm: false }}
+            fullWidth
           >
             Brew Again
           </Button>
@@ -322,7 +322,7 @@ export const BrewFeedback: React.FC<BrewFeedbackProps> = ({
           onClick={handleSubmit}
           disabled={!isFormValid || isSubmitting}
           size="large"
-          fullWidth={{ xs: true, sm: false }}
+          fullWidth
           startIcon={isSubmitting ? <CircularProgress size={20} /> : undefined}
         >
           {isSubmitting ? "Saving..." : "Save Feedback & Continue"}

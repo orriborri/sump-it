@@ -3,7 +3,7 @@ import { Box, Typography, Breadcrumbs, Link as MuiLink } from '@mui/material';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { db } from '@/app/lib/database';
-import { GrindersModel } from '@/app/lib/generated-models';
+import { GrindersModel } from '@/app/lib/generated-models/Grinders';
 import { EditGrinderClient } from './EditGrinderClient';
 
 async function getGrinder(id: string) {
@@ -18,13 +18,14 @@ async function getGrinder(id: string) {
 }
 
 interface PageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export default async function EditGrinderPage({ params }: PageProps) {
-  const grinder = await getGrinder(params.id);
+  const { id } = await params;
+  const grinder = await getGrinder(id);
 
   if (!grinder) {
     notFound();

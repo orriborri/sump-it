@@ -11,7 +11,13 @@ export const brewFormSchema = z.object({
   water: z.number().min(1, 'Water amount must be positive').max(1000, 'Water amount too large'),
   dose: z.number().min(1, 'Dose amount must be positive').max(100, 'Dose amount too large'),
   grind: z.number().min(1, 'Grind setting must be positive').max(50, 'Grind setting too large'),
-  ratio: z.number().min(1, 'Ratio must be positive').max(30, 'Ratio too large'),
+  ratio: z.union([z.number(), z.string()]).refine(
+    (val) => {
+      const num = typeof val === 'string' ? parseFloat(val) : val;
+      return !isNaN(num) && num >= 1 && num <= 30;
+    },
+    'Ratio must be a valid number between 1 and 30'
+  ),
 });
 
 /**

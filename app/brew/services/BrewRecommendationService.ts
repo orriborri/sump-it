@@ -11,13 +11,13 @@ export interface BrewRecommendation {
 
 export interface BrewWithFeedback {
   id: number;
-  bean_id: number;
-  method_id: number;
-  grinder_id: number;
-  water: number;
-  dose: number;
-  grind: number;
-  ratio: number;
+  bean_id: number | null;
+  method_id: number | null;
+  grinder_id: number | null;
+  water: number | null;
+  dose: number | null;
+  grind: number | null;
+  ratio: string | null; // Changed to string to match database Numeric type
   created_at: string;
   feedback?: {
     overall_rating: number | null;
@@ -59,17 +59,36 @@ export class BrewRecommendationService {
   }
 
   private static calculateOptimalParameters(brews: BrewWithFeedback[]): BrewRecommendation {
-    const avgParams = brews.reduce(
+    // Filter out brews with null values
+    const validBrews = brews.filter(brew => 
+      brew.water !== null && brew.dose !== null && 
+      brew.grind !== null && brew.ratio !== null
+    );
+    
+    if (validBrews.length === 0) {
+      // Return default values if no valid brews
+      return {
+        water: 250,
+        dose: 15,
+        grind: 20,
+        ratio: 16.7,
+        confidence: 'low',
+        reasoning: 'No previous brews found with valid data',
+        basedOnBrews: 0
+      };
+    }
+    
+    const avgParams = validBrews.reduce(
       (acc, brew) => ({
-        water: acc.water + brew.water,
-        dose: acc.dose + brew.dose,
-        grind: acc.grind + brew.grind,
-        ratio: acc.ratio + brew.ratio,
+        water: acc.water + (brew.water || 0),
+        dose: acc.dose + (brew.dose || 0),
+        grind: acc.grind + (brew.grind || 0),
+        ratio: acc.ratio + (Number(brew.ratio) || 0),
       }),
       { water: 0, dose: 0, grind: 0, ratio: 0 }
     );
 
-    const count = brews.length;
+    const count = validBrews.length;
     return {
       water: Math.round(avgParams.water / count),
       dose: Math.round(avgParams.dose / count),
@@ -87,7 +106,7 @@ export class BrewRecommendationService {
       water: baseBrew.water,
       dose: baseBrew.dose,
       grind: baseBrew.grind,
-      ratio: baseBrew.ratio
+      ratio: Number(baseBrew.ratio) || 0
     };
 
     const adjustments: string[] = [];
@@ -95,25 +114,28 @@ export class BrewRecommendationService {
 
     // Apply intelligent adjustments
     if (feedbackCounts.tooStrong > feedbackCounts.tooWeak) {
-      adjustedParams.ratio = Math.min(adjustedParams.ratio + 1, 20);
+      adjustedParams.ratio = Math.min((adjustedParams.ratio ?? 0) + 1, 20);
       adjustments.push("increased ratio to reduce strength");
     } else if (feedbackCounts.tooWeak > feedbackCounts.tooStrong) {
-      adjustedParams.ratio = Math.max(adjustedParams.ratio - 1, 10);
+      adjustedParams.ratio = Math.max((adjustedParams.ratio ?? 0) - 1, 10);
       adjustments.push("decreased ratio to increase strength");
     }
 
     if (feedbackCounts.sour > 0) {
-      adjustedParams.grind = Math.max(adjustedParams.grind - 1, 1);
+      adjustedParams.grind = Math.max((adjustedParams.grind ?? 0) - 1, 1);
       adjustments.push("finer grind to reduce sourness");
     }
 
     if (feedbackCounts.bitter > 0) {
-      adjustedParams.grind = adjustedParams.grind + 1;
+      adjustedParams.grind = (adjustedParams.grind ?? 0) + 1;
       adjustments.push("coarser grind to reduce bitterness");
     }
 
     return {
-      ...adjustedParams,
+      water: adjustedParams.water ?? 250,
+      dose: adjustedParams.dose ?? 15,
+      grind: adjustedParams.grind ?? 20,
+      ratio: adjustedParams.ratio ?? 17,
       confidence: brews.length >= 3 ? 'medium' : 'low',
       reasoning: `Adjusted based on feedback: ${adjustments.join(", ")}`,
       basedOnBrews: brews.length

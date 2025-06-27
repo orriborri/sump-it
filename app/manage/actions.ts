@@ -1,7 +1,9 @@
 "use server";
 
 import { db } from "../lib/database";
-import { BeansModel, MethodsModel, GrindersModel } from "../lib/generated-models";
+import { BeansModel } from "../lib/generated-models/Beans";
+import { MethodsModel } from "../lib/generated-models/Methods";
+import { GrindersModel } from "../lib/generated-models/Grinders";
 
 export interface BeanFormData {
   name: string;

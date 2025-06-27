@@ -32,9 +32,9 @@ export const WaterDoseInputGroup = ({ formData, updateFormData }: FormInputProps
         updateFormData({ dose: Math.round(water / numValue) });
       }
     } else if (name === "dose" && lockedField === "water") {
-      updateFormData({ water: Math.round(numValue * ratio) });
+      updateFormData({ water: Math.round(numValue * Number(ratio)) });
     } else if (name === "water" && lockedField === "dose") {
-      updateFormData({ dose: Math.round(numValue / ratio) });
+      updateFormData({ dose: Math.round(numValue / Number(ratio)) });
     }
   };
 

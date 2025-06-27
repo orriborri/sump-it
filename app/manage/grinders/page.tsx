@@ -19,7 +19,7 @@ import {
 import { Edit, Add } from '@mui/icons-material';
 import Link from 'next/link';
 import { db } from '@/app/lib/database';
-import { GrindersModel } from '@/app/lib/generated-models';
+import { GrindersModel } from '@/app/lib/generated-models/Grinders';
 import { DeleteGrinderButton } from './DeleteGrinderButton';
 
 async function getGrinders() {
