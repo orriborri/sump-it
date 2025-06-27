@@ -85,6 +85,18 @@ jobs:
           name: nextjs-build
           path: ./
 
+      - name: Debug - List downloaded files
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+        run: |
+          echo "=== Downloaded files structure ==="
+          ls -la
+          echo "=== .next directory ==="
+          ls -la .next/ || echo "No .next directory"
+          echo "=== .next/static directory ==="
+          ls -la .next/static/ || echo "No .next/static directory"
+          echo "=== .next/standalone directory ==="
+          ls -la .next/standalone/ || echo "No .next/standalone directory"
+
       - name: Set up Docker Buildx
         if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
         uses: docker/setup-buildx-action@v3
