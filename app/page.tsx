@@ -1,11 +1,11 @@
-import { Box, Button, Stack } from "@mui/material";
-import Link from "next/link";
+import { Box, Button, Stack } from '@mui/material'
+import Link from 'next/link'
 const Page = () => {
   return (
     <Box>
-      <Stack 
-        direction={{ xs: 'column', sm: 'row' }} 
-        spacing={2} 
+      <Stack
+        direction={{ xs: 'column', sm: 'row' }}
+        spacing={2}
         flexWrap="wrap"
         sx={{ gap: 2 }}
       >
@@ -51,7 +51,7 @@ const Page = () => {
         </Button>
       </Stack>
     </Box>
-  );
-};
+  )
+}
 
-export default Page;
+export default Page

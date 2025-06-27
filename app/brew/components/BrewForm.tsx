@@ -1,19 +1,19 @@
-"use client";
-import React from "react";
-import { Container, Box, Alert } from "@mui/material";
-import { FormData } from "../workflow/types";
-import { useForm } from "../workflow/useForm";
-import { BrewSteps } from "./BrewSteps";
-import { RuntimeType } from "@/app/lib/types";
-import type { Beans, Methods, Grinders } from "@/app/lib/db.d";
+'use client'
+import React from 'react'
+import { Container, Box, Alert } from '@mui/material'
+import { FormData } from '../workflow/types'
+import { useForm } from '../workflow/useForm'
+import { BrewSteps } from './BrewSteps'
+import { RuntimeType } from '@/app/lib/types'
+import type { Beans, Methods, Grinders } from '@/app/lib/db.d'
 
 interface BrewFormProps {
-  onSubmit: (data: FormData) => void;
-  beans: RuntimeType<Beans>[];
-  methods: RuntimeType<Methods>[];
-  grinders: RuntimeType<Grinders>[];
-  isLoading?: boolean;
-  error?: string | null;
+  onSubmit: (_data: FormData) => void
+  beans: RuntimeType<Beans>[]
+  methods: RuntimeType<Methods>[]
+  grinders: RuntimeType<Grinders>[]
+  isLoading?: boolean
+  error?: string | null
 }
 
 export const BrewForm: React.FC<BrewFormProps> = ({
@@ -24,11 +24,11 @@ export const BrewForm: React.FC<BrewFormProps> = ({
   isLoading = false,
   error = null,
 }) => {
-  const form = useForm();
-  
+  const form = useForm()
+
   const handleSubmit = () => {
-    onSubmit(form.formData);
-  };
+    onSubmit(form.formData)
+  }
 
   return (
     <Container maxWidth="md">
@@ -38,16 +38,16 @@ export const BrewForm: React.FC<BrewFormProps> = ({
             {error}
           </Alert>
         )}
-        
-        <BrewSteps 
-          form={form} 
+
+        <BrewSteps
+          form={form}
           onSubmit={handleSubmit}
-          beans={beans} 
-          methods={methods} 
+          beans={beans}
+          methods={methods}
           grinders={grinders}
           isLoading={isLoading}
         />
       </Box>
     </Container>
-  );
-};
+  )
+}

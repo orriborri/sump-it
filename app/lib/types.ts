@@ -1,4 +1,4 @@
-import type { Selectable } from "kysely";
+import type { Selectable } from 'kysely'
 
 // Helper type to get runtime types from Kysely types
-export type RuntimeType<T> = Selectable<T>;
+export type RuntimeType<T> = Selectable<T>

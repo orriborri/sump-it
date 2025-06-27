@@ -1,19 +1,19 @@
-"use client";
-import React from 'react';
-import { AppBar, Toolbar, Typography, Box } from '@mui/material';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+'use client'
+import React from 'react'
+import { AppBar, Toolbar, Typography, Box } from '@mui/material'
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 
 export const Header = () => {
-  const pathname = usePathname();
-  
+  const pathname = usePathname()
+
   const navItems = [
     { name: 'Home', path: '/' },
     { name: 'Brew', path: '/brew' },
     { name: 'Stats', path: '/stats' },
-    { name: 'Manage', path: '/manage' }
-  ];
-  
+    { name: 'Manage', path: '/manage' },
+  ]
+
   return (
     <AppBar position="static" color="default" elevation={0} sx={{ mb: 4 }}>
       <Toolbar>
@@ -21,10 +21,10 @@ export const Header = () => {
           Sump It
         </Typography>
         <Box sx={{ display: 'flex' }}>
-          {navItems.map((item) => (
-            <Box 
+          {navItems.map(item => (
+            <Box
               key={item.name}
-              component={Link} 
+              component={Link}
               href={item.path}
               sx={{
                 mx: 2,
@@ -34,7 +34,7 @@ export const Header = () => {
                 '&:hover': {
                   color: 'primary.main',
                   textDecoration: 'none',
-                }
+                },
               }}
             >
               {item.name}
@@ -43,5 +43,5 @@ export const Header = () => {
         </Box>
       </Toolbar>
     </AppBar>
-  );
-};
+  )
+}

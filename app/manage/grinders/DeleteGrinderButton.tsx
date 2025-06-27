@@ -1,5 +1,5 @@
-"use client";
-import React, { useState } from 'react';
+'use client'
+import React, { useState } from 'react'
 import {
   IconButton,
   Dialog,
@@ -8,33 +8,33 @@ import {
   DialogActions,
   Button,
   Typography,
-  Alert
-} from '@mui/material';
-import { Delete } from '@mui/icons-material';
-import { deleteGrinder } from './actions';
+  Alert,
+} from '@mui/material'
+import { Delete } from '@mui/icons-material'
+import { deleteGrinder } from './actions'
 
 interface DeleteGrinderButtonProps {
-  grinderId: number;
-  grinderName: string;
+  grinderId: number
+  grinderName: string
 }
 
 export const DeleteGrinderButton: React.FC<DeleteGrinderButtonProps> = ({
   grinderId,
-  grinderName
+  grinderName,
 }) => {
-  const [open, setOpen] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [open, setOpen] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const handleDelete = async () => {
-    setIsDeleting(true);
+    setIsDeleting(true)
     try {
-      await deleteGrinder(grinderId);
+      await deleteGrinder(grinderId)
       // Redirect is handled by the server action
     } catch (error) {
-      console.error('Error deleting grinder:', error);
-      setIsDeleting(false);
+      console.error('Error deleting grinder:', error)
+      setIsDeleting(false)
     }
-  };
+  }
 
   return (
     <>
@@ -47,7 +47,12 @@ export const DeleteGrinderButton: React.FC<DeleteGrinderButtonProps> = ({
         <Delete />
       </IconButton>
 
-      <Dialog open={open} onClose={() => setOpen(false)} maxWidth="sm" fullWidth>
+      <Dialog
+        open={open}
+        onClose={() => setOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
         <DialogTitle>Delete Grinder</DialogTitle>
         <DialogContent>
           <Alert severity="warning" sx={{ mb: 2 }}>
@@ -61,15 +66,12 @@ export const DeleteGrinderButton: React.FC<DeleteGrinderButtonProps> = ({
           </Typography>
         </DialogContent>
         <DialogActions>
-          <Button 
-            onClick={() => setOpen(false)} 
-            disabled={isDeleting}
-          >
+          <Button onClick={() => setOpen(false)} disabled={isDeleting}>
             Cancel
           </Button>
-          <Button 
-            onClick={handleDelete} 
-            color="error" 
+          <Button
+            onClick={handleDelete}
+            color="error"
             variant="contained"
             disabled={isDeleting}
           >
@@ -78,5 +80,5 @@ export const DeleteGrinderButton: React.FC<DeleteGrinderButtonProps> = ({
         </DialogActions>
       </Dialog>
     </>
-  );
-};
+  )
+}

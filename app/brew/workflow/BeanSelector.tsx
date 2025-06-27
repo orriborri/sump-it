@@ -1,5 +1,5 @@
-"use client";
-import React, { useState, useEffect } from "react";
+'use client'
+import React, { useState, useEffect } from 'react'
 import {
   Box,
   FormControl,
@@ -7,17 +7,17 @@ import {
   Select,
   MenuItem,
   Typography,
-} from "@mui/material";
-import type { Beans, Methods, Grinders } from "@/app/lib/db.d";
-import { RuntimeType } from "@/app/lib/types";
-import type { UseFormReturn } from "./useForm";
-import { MOCK_BEANS, MOCK_METHODS, MOCK_GRINDERS } from "./constants";
+} from '@mui/material'
+import type { Beans, Methods, Grinders } from '@/app/lib/db.d'
+import { RuntimeType } from '@/app/lib/types'
+import type { UseFormReturn } from './useForm'
+import { MOCK_BEANS, MOCK_METHODS, MOCK_GRINDERS } from './constants'
 
 interface BeanSelectorProps {
-  form: UseFormReturn;
-  beans?: RuntimeType<Beans>[];
-  methods?: RuntimeType<Methods>[];
-  grinders?: RuntimeType<Grinders>[];
+  form: UseFormReturn
+  beans?: RuntimeType<Beans>[]
+  methods?: RuntimeType<Methods>[]
+  grinders?: RuntimeType<Grinders>[]
 }
 
 export const BeanSelector: React.FC<BeanSelectorProps> = ({
@@ -26,21 +26,21 @@ export const BeanSelector: React.FC<BeanSelectorProps> = ({
   methods,
   grinders,
 }) => {
-  const [availableBeans, setAvailableBeans] = useState(beans || MOCK_BEANS);
+  const [availableBeans, setAvailableBeans] = useState(beans || MOCK_BEANS)
   const [availableMethods, setAvailableMethods] = useState(
     methods || MOCK_METHODS
-  );
+  )
   const [availableGrinders, setAvailableGrinders] = useState(
     grinders || MOCK_GRINDERS
-  );
+  )
 
   // Update state when props change
 
   useEffect(() => {
-    if (beans) setAvailableBeans(beans);
-    if (methods) setAvailableMethods(methods);
-    if (grinders) setAvailableGrinders(grinders);
-  }, [beans, methods, grinders]);
+    if (beans) setAvailableBeans(beans)
+    if (methods) setAvailableMethods(methods)
+    if (grinders) setAvailableGrinders(grinders)
+  }, [beans, methods, grinders])
 
   // Auto-select grinder if only one is available
   useEffect(() => {
@@ -48,12 +48,12 @@ export const BeanSelector: React.FC<BeanSelectorProps> = ({
       availableGrinders.length === 1 &&
       form.formData.grinder_id !== availableGrinders[0].id
     ) {
-      form.updateFormData({ grinder_id: availableGrinders[0].id });
+      form.updateFormData({ grinder_id: availableGrinders[0].id })
     }
-  }, [availableGrinders, form]);
+  }, [availableGrinders, form])
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
       <Typography variant="subtitle2" gutterBottom>
         Select the coffee beans, brewing method, and grinder for your brew.
       </Typography>
@@ -66,11 +66,11 @@ export const BeanSelector: React.FC<BeanSelectorProps> = ({
           name="bean_id"
           value={form.formData.bean_id.toString()}
           label="Coffee Beans"
-          onChange={(e) =>
+          onChange={e =>
             form.updateFormData({ bean_id: parseInt(e.target.value) })
           }
         >
-          {availableBeans.map((bean) => (
+          {availableBeans.map(bean => (
             <MenuItem key={bean.id} value={bean.id.toString()}>
               {bean.name}
             </MenuItem>
@@ -86,11 +86,11 @@ export const BeanSelector: React.FC<BeanSelectorProps> = ({
           name="method_id"
           value={form.formData.method_id.toString()}
           label="Brewing Method"
-          onChange={(e) =>
+          onChange={e =>
             form.updateFormData({ method_id: parseInt(e.target.value) })
           }
         >
-          {availableMethods.map((method) => (
+          {availableMethods.map(method => (
             <MenuItem key={method.id} value={method.id.toString()}>
               {method.name}
             </MenuItem>
@@ -106,11 +106,11 @@ export const BeanSelector: React.FC<BeanSelectorProps> = ({
           name="grinder_id"
           value={form.formData.grinder_id.toString()}
           label="Grinder"
-          onChange={(e) =>
+          onChange={e =>
             form.updateFormData({ grinder_id: parseInt(e.target.value) })
           }
         >
-          {availableGrinders.map((grinder) => (
+          {availableGrinders.map(grinder => (
             <MenuItem key={grinder.id} value={grinder.id.toString()}>
               {grinder.name}
             </MenuItem>
@@ -118,5 +118,5 @@ export const BeanSelector: React.FC<BeanSelectorProps> = ({
         </Select>
       </FormControl>
     </Box>
-  );
-};
+  )
+}

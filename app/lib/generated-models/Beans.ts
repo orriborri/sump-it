@@ -9,7 +9,7 @@ export type BeansUpdate = Updateable<DB['beans']>;
  * Beans Model - Provides CRUD operations for the beans table
  */
 export class BeansModel {
-  constructor(private db: Kysely<DB>) {}
+  constructor(private db: Kysely<DB>) {} // eslint-disable-line no-unused-vars
 
   /**
    * Create a new bean record

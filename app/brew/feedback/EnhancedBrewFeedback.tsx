@@ -1,5 +1,5 @@
-"use client";
-import React, { useState, useEffect } from "react";
+'use client'
+import React, { useState, useEffect } from 'react'
 import {
   Box,
   Typography,
@@ -19,62 +19,67 @@ import {
   DialogActions,
   IconButton,
   Tooltip,
-} from "@mui/material";
-import { Share, ContentCopy, Check } from "@mui/icons-material";
-import { FormData } from "../workflow/types";
+} from '@mui/material'
+import { Share, ContentCopy, Check } from '@mui/icons-material'
+import { FormData } from '../workflow/types'
+import Image from 'next/image'
 
 interface QRCodeDisplayProps {
-  url: string;
+  url: string
 }
 
 const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({ url }) => {
-  const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>("");
-  const [loading, setLoading] = useState(true);
+  const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>('')
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const generateQRCode = async () => {
       try {
-        const QRCode = (await import('qrcode')).default;
+        const QRCode = (await import('qrcode')).default
         const dataUrl = await QRCode.toDataURL(url, {
           width: 200,
           margin: 2,
           color: {
             dark: '#000000',
-            light: '#FFFFFF'
-          }
-        });
-        setQrCodeDataUrl(dataUrl);
+            light: '#FFFFFF',
+          },
+        })
+        setQrCodeDataUrl(dataUrl)
       } catch (error) {
-        console.error('Error generating QR code:', error);
+        console.error('Error generating QR code:', error)
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
-    };
+    }
 
-    generateQRCode();
-  }, [url]);
+    generateQRCode()
+  }, [url])
 
   if (loading) {
-    return <Box sx={{ width: 200, height: 200, bgcolor: 'grey.200', borderRadius: 1 }} />;
+    return (
+      <Box
+        sx={{ width: 200, height: 200, bgcolor: 'grey.200', borderRadius: 1 }}
+      />
+    )
   }
 
   return (
     <Box sx={{ textAlign: 'center' }}>
       {qrCodeDataUrl && (
-        <img 
-          src={qrCodeDataUrl} 
-          alt="QR Code for feedback sharing" 
+        <Image
+          src={qrCodeDataUrl}
+          alt="QR Code for feedback sharing"
           style={{ maxWidth: '100%', height: 'auto' }}
         />
       )}
     </Box>
-  );
-};
+  )
+}
 
 interface EnhancedBrewFeedbackProps {
-  brewData: FormData;
-  brewId?: number;
-  onSaveFeedback: (feedback: any) => void;
+  brewData: FormData
+  brewId?: number
+  onSaveFeedback: (_feedback: any) => void
 }
 
 export const EnhancedBrewFeedback: React.FC<EnhancedBrewFeedbackProps> = ({
@@ -89,50 +94,51 @@ export const EnhancedBrewFeedback: React.FC<EnhancedBrewFeedbackProps> = ({
     too_weak: false,
     is_sour: false,
     is_bitter: false,
-    notes: "",
-  });
+    notes: '',
+  })
 
-  const [showQRDialog, setShowQRDialog] = useState(false);
-  const [shareUrl, setShareUrl] = useState("");
-  const [copied, setCopied] = useState(false);
+  const [showQRDialog, setShowQRDialog] = useState(false)
+  const [shareUrl, setShareUrl] = useState('')
+  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     // Generate shareable URL for this brew
     if (brewId) {
-      const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
-      const url = `${baseUrl}/brew/${brewId}`;
-      setShareUrl(url);
+      const baseUrl =
+        typeof window !== 'undefined' ? window.location.origin : ''
+      const url = `${baseUrl}/brew/${brewId}`
+      setShareUrl(url)
     }
-  }, [brewId]);
+  }, [brewId])
 
   const handleFeedbackChange = (field: string, value: any) => {
     setFeedback(prev => ({
       ...prev,
-      [field]: value
-    }));
-  };
+      [field]: value,
+    }))
+  }
 
   const handleSubmit = () => {
-    onSaveFeedback(feedback);
-  };
+    onSaveFeedback(feedback)
+  }
 
   const handleShare = () => {
-    setShowQRDialog(true);
-  };
+    setShowQRDialog(true)
+  }
 
   const handleCopyUrl = async () => {
     try {
-      await navigator.clipboard.writeText(shareUrl);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      await navigator.clipboard.writeText(shareUrl)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
     } catch (error) {
-      console.error('Failed to copy URL:', error);
+      console.error('Failed to copy URL:', error)
     }
-  };
+  }
 
   const getBrewSummary = () => {
-    return `${brewData.water}ml water, ${brewData.dose}g coffee, 1:${brewData.ratio} ratio, grind setting ${brewData.grind}`;
-  };
+    return `${brewData.water}ml water, ${brewData.dose}g coffee, 1:${brewData.ratio} ratio, grind setting ${brewData.grind}`
+  }
 
   return (
     <Box>
@@ -141,14 +147,14 @@ export const EnhancedBrewFeedback: React.FC<EnhancedBrewFeedbackProps> = ({
       </Typography>
 
       {/* Brew Summary */}
-      <Card sx={{ mb: 3, bgcolor: 'primary.light', color: 'primary.contrastText' }}>
+      <Card
+        sx={{ mb: 3, bgcolor: 'primary.light', color: 'primary.contrastText' }}
+      >
         <CardContent>
           <Typography variant="h6" gutterBottom>
             Your Brew Parameters
           </Typography>
-          <Typography variant="body1">
-            {getBrewSummary()}
-          </Typography>
+          <Typography variant="body1">{getBrewSummary()}</Typography>
         </CardContent>
       </Card>
 
@@ -163,7 +169,9 @@ export const EnhancedBrewFeedback: React.FC<EnhancedBrewFeedbackProps> = ({
               </Typography>
               <Rating
                 value={feedback.overall_rating}
-                onChange={(_, value) => handleFeedbackChange('overall_rating', value || 0)}
+                onChange={(_, value) =>
+                  handleFeedbackChange('overall_rating', value || 0)
+                }
                 size="large"
               />
             </Box>
@@ -178,7 +186,12 @@ export const EnhancedBrewFeedback: React.FC<EnhancedBrewFeedbackProps> = ({
               <TextField
                 type="number"
                 value={feedback.coffee_amount_ml}
-                onChange={(e) => handleFeedbackChange('coffee_amount_ml', parseInt(e.target.value) || 0)}
+                onChange={e =>
+                  handleFeedbackChange(
+                    'coffee_amount_ml',
+                    parseInt(e.target.value) || 0
+                  )
+                }
                 label="Amount in ml"
                 variant="outlined"
                 size="small"
@@ -198,7 +211,9 @@ export const EnhancedBrewFeedback: React.FC<EnhancedBrewFeedbackProps> = ({
                   control={
                     <Checkbox
                       checked={feedback.too_strong}
-                      onChange={(e) => handleFeedbackChange('too_strong', e.target.checked)}
+                      onChange={e =>
+                        handleFeedbackChange('too_strong', e.target.checked)
+                      }
                     />
                   }
                   label="Too strong"
@@ -207,7 +222,9 @@ export const EnhancedBrewFeedback: React.FC<EnhancedBrewFeedbackProps> = ({
                   control={
                     <Checkbox
                       checked={feedback.too_weak}
-                      onChange={(e) => handleFeedbackChange('too_weak', e.target.checked)}
+                      onChange={e =>
+                        handleFeedbackChange('too_weak', e.target.checked)
+                      }
                     />
                   }
                   label="Too weak"
@@ -216,7 +233,9 @@ export const EnhancedBrewFeedback: React.FC<EnhancedBrewFeedbackProps> = ({
                   control={
                     <Checkbox
                       checked={feedback.is_sour}
-                      onChange={(e) => handleFeedbackChange('is_sour', e.target.checked)}
+                      onChange={e =>
+                        handleFeedbackChange('is_sour', e.target.checked)
+                      }
                     />
                   }
                   label="Sour"
@@ -225,7 +244,9 @@ export const EnhancedBrewFeedback: React.FC<EnhancedBrewFeedbackProps> = ({
                   control={
                     <Checkbox
                       checked={feedback.is_bitter}
-                      onChange={(e) => handleFeedbackChange('is_bitter', e.target.checked)}
+                      onChange={e =>
+                        handleFeedbackChange('is_bitter', e.target.checked)
+                      }
                     />
                   }
                   label="Bitter"
@@ -244,7 +265,7 @@ export const EnhancedBrewFeedback: React.FC<EnhancedBrewFeedbackProps> = ({
                 multiline
                 rows={3}
                 value={feedback.notes}
-                onChange={(e) => handleFeedbackChange('notes', e.target.value)}
+                onChange={e => handleFeedbackChange('notes', e.target.value)}
                 placeholder="Any other observations about this brew..."
                 variant="outlined"
                 fullWidth
@@ -264,7 +285,7 @@ export const EnhancedBrewFeedback: React.FC<EnhancedBrewFeedbackProps> = ({
         >
           Share for Feedback
         </Button>
-        
+
         <Button
           variant="contained"
           color="primary"
@@ -276,18 +297,22 @@ export const EnhancedBrewFeedback: React.FC<EnhancedBrewFeedbackProps> = ({
       </Stack>
 
       {/* Sharing Dialog */}
-      <Dialog open={showQRDialog} onClose={() => setShowQRDialog(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>
-          Share Your Brew for Feedback
-        </DialogTitle>
+      <Dialog
+        open={showQRDialog}
+        onClose={() => setShowQRDialog(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Share Your Brew for Feedback</DialogTitle>
         <DialogContent>
           <Stack spacing={3} alignItems="center">
             <Typography variant="body1" textAlign="center">
-              Others can scan this QR code or use the link to provide feedback on your brew
+              Others can scan this QR code or use the link to provide feedback
+              on your brew
             </Typography>
-            
+
             {shareUrl && <QRCodeDisplay url={shareUrl} />}
-            
+
             <Box sx={{ width: '100%' }}>
               <Typography variant="subtitle2" gutterBottom>
                 Share Link:
@@ -302,8 +327,11 @@ export const EnhancedBrewFeedback: React.FC<EnhancedBrewFeedbackProps> = ({
                     readOnly: true,
                   }}
                 />
-                <Tooltip title={copied ? "Copied!" : "Copy link"}>
-                  <IconButton onClick={handleCopyUrl} color={copied ? "success" : "default"}>
+                <Tooltip title={copied ? 'Copied!' : 'Copy link'}>
+                  <IconButton
+                    onClick={handleCopyUrl}
+                    color={copied ? 'success' : 'default'}
+                  >
                     {copied ? <Check /> : <ContentCopy />}
                   </IconButton>
                 </Tooltip>
@@ -318,11 +346,9 @@ export const EnhancedBrewFeedback: React.FC<EnhancedBrewFeedbackProps> = ({
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setShowQRDialog(false)}>
-            Close
-          </Button>
+          <Button onClick={() => setShowQRDialog(false)}>Close</Button>
         </DialogActions>
       </Dialog>
     </Box>
-  );
-};
+  )
+}
