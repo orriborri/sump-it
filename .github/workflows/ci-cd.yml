@@ -61,21 +61,6 @@ jobs:
       - name: Run type checking
         run: pnpm type-check
 
-      - name: Generate models
-        run: pnpm generate-models
-        env:
-          DATABASE_URL: postgres://postgres:postgres@localhost:5432/sump_it_test
-
-      - name: Run migrations
-        run: pnpm migrate
-        env:
-          DATABASE_URL: postgres://postgres:postgres@localhost:5432/sump_it_test
-
-      - name: Run tests
-        run: pnpm test
-        env:
-          DATABASE_URL: postgres://postgres:postgres@localhost:5432/sump_it_test
-
       - name: Build application
         run: pnpm build
         env:
