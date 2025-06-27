@@ -22,6 +22,9 @@ import { db } from '@/app/lib/database'
 import { GrindersModel } from '@/app/lib/generated-models/Grinders'
 import { DeleteGrinderButton } from './DeleteGrinderButton'
 
+// Force dynamic rendering since we need database access
+export const dynamic = 'force-dynamic'
+
 async function getGrinders() {
   const grindersModel = new GrindersModel(db)
   return await grindersModel.findAll()

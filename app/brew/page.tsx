@@ -5,6 +5,9 @@ import { BeansModel } from '../lib/generated-models/Beans'
 import { MethodsModel } from '../lib/generated-models/Methods'
 import { GrindersModel } from '../lib/generated-models/Grinders'
 
+// Force dynamic rendering since we need database access
+export const dynamic = 'force-dynamic'
+
 const Page = async () => {
   // Initialize models with database connection
   const beansModel = new BeansModel(db)
