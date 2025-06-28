@@ -10,7 +10,8 @@
       "matchUpdateTypes": ["minor", "patch"],
       "matchCurrentVersion": "!/^0/",
       "groupName": "non-major dependencies",
-      "groupSlug": "minor-patch-updates"
+      "groupSlug": "minor-patch-updates",
+      "automerge": true
     }
   ],
   "platformAutomerge": true,
