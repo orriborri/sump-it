@@ -1,5 +1,5 @@
 # Use the official Node.js 20 image as base
-FROM node:20-alpine AS base
+FROM node:22-alpine AS base
 
 # Install pnpm and enable corepack
 RUN corepack enable && corepack prepare pnpm@latest --activate
