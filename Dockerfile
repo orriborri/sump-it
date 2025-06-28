@@ -37,11 +37,18 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
+# Install ts-node for migration script
+RUN pnpm add -g ts-node typescript
+
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
 # Copy public folder
 COPY public ./public
+
+# Copy package.json for runtime dependencies
+COPY --from=builder --chown=nextjs:nodejs /app/package.json ./
+COPY --from=deps --chown=nextjs:nodejs /app/node_modules ./node_modules
 
 # Copy build output from builder (will work both with and without pre-built artifacts)
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
@@ -54,6 +61,13 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-CMD ["node", "server.js"]
-# https://nextjs.org/docs/pages/api-reference/next-config-js/output
-CMD ["node", "server.js"]
+# Database URL for both app and migration
+ENV DATABASE_URL=postgres://pguser:jDkip3vMSGs0uaznMjRL@postgres.orriborri.com:5432/sump-it
+
+# Copy migration files and script
+COPY --from=builder --chown=nextjs:nodejs /app/migrate.ts ./
+COPY --from=builder --chown=nextjs:nodejs /app/migrations ./migrations
+
+# Run migrations and start server
+CMD ["sh", "-c", "node --loader ts-node/esm ./migrate.ts && node server.js"]
+

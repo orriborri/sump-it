@@ -19,15 +19,21 @@ const __dirname = path.dirname(__filename)
 async function migrateToLatest() {
   console.log('Starting migration process...')
 
+  // Use DATABASE_URL if available, otherwise fall back to individual env vars
+  const databaseUrl = process.env.DATABASE_URL
+
   // Create database connection
   const db = new Kysely({
     dialect: new PostgresDialect({
-      pool: new Pool({
-        host: 'localhost',
-        database: 'postgres',
-        password: 'pgpass',
-        user: 'pguser',
-      }),
+      pool: databaseUrl
+        ? new Pool({ connectionString: databaseUrl })
+        : new Pool({
+            host: process.env.POSTGRES_HOST || 'localhost',
+            database: process.env.POSTGRES_DATABASE || 'postgres',
+            password: process.env.POSTGRES_PASSWORD || 'pgpass',
+            user: process.env.POSTGRES_USER || 'pguser',
+            port: parseInt(process.env.POSTGRES_PORT || '5432'),
+          }),
     }),
   })
 
