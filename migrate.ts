@@ -16,8 +16,22 @@ const { Pool } = pg
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
-async function migrateToLatest() {
-  console.log('Starting migration process...')
+interface MigrationOptions {
+  silent?: boolean
+  exitOnError?: boolean
+}
+
+interface MigrationResult {
+  success: boolean
+  error?: string
+}
+
+async function migrateToLatest(options: MigrationOptions = {}): Promise<MigrationResult> {
+  const { silent = false, exitOnError = true } = options
+  
+  if (!silent) {
+    console.log('Starting migration process...')
+  }
 
   // Use DATABASE_URL if available, otherwise fall back to individual env vars
   const databaseUrl = process.env.DATABASE_URL
@@ -37,7 +51,9 @@ async function migrateToLatest() {
     }),
   })
 
-  console.log('Database connection established')
+  if (!silent) {
+    console.log('Database connection established')
+  }
 
   // Create migrator
   const migrator = new Migrator({
@@ -49,40 +65,65 @@ async function migrateToLatest() {
     }),
   })
 
-  console.log('Migrator created')
+  if (!silent) {
+    console.log('Migrator created')
+  }
 
   try {
     // Run migrations
-    console.log('Running migrations...')
+    if (!silent) {
+      console.log('Running migrations...')
+    }
     const { error, results } = await migrator.migrateToLatest()
 
     // Log results
-    results?.forEach(it => {
-      if (it.status === 'Success') {
-        console.log(`Migration "${it.migrationName}" was executed successfully`)
-      } else if (it.status === 'Error') {
-        console.error(`Failed to execute migration "${it.migrationName}"`)
-      }
-    })
+    if (!silent) {
+      results?.forEach(it => {
+        if (it.status === 'Success') {
+          console.log(`Migration "${it.migrationName}" was executed successfully`)
+        } else if (it.status === 'Error') {
+          console.error(`Failed to execute migration "${it.migrationName}"`)
+        }
+      })
+    }
 
     // Handle errors
     if (error) {
-      console.error('Failed to migrate:')
-      console.error(error)
-      process.exit(1)
+      const errorMessage = `Failed to migrate: ${error instanceof Error ? error.message : String(error)}`
+      if (!silent) {
+        console.error(errorMessage)
+      }
+      if (exitOnError) {
+        process.exit(1)
+      }
+      return { success: false, error: errorMessage }
     }
 
-    console.log('Migration completed successfully')
+    if (!silent) {
+      console.log('Migration completed successfully')
+    }
+    return { success: true }
   } catch (err) {
-    console.error('Migration error:', err)
-    process.exit(1)
+    const errorMessage = `Migration error: ${err instanceof Error ? err.message : err}`
+    if (!silent) {
+      console.error(errorMessage)
+    }
+    if (exitOnError) {
+      process.exit(1)
+    }
+    return { success: false, error: errorMessage }
   } finally {
     await db.destroy()
   }
 }
 
-// Run the migration
-migrateToLatest().catch(err => {
-  console.error('Unhandled error during migration:', err)
-  process.exit(1)
-})
+// Export the function for use in other modules
+export { migrateToLatest }
+
+// Run the migration when this script is executed directly
+if (import.meta.url === `file://${process.argv[1]}`) {
+  migrateToLatest().catch(err => {
+    console.error('Unhandled error during migration:', err)
+    process.exit(1)
+  })
+}
