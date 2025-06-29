@@ -114,5 +114,12 @@ jobs:
           cache-to: type=gha,mode=max
           build-args: |
             BUILDKIT_INLINE_CACHE=1
-
- 
+      - name: Update image tag in GitOps repo
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+        uses: idener/kustomize-tag-updater-action@main
+        with:
+          repo: 'orriborri/homelab'
+          image: 'sump-it'
+          tag: '${{ github.sha }}'
+          kustomize-path: 'apps/sump-it'
+          token: '${{ secrets.GIT_OPS_TOKEN }}'
