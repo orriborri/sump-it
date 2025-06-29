@@ -24,7 +24,7 @@ export const AddGrinderForm = () => {
     setMessage(null)
 
     try {
-      await createGrinder({
+      const result = await createGrinder({
         name: name.trim(),
         min_setting: 1,
         max_setting: 40,
@@ -32,8 +32,16 @@ export const AddGrinderForm = () => {
         setting_type: 'numeric',
       })
 
-      setName('')
-      setMessage({ type: 'success', text: 'Grinder added successfully!' })
+      if (result.success) {
+        setName('')
+        setMessage({ type: 'success', text: 'Grinder added successfully!' })
+        // Optionally redirect after a short delay
+        setTimeout(() => {
+          window.location.href = '/manage/grinders'
+        }, 1500)
+      } else {
+        setMessage({ type: 'error', text: result.error || 'Failed to add grinder' })
+      }
     } catch (error) {
       setMessage({ type: 'error', text: 'Failed to add grinder' })
       console.error('Failed to add grinder:', error)
