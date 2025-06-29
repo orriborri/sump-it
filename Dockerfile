@@ -30,15 +30,15 @@ ENV DATABASE_URL=postgresql://dummy:dummy@localhost:5432/dummy
 
 RUN pnpm build
 
+# Compile migration script
+RUN npx tsc --project tsconfig.migrate.json
+
 # Production stage
 FROM base AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
-
-# Install ts-node for migration script
-RUN pnpm add -g ts-node typescript
 
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
@@ -65,9 +65,9 @@ ENV HOSTNAME="0.0.0.0"
 ENV DATABASE_URL=postgres://pguser:jDkip3vMSGs0uaznMjRL@postgres.orriborri.com:5432/sump-it
 
 # Copy migration files and script
-COPY --from=builder --chown=nextjs:nodejs /app/migrate.ts ./
+COPY --from=builder --chown=nextjs:nodejs /app/dist/migrate.js ./
 COPY --from=builder --chown=nextjs:nodejs /app/migrations ./migrations
 
 # Run migrations and start server
-CMD ["sh", "-c", "node --loader ts-node/esm ./migrate.ts && node server.js"]
+CMD ["sh", "-c", "node ./migrate.js && node server.js"]
 

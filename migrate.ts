@@ -26,9 +26,11 @@ interface MigrationResult {
   error?: string
 }
 
-async function migrateToLatest(options: MigrationOptions = {}): Promise<MigrationResult> {
+async function migrateToLatest(
+  options: MigrationOptions = {}
+): Promise<MigrationResult> {
   const { silent = false, exitOnError = true } = options
-  
+
   if (!silent) {
     console.log('Starting migration process...')
   }
@@ -80,7 +82,9 @@ async function migrateToLatest(options: MigrationOptions = {}): Promise<Migratio
     if (!silent) {
       results?.forEach(it => {
         if (it.status === 'Success') {
-          console.log(`Migration "${it.migrationName}" was executed successfully`)
+          console.log(
+            `Migration "${it.migrationName}" was executed successfully`
+          )
         } else if (it.status === 'Error') {
           console.error(`Failed to execute migration "${it.migrationName}"`)
         }
