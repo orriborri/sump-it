@@ -2,7 +2,6 @@
 
 import { db } from '@/app/lib/database'
 import { GrindersModel } from '@/app/lib/generated-models/Grinders'
-import { redirect } from 'next/navigation'
 
 export interface GrinderFormData {
   name: string
@@ -16,7 +15,7 @@ export async function createGrinder(data: GrinderFormData) {
   try {
     const grindersModel = new GrindersModel(db)
 
-    await grindersModel.create({
+    const result = await grindersModel.create({
       name: data.name,
       min_setting: data.min_setting,
       max_setting: data.max_setting,
@@ -24,10 +23,10 @@ export async function createGrinder(data: GrinderFormData) {
       setting_type: data.setting_type,
     })
 
-    redirect('/manage/grinders')
+    return { success: true, data: result }
   } catch (error) {
     console.error('Error creating grinder:', error)
-    throw new Error('Failed to create grinder')
+    return { success: false, error: 'Failed to create grinder' }
   }
 }
 
@@ -35,7 +34,7 @@ export async function updateGrinder(id: number, data: GrinderFormData) {
   try {
     const grindersModel = new GrindersModel(db)
 
-    await grindersModel.updateById(id, {
+    const result = await grindersModel.updateById(id, {
       name: data.name,
       min_setting: data.min_setting,
       max_setting: data.max_setting,
@@ -43,10 +42,10 @@ export async function updateGrinder(id: number, data: GrinderFormData) {
       setting_type: data.setting_type,
     })
 
-    redirect('/manage/grinders')
+    return { success: true, data: result }
   } catch (error) {
     console.error('Error updating grinder:', error)
-    throw new Error('Failed to update grinder')
+    return { success: false, error: 'Failed to update grinder' }
   }
 }
 
@@ -54,9 +53,9 @@ export async function deleteGrinder(id: number) {
   try {
     const grindersModel = new GrindersModel(db)
     await grindersModel.deleteById(id)
-    redirect('/manage/grinders')
+    return { success: true }
   } catch (error) {
     console.error('Error deleting grinder:', error)
-    throw new Error('Failed to delete grinder')
+    return { success: false, error: 'Failed to delete grinder' }
   }
 }
