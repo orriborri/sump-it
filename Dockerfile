@@ -30,8 +30,9 @@ ENV DATABASE_URL=postgresql://dummy:dummy@localhost:5432/dummy
 
 RUN pnpm build
 
-# Compile migration script
+# Compile migration script and migration files
 RUN npx tsc --project tsconfig.migrate.json
+RUN npx tsc --project tsconfig.migrations.json
 
 # Production stage
 FROM base AS runner
@@ -56,7 +57,7 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 # Copy migration files and script
 COPY --from=builder --chown=nextjs:nodejs /app/dist/migrate.js ./
-COPY --from=builder --chown=nextjs:nodejs /app/migrations ./migrations
+COPY --from=builder --chown=nextjs:nodejs /app/dist/migrations ./dist/migrations
 
 USER nextjs
 
