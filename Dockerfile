@@ -54,6 +54,10 @@ COPY --from=deps --chown=nextjs:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
+# Copy migration files and script
+COPY --from=builder --chown=nextjs:nodejs /app/dist/migrate.js ./
+COPY --from=builder --chown=nextjs:nodejs /app/migrations ./migrations
+
 USER nextjs
 
 EXPOSE 3000
@@ -61,13 +65,6 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-# Database URL for both app and migration
-ENV DATABASE_URL=postgres://pguser:jDkip3vMSGs0uaznMjRL@postgres.orriborri.com:5432/sump-it
-
-# Copy migration files and script
-COPY --from=builder --chown=nextjs:nodejs /app/dist/migrate.js ./
-COPY --from=builder --chown=nextjs:nodejs /app/migrations ./migrations
-
 # Run migrations and start server
-CMD ["sh", "-c", "node ./migrate.js && node server.js"]
+CMD ["sh", "-c", "echo 'DATABASE_URL check:' && echo $DATABASE_URL | sed 's/:[^@]*@/:***@/' && node ./migrate.js && node server.js"]
 
