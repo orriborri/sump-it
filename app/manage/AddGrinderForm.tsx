@@ -24,11 +24,16 @@ export const AddGrinderForm = () => {
     setMessage(null)
 
     try {
+      // Convert steps per unit to step size
+      // Default: 1 step per unit (whole numbers only) = step_size of 1.0
+      const stepsPerUnit = 1 // Number of steps between consecutive integers
+      const stepSize = 1.0 / stepsPerUnit // Actual step size for the slider
+
       const result = await createGrinder({
         name: name.trim(),
         min_setting: 1,
         max_setting: 40,
-        step_size: 1.0,
+        step_size: stepSize,
         setting_type: 'numeric',
       })
 
@@ -40,7 +45,10 @@ export const AddGrinderForm = () => {
           window.location.href = '/manage/grinders'
         }, 1500)
       } else {
-        setMessage({ type: 'error', text: result.error || 'Failed to add grinder' })
+        setMessage({
+          type: 'error',
+          text: result.error || 'Failed to add grinder',
+        })
       }
     } catch (error) {
       setMessage({ type: 'error', text: 'Failed to add grinder' })
@@ -63,6 +71,7 @@ export const AddGrinderForm = () => {
           fullWidth
           placeholder="e.g., Baratza Encore"
           disabled={isSubmitting}
+          helperText="Default settings: Range 1-40, whole numbers only (1 step per unit)"
         />
 
         <Button

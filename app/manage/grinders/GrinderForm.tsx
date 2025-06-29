@@ -38,6 +38,11 @@ export const GrinderForm: React.FC<GrinderFormProps> = ({
   onCancel,
   isEditing = false,
 }) => {
+  // Convert step_size back to steps per unit for the form
+  const initialStepsPerUnit = initialData?.step_size
+    ? Math.round(1.0 / initialData.step_size)
+    : 1
+
   const [formData, setFormData] = useState<GrinderFormData>({
     name: initialData?.name || '',
     min_setting: initialData?.min_setting || 1,
@@ -45,6 +50,7 @@ export const GrinderForm: React.FC<GrinderFormProps> = ({
     step_size: initialData?.step_size || 1.0,
     setting_type: initialData?.setting_type || 'numeric',
   })
+  const [stepsPerUnit, setStepsPerUnit] = useState(initialStepsPerUnit)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -55,6 +61,16 @@ export const GrinderForm: React.FC<GrinderFormProps> = ({
     setFormData(prev => ({
       ...prev,
       [field]: value,
+    }))
+    setError(null)
+  }
+
+  const handleStepsPerUnitChange = (steps: number) => {
+    setStepsPerUnit(steps)
+    const stepSize = 1.0 / steps
+    setFormData(prev => ({
+      ...prev,
+      step_size: stepSize,
     }))
     setError(null)
   }
@@ -73,8 +89,8 @@ export const GrinderForm: React.FC<GrinderFormProps> = ({
       return
     }
 
-    if (formData.step_size <= 0) {
-      setError('Step size must be greater than 0')
+    if (stepsPerUnit <= 0) {
+      setError('Steps per unit must be greater than 0')
       return
     }
 
@@ -153,18 +169,18 @@ export const GrinderForm: React.FC<GrinderFormProps> = ({
               />
             </Stack>
 
-            {/* Step Size */}
+            {/* Steps Per Unit */}
             <TextField
-              label="Step Size"
+              label="Steps Per Unit"
               type="number"
-              value={formData.step_size}
+              value={stepsPerUnit}
               onChange={e =>
-                handleChange('step_size', parseFloat(e.target.value) || 1)
+                handleStepsPerUnitChange(parseInt(e.target.value) || 1)
               }
-              inputProps={{ min: 0.1, max: 10, step: 0.1 }}
+              inputProps={{ min: 1, max: 20, step: 1 }}
               required
               fullWidth
-              helperText="How much each step increases the setting (e.g., 1 for whole numbers, 0.5 for half steps)"
+              helperText="Number of steps between consecutive numbers (e.g., 1 for whole numbers, 5 for five steps between 1-2)"
             />
 
             {/* Preview */}
@@ -187,7 +203,16 @@ export const GrinderForm: React.FC<GrinderFormProps> = ({
                     {formData.max_setting}
                   </Typography>
                   <Typography variant="body2">
-                    <strong>Step:</strong> {formData.step_size}
+                    <strong>Steps per unit:</strong> {stepsPerUnit} (step size:{' '}
+                    {formData.step_size.toFixed(2)})
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {stepsPerUnit === 1
+                      ? 'Whole numbers only (1, 2, 3...)'
+                      : `${stepsPerUnit} steps between each number (e.g., between 1-2: ${Array.from(
+                          { length: stepsPerUnit + 1 },
+                          (_, i) => (1 + i * formData.step_size).toFixed(1)
+                        ).join(', ')})`}
                   </Typography>
 
                   {/* Preview Slider */}
