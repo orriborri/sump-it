@@ -3,7 +3,7 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { BrewFeedback } from './BrewFeedback'
-import { FormData } from '../workflow/types'
+import { FormData } from '../types'
 
 // Mock QRCode library to avoid dynamic import issues in tests
 vi.mock('qrcode', () => ({

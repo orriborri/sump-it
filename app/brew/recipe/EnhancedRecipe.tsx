@@ -12,13 +12,13 @@ import {
   Stack,
   Divider,
 } from '@mui/material'
-import { FormData } from '../workflow/types'
+import { FormData } from '../types'
 import {
   getBrewsWithFeedback,
   suggestOptimalParameters,
   BrewWithFeedback,
   ParameterSuggestion,
-} from '../workflow/enhanced-actions'
+} from '../enhanced-actions'
 import { ParameterVisualization } from './ParameterVisualization'
 
 interface EnhancedRecipeProps {

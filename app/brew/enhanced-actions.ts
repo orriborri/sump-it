@@ -1,8 +1,8 @@
 'use server'
 
-import { db } from '../../lib/database'
-import { BrewsModel } from '../../lib/generated-models/Brews'
-import { BrewFeedbackModel } from '../../lib/generated-models/BrewFeedback'
+import { db } from '../lib/database'
+import { BrewsModel } from '../lib/generated-models/Brews'
+import { BrewFeedbackModel } from '../lib/generated-models/BrewFeedback'
 import { FormData } from './types'
 
 // Initialize models

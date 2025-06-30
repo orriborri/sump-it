@@ -1,5 +1,5 @@
 import { Control } from 'react-hook-form'
-import { FormData } from '../workflow/types'
+import { FormData } from '../types'
 
 export interface FormInputProps {
   formData: FormData

@@ -12,9 +12,9 @@ import {
   Stack,
   Divider,
 } from '@mui/material'
-import { FormData } from '../workflow/types'
-import { getBrewsWithFeedback } from '../workflow/enhanced-actions'
-import type { BrewWithFeedback } from '../workflow/enhanced-actions'
+import { FormData } from '../types'
+import { getBrewsWithFeedback } from '../enhanced-actions'
+import type { BrewWithFeedback } from '../enhanced-actions'
 import { getBrewRecommendation } from '../actions/recommendationActions'
 import type { BrewRecommendation } from '../services/BrewRecommendationService'
 // import { ParameterVisualization } from "../recipe/ParameterVisualization";

@@ -10,7 +10,7 @@ import {
   Stack,
   Chip,
 } from '@mui/material'
-import { BrewWithFeedback } from '../workflow/enhanced-actions'
+import { BrewWithFeedback } from '../enhanced-actions'
 
 interface ParameterVisualizationProps {
   brews: BrewWithFeedback[]

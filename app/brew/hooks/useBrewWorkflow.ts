@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { FormData } from '../workflow/types'
-import { saveBrew, saveBrewFeedback } from '../workflow/enhanced-actions'
+import { FormData } from '../types'
+import { saveBrew, saveBrewFeedback } from '../enhanced-actions'
 
 type WorkflowView = 'form' | 'feedback'
 

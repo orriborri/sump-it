@@ -3,7 +3,13 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { BrewForm } from '../app/brew/components/BrewForm'
-import { saveBrew } from '../app/brew/workflow/actions'
+import { saveBrew } from '../app/brew/actions'
+
+// Mock the saveBrew function
+vi.mock('../app/brew/actions', () => ({
+  saveBrew: vi.fn(),
+  getPreviousBrews: vi.fn().mockResolvedValue([]),
+}))
 
 // Mock database dependency
 vi.mock('../app/lib/database', () => ({

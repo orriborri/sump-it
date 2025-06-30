@@ -1,8 +1,8 @@
 'use client'
 import React, { useState } from 'react'
 import { Box, Typography, Card, CardContent, Skeleton } from '@mui/material'
-import { FormData } from '../workflow/types'
-import { getPreviousBrews } from '../workflow/actions'
+import { FormData } from '../types'
+import { getPreviousBrews } from '../actions'
 import { BrewsWithJoins } from '../../lib/generated-models/BrewsJoined'
 
 interface RecipeProps {

@@ -22,7 +22,7 @@ vi.mock('../actions/grinderActions', () => ({
 }))
 
 // Mock only external dependencies, not internal implementation
-vi.mock('../workflow/actions', () => ({
+vi.mock('../actions', () => ({
   saveBrew: vi.fn(),
 }))
 

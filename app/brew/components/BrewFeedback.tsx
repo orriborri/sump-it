@@ -22,7 +22,7 @@ import {
   CircularProgress,
 } from '@mui/material'
 import { Share, ContentCopy, Check, Refresh } from '@mui/icons-material'
-import { FormData } from '../workflow/types'
+import { FormData } from '../types'
 import Image from 'next/image'
 
 interface QRCodeDisplayProps {

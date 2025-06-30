@@ -4,9 +4,9 @@ import {
   createTestDatabase,
   setupTestDatabase,
   cleanupTestDatabase,
-} from '../../../test/database-setup'
+} from '../../test/database-setup'
 import type { Kysely } from 'kysely'
-import type { Database } from '../../lib/db'
+import type { Database } from '../lib/db'
 import type { FormData } from './types'
 
 describe('Brew Workflow Actions - Integration Tests', () => {

@@ -4,7 +4,7 @@ import { FormData } from './types'
 import { RuntimeType } from '@/app/lib/types'
 import type { Beans, Methods, Grinders } from '@/app/lib/db.d'
 import { Form } from './Form'
-import { EnhancedBrewFeedback } from '../feedback/EnhancedBrewFeedback'
+import { EnhancedBrewFeedback } from './feedback/EnhancedBrewFeedback'
 import { Box, Fade } from '@mui/material'
 import { saveBrew, saveBrewFeedback } from './enhanced-actions'
 

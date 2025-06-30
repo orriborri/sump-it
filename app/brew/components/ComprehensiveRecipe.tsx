@@ -11,7 +11,7 @@ import {
   AccordionDetails,
 } from '@mui/material'
 import { ExpandMore } from '@mui/icons-material'
-import { FormData } from '../workflow/types'
+import { FormData } from '../types'
 import { SmartRecipe } from './SmartRecipe'
 import { GrindSettingInput } from '../brew-parameters/GrindSettingInput'
 import { WaterDoseInputGroup } from '../brew-parameters/WaterDoseInputGroup'

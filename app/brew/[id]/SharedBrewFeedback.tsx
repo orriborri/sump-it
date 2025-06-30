@@ -15,7 +15,7 @@ import {
   Alert,
   Chip,
 } from '@mui/material'
-import { saveBrewFeedback } from '../workflow/enhanced-actions'
+import { saveBrewFeedback } from '../enhanced-actions'
 
 interface BrewDetails {
   id: number

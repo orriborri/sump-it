@@ -13,7 +13,7 @@ import {
   Rating,
   Alert,
 } from '@mui/material'
-import { BrewFormData } from '../workflow/types'
+import { BrewFormData } from '../types'
 
 interface BrewFeedbackProps {
   brewData: BrewFormData

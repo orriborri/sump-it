@@ -21,7 +21,7 @@ import {
   Tooltip,
 } from '@mui/material'
 import { Share, ContentCopy, Check } from '@mui/icons-material'
-import { FormData } from '../workflow/types'
+import { FormData } from '../types'
 import Image from 'next/image'
 
 interface QRCodeDisplayProps {

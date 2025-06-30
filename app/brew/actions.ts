@@ -1,13 +1,13 @@
 'use server'
 
-import { db } from '../../lib/database'
-import { BrewsModel } from '../../lib/generated-models/Brews'
-import { BrewFeedbackModel } from '../../lib/generated-models/BrewFeedback'
-import { BrewsJoinedQueries } from '../../lib/generated-models/BrewsJoined'
+import { db } from '../lib/database'
+import { BrewsModel } from '../lib/generated-models/Brews'
+import { BrewFeedbackModel } from '../lib/generated-models/BrewFeedback'
+import { BrewsJoinedQueries } from '../lib/generated-models/BrewsJoined'
 import { FormData } from './types'
 import type { Kysely } from 'kysely'
-import type { Database } from '../../lib/db'
-import type { DB } from '../../lib/db.d'
+import type { Database } from '../lib/db'
+import type { DB } from '../lib/db.d'
 
 // Allow dependency injection for testing
 let testDb: Kysely<Database> | null = null
@@ -30,7 +30,7 @@ function getModels() {
   }
 }
 
-import { BrewsWithJoins } from '../../lib/generated-models/BrewsJoined'
+import { BrewsWithJoins } from '../lib/generated-models/BrewsJoined'
 
 export async function getPreviousBrews(
   bean_id: string,
