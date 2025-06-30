@@ -1,5 +1,11 @@
 import React from 'react'
-import { render, screen, waitFor, fireEvent, within } from '@testing-library/react'
+import {
+  render,
+  screen,
+  waitFor,
+  fireEvent,
+  within,
+} from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { BrewFeedback } from './BrewFeedback'
@@ -83,7 +89,7 @@ describe('BrewFeedback - User Experience', () => {
 
   it('enables detailed feedback through text input', async () => {
     const user = userEvent.setup()
-    
+
     render(
       <BrewFeedback
         brewData={mockBrewData}
@@ -122,10 +128,10 @@ describe('BrewFeedback - User Experience', () => {
     // User completes their feedback by clicking on the star rating
     const ratingElements = screen.getAllByRole('radio')
     const fiveStarRating = ratingElements[4] // 5-star rating
-    
+
     // Use fireEvent for MUI Rating component
     fireEvent.click(fiveStarRating)
-    
+
     const notesFields = screen.getAllByPlaceholderText(
       /Any other observations about this brew/i
     )
@@ -135,11 +141,11 @@ describe('BrewFeedback - User Experience', () => {
     const saveButtons = screen.getAllByRole('button', {
       name: /Save Feedback & Continue/i,
     })
-    
+
     await waitFor(() => {
       expect(saveButtons[0]).not.toBeDisabled()
     })
-    
+
     await user.click(saveButtons[0])
 
     // System should process the feedback
@@ -194,11 +200,11 @@ describe('BrewFeedback - User Experience', () => {
     const saveButtons = screen.getAllByRole('button', {
       name: /Save Feedback & Continue/i,
     })
-    
+
     await waitFor(() => {
       expect(saveButtons[0]).not.toBeDisabled()
     })
-    
+
     await user.click(saveButtons[0])
 
     // Should still attempt to save feedback
@@ -291,15 +297,15 @@ describe('BrewFeedback - Error Handling', () => {
     // User attempts to save feedback
     const ratingElements = screen.getAllByRole('radio')
     fireEvent.click(ratingElements[0]) // Add a rating to enable button
-    
+
     const saveButtons = screen.getAllByRole('button', {
       name: /Save Feedback & Continue/i,
     })
-    
+
     await waitFor(() => {
       expect(saveButtons[0]).not.toBeDisabled()
     })
-    
+
     await user.click(saveButtons[0])
 
     // Should handle error gracefully (no crash)

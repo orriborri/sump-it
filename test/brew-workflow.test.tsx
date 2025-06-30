@@ -104,11 +104,13 @@ describe('Coffee Brewing User Journey', () => {
 
     // User should be able to see and select their coffee beans
     expect(screen.getAllByText(/select.*bean/i)[0]).toBeInTheDocument()
-    
+
     // Click on the bean select to open it
-    const beanSelects = screen.getAllByRole('combobox', { name: /coffee beans/i })
+      const beanSelects = screen.getAllByRole('combobox', {
+          name: /coffee beans/i,
+      })
     await user.click(beanSelects[0])
-    
+
     // Select the first bean option
     const beanOptions = await screen.findAllByRole('option')
     await user.click(beanOptions[0])
@@ -156,10 +158,10 @@ describe('Coffee Brewing User Journey', () => {
     const nextButtons = screen.getAllByRole('button', {
       name: /next/i,
     })
-    
+
     // Should have at least one Next button
     expect(nextButtons.length).toBeGreaterThan(0)
-    
+
     // Try clicking next without making selections - should not proceed
     // Note: The form may auto-select some values, so we'll test the actual behavior
     // rather than just checking disabled state
@@ -184,7 +186,7 @@ describe('Coffee Brewing User Journey', () => {
     // First, complete the bean/method/grinder selection step
     // Note: This test would need to be updated when the actual form workflow is implemented
     // For now, we'll skip this test since it requires navigation through multiple steps
-    
+
     // This test should be re-enabled once the multi-step form navigation is properly implemented
     expect(true).toBe(true) // Placeholder assertion
   })
@@ -203,12 +205,16 @@ describe('Coffee Brewing User Journey', () => {
 
     // This test needs to be updated to work with MUI Select components
     // For now, we'll test that the form renders without errors
-    const beanSelects = screen.getAllByRole('combobox', { name: /coffee beans/i })
+      const beanSelects = screen.getAllByRole('combobox', {
+          name: /coffee beans/i,
+      })
     expect(beanSelects[0]).toBeInTheDocument()
-    
-    const methodSelects = screen.getAllByRole('combobox', { name: /brewing method/i })
+
+      const methodSelects = screen.getAllByRole('combobox', {
+          name: /brewing method/i,
+      })
     expect(methodSelects[0]).toBeInTheDocument()
-    
+
     const grinderSelects = screen.getAllByRole('combobox', { name: /grinder/i })
     expect(grinderSelects[0]).toBeInTheDocument()
   })

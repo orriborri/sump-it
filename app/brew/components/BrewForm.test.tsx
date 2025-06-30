@@ -93,14 +93,18 @@ describe('BrewForm - User Brewing Experience', () => {
 
     // User selects their coffee beans
     expect(screen.getAllByText(/select.*bean/i)[0]).toBeInTheDocument()
-    
+
     // Test that form elements are present using more specific selectors
-    const beanSelects = screen.getAllByRole('combobox', { name: /coffee beans/i })
+    const beanSelects = screen.getAllByRole('combobox', {
+      name: /coffee beans/i,
+    })
     expect(beanSelects[0]).toBeInTheDocument()
-    
-    const methodSelects = screen.getAllByRole('combobox', { name: /brewing method/i })
+
+    const methodSelects = screen.getAllByRole('combobox', {
+      name: /brewing method/i,
+    })
     expect(methodSelects[0]).toBeInTheDocument()
-    
+
     const grinderSelects = screen.getAllByRole('combobox', { name: /grinder/i })
     expect(grinderSelects[0]).toBeInTheDocument()
 
@@ -130,10 +134,10 @@ describe('BrewForm - User Brewing Experience', () => {
     const nextButtons = screen.getAllByRole('button', {
       name: /next/i,
     })
-    
+
     // Should have at least one Next button
     expect(nextButtons.length).toBeGreaterThan(0)
-    
+
     // The first Next button should be available for interaction
     // Note: Form may auto-select some values, so we test actual behavior
     expect(nextButtons[0]).toBeInTheDocument()
@@ -156,7 +160,9 @@ describe('BrewForm - User Brewing Experience', () => {
     // User Story: "When I change my coffee dose, water amount should update automatically"
     // This test would need to navigate to the parameters step first
     // For now, just verify the form renders
-    const beanSelects = screen.getAllByRole('combobox', { name: /coffee beans/i })
+    const beanSelects = screen.getAllByRole('combobox', {
+      name: /coffee beans/i,
+    })
     expect(beanSelects[0]).toBeInTheDocument()
 
     // Water amount updates automatically
