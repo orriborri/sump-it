@@ -137,6 +137,9 @@ export const BrewFeedback: React.FC<BrewFeedbackProps> = ({
     setIsSubmitting(true)
     try {
       await onSaveFeedback(feedback)
+    } catch (error) {
+      console.error('Failed to save feedback:', error)
+      // Could add user-facing error handling here in the future
     } finally {
       setIsSubmitting(false)
     }

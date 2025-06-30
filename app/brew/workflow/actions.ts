@@ -5,11 +5,29 @@ import { BrewsModel } from '../../lib/generated-models/Brews'
 import { BrewFeedbackModel } from '../../lib/generated-models/BrewFeedback'
 import { BrewsJoinedQueries } from '../../lib/generated-models/BrewsJoined'
 import { FormData } from './types'
+import type { Kysely } from 'kysely'
+import type { Database } from '../../lib/db'
 
-// Initialize models
-const brewsModel = new BrewsModel(db)
-const feedbackModel = new BrewFeedbackModel(db)
-const brewsJoined = new BrewsJoinedQueries(db)
+// Allow dependency injection for testing
+let testDb: Kysely<Database> | null = null
+
+export function setTestDatabase(database: Kysely<Database> | null) {
+  testDb = database
+}
+
+function getDatabase() {
+  return testDb || db
+}
+
+// Initialize models with current database
+function getModels() {
+  const currentDb = getDatabase()
+  return {
+    brewsModel: new BrewsModel(currentDb),
+    feedbackModel: new BrewFeedbackModel(currentDb),
+    brewsJoined: new BrewsJoinedQueries(currentDb)
+  }
+}
 
 import { BrewsWithJoins } from '../../lib/generated-models/BrewsJoined'
 
@@ -23,6 +41,7 @@ export async function getPreviousBrews(
   }
 
   try {
+    const { brewsJoined } = getModels()
     return await brewsJoined.findByParameters(
       Number(bean_id),
       Number(method_id),
@@ -36,6 +55,7 @@ export async function getPreviousBrews(
 
 export async function saveBrew(data: FormData) {
   try {
+    const { brewsModel } = getModels()
     const savedBrew = await brewsModel.create({
       bean_id: Number(data.bean_id),
       method_id: Number(data.method_id),
@@ -55,6 +75,7 @@ export async function saveBrew(data: FormData) {
 
 export async function saveBrewFeedback(brewId: number, feedback: any) {
   try {
+    const { feedbackModel } = getModels()
     const savedFeedback = await feedbackModel.create({
       brew_id: brewId,
       coffee_amount_ml: feedback.coffee_amount_ml || null,

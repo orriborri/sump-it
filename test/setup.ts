@@ -1,5 +1,9 @@
 import '@testing-library/jest-dom'
-import { vi } from 'vitest'
+import { vi, beforeEach, afterEach } from 'vitest'
+import { createTestDatabase, setupTestDatabase, cleanupTestDatabase } from './database-setup'
+
+// Global test database instance
+let testDb: any
 
 // Mock Next.js router
 vi.mock('next/navigation', () => ({
@@ -12,13 +16,21 @@ vi.mock('next/navigation', () => ({
   usePathname: () => '/brew',
 }))
 
-// Mock server actions
-vi.mock('../app/brew/workflow/actions', () => ({
-  saveBrew: vi.fn(),
-  getPreviousBrews: vi.fn(),
+// Mock database with real test database
+vi.mock('../app/lib/database', () => ({
+  get db() {
+    return testDb
+  },
 }))
 
-// Mock database
-vi.mock('../app/lib/database', () => ({
-  db: {},
-}))
+// Setup and teardown for each test
+beforeEach(async () => {
+  testDb = createTestDatabase()
+  await setupTestDatabase(testDb)
+})
+
+afterEach(async () => {
+  if (testDb) {
+    await cleanupTestDatabase(testDb)
+  }
+})
