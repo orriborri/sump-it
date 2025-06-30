@@ -7,6 +7,7 @@ import { BrewsJoinedQueries } from '../../lib/generated-models/BrewsJoined'
 import { FormData } from './types'
 import type { Kysely } from 'kysely'
 import type { Database } from '../../lib/db'
+import type { DB } from '../../lib/db.d'
 
 // Allow dependency injection for testing
 let testDb: Kysely<Database> | null = null
@@ -23,9 +24,9 @@ function getDatabase() {
 function getModels() {
   const currentDb = getDatabase()
   return {
-    brewsModel: new BrewsModel(currentDb),
-    feedbackModel: new BrewFeedbackModel(currentDb),
-    brewsJoined: new BrewsJoinedQueries(currentDb)
+    brewsModel: new BrewsModel(currentDb as Kysely<DB>),
+    feedbackModel: new BrewFeedbackModel(currentDb as Kysely<DB>),
+    brewsJoined: new BrewsJoinedQueries(currentDb as Kysely<DB>),
   }
 }
 

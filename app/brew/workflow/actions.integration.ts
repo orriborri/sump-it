@@ -1,8 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { saveBrew, setTestDatabase } from './actions'
-import { createTestDatabase, setupTestDatabase, cleanupTestDatabase } from '../../../test/database-setup'
+import {
+  createTestDatabase,
+  setupTestDatabase,
+  cleanupTestDatabase,
+} from '../../../test/database-setup'
 import type { Kysely } from 'kysely'
 import type { Database } from '../../lib/db'
+import type { FormData } from './types'
 
 describe('Brew Workflow Actions - Integration Tests', () => {
   let testDb: Kysely<Database>
@@ -21,10 +26,10 @@ describe('Brew Workflow Actions - Integration Tests', () => {
   describe('saveBrew', () => {
     it('successfully saves valid brew data to database', async () => {
       // Given: User has configured complete brew parameters
-      const validBrewData = {
-        bean_id: '1',
-        method_id: '2',
-        grinder_id: '1',
+      const validBrewData: FormData = {
+        bean_id: 1,
+        method_id: 2,
+        grinder_id: 1,
         dose: 20,
         water: 320,
         grind: 15,
@@ -38,17 +43,17 @@ describe('Brew Workflow Actions - Integration Tests', () => {
       expect(result).toBeDefined()
       expect(result.success).toBe(true)
       expect(result.brew).toBeDefined()
-      expect(result.brew.id).toBeDefined()
-      expect(result.brew.dose).toBe(20)
-      expect(result.brew.water).toBe(320)
+      expect(result.brew!.id).toBeDefined()
+      expect(result.brew!.dose).toBe(20)
+      expect(result.brew!.water).toBe(320)
     })
 
     it('handles extreme parameter values appropriately', async () => {
       // Given: User enters unusual but not impossible values
-      const extremeBrewData = {
-        bean_id: '1',
-        method_id: '1',
-        grinder_id: '1',
+      const extremeBrewData: FormData = {
+        bean_id: 1,
+        method_id: 1,
+        grinder_id: 1,
         dose: 100, // Very large dose
         water: 1600, // Corresponding water amount
         grind: 1, // Very fine grind
@@ -61,26 +66,26 @@ describe('Brew Workflow Actions - Integration Tests', () => {
       // Then: System should handle it (business decision on validation)
       expect(result).toBeDefined()
       expect(result.success).toBe(true)
-      expect(result.brew.dose).toBe(100)
-      expect(result.brew.water).toBe(1600)
+      expect(result.brew!.dose).toBe(100)
+      expect(result.brew!.water).toBe(1600)
     })
 
     it('maintains data integrity across save operations', async () => {
       // Given: Multiple brew saves in sequence
-      const firstBrew = {
-        bean_id: '1',
-        method_id: '1',
-        grinder_id: '1',
+      const firstBrew: FormData = {
+        bean_id: 1,
+        method_id: 1,
+        grinder_id: 1,
         dose: 20,
         water: 320,
         grind: 15,
         ratio: 16,
       }
 
-      const secondBrew = {
-        bean_id: '2',
-        method_id: '2',
-        grinder_id: '1',
+      const secondBrew: FormData = {
+        bean_id: 2,
+        method_id: 2,
+        grinder_id: 1,
         dose: 25,
         water: 400,
         grind: 12,
@@ -96,15 +101,15 @@ describe('Brew Workflow Actions - Integration Tests', () => {
       expect(firstResult.success).toBe(true)
       expect(secondResult).toBeDefined()
       expect(secondResult.success).toBe(true)
-      expect(firstResult.brew.id).not.toBe(secondResult.brew.id)
+      expect(firstResult.brew!.id).not.toBe(secondResult.brew!.id)
     })
 
     it('handles database constraint violations gracefully', async () => {
       // Given: Invalid foreign key reference
-      const invalidBrewData = {
-        bean_id: '999', // Non-existent bean
-        method_id: '1',
-        grinder_id: '1',
+      const invalidBrewData: FormData = {
+        bean_id: 999, // Non-existent bean
+        method_id: 1,
+        grinder_id: 1,
         dose: 20,
         water: 320,
         grind: 15,

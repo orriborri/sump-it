@@ -64,7 +64,9 @@ export const BeanSelector: React.FC<BeanSelectorProps> = ({
           labelId="bean-select-label"
           id="bean-select"
           name="bean_id"
-          value={form.formData.bean_id > 0 ? form.formData.bean_id.toString() : ''}
+          value={
+            form.formData.bean_id > 0 ? form.formData.bean_id.toString() : ''
+          }
           label="Coffee Beans"
           onChange={e =>
             form.updateFormData({ bean_id: parseInt(e.target.value) })
@@ -84,7 +86,11 @@ export const BeanSelector: React.FC<BeanSelectorProps> = ({
           labelId="method-select-label"
           id="method-select"
           name="method_id"
-          value={form.formData.method_id > 0 ? form.formData.method_id.toString() : ''}
+          value={
+            form.formData.method_id > 0
+              ? form.formData.method_id.toString()
+              : ''
+          }
           label="Brewing Method"
           onChange={e =>
             form.updateFormData({ method_id: parseInt(e.target.value) })
@@ -104,7 +110,11 @@ export const BeanSelector: React.FC<BeanSelectorProps> = ({
           labelId="grinder-select-label"
           id="grinder-select"
           name="grinder_id"
-          value={form.formData.grinder_id > 0 ? form.formData.grinder_id.toString() : ''}
+          value={
+            form.formData.grinder_id > 0
+              ? form.formData.grinder_id.toString()
+              : ''
+          }
           label="Grinder"
           onChange={e =>
             form.updateFormData({ grinder_id: parseInt(e.target.value) })

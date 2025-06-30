@@ -53,17 +53,17 @@ export async function setupTestDatabase(db: Kysely<DatabaseType>) {
     .execute()
 
   // Insert test data
-  await db.insertInto('beans').values([
+  await db.insertInto('beans' as any).values([
     { id: 1, name: 'Ethiopian Sidamo', origin: 'Ethiopia', roast_level: 'Medium' },
     { id: 2, name: 'Colombian Supremo', origin: 'Colombia', roast_level: 'Medium-Dark' },
   ]).execute()
 
-  await db.insertInto('methods').values([
+  await db.insertInto('methods' as any).values([
     { id: 1, name: 'Pour Over V60', description: 'Japanese pour over method' },
     { id: 2, name: 'French Press', description: 'Immersion brewing method' },
   ]).execute()
 
-  await db.insertInto('grinders').values([
+  await db.insertInto('grinders' as any).values([
     { id: 1, name: 'Baratza Encore', min_setting: 1, max_setting: 40 },
     { id: 2, name: 'Hario Mini Mill', min_setting: 1, max_setting: 20 },
   ]).execute()

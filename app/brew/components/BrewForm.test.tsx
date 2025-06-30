@@ -1,7 +1,6 @@
 import React from 'react'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
+import { render, screen } from '@testing-library/react'
 import { BrewForm } from './BrewForm'
 
 // Mock database dependency
@@ -70,8 +69,6 @@ describe('BrewForm - User Brewing Experience', () => {
       step_size: 1,
     },
   ]
-
-  const user = userEvent.setup()
 
   beforeEach(() => {
     vi.clearAllMocks()
