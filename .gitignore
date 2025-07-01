@@ -25,9 +25,16 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# Nix
+result
+result-*
+.direnv/
+.mcp-nix-setup-done
+
 # local env files
 .env
 .env*.local
+.env.mcp.local
 
 # vercel
 .vercel
