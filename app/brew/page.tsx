@@ -1,6 +1,6 @@
 import { db } from '../lib/database'
 import { Box, Typography } from '@mui/material'
-import { BrewWorkflow } from './components/BrewWorkflow'
+import FormWrapper from './FormWrapper'
 import { BeansModel } from '../lib/generated-models/Beans'
 import { MethodsModel } from '../lib/generated-models/Methods'
 import { GrindersModel } from '../lib/generated-models/Grinders'
@@ -39,7 +39,7 @@ const Page = async () => {
         Coffee Brewing
       </Typography>
 
-      <BrewWorkflow beans={beans} methods={methods} grinders={grinders} />
+      <FormWrapper beans={beans} methods={methods} grinders={grinders} />
     </Box>
   )
 }
