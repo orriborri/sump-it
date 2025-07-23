@@ -160,8 +160,8 @@ importers:
         specifier: ^0.18.5
         version: 0.18.5(better-sqlite3@12.2.0)(kysely@0.28.3)(mysql2@3.14.2)(pg@8.16.3)(tarn@3.0.2)(typescript@5.8.3)
       kysely-ctl:
-        specifier: ^0.13.1
-        version: 0.13.1(kysely@0.28.3)
+        specifier: ^0.14.0
+        version: 0.14.0(kysely@0.28.3)
       npm-run-all2:
         specifier: ^8.0.0
         version: 8.0.4
@@ -1562,8 +1562,8 @@ packages:
     resolution: {integrity: sha512-WDtdLmJvAuNNPzByAYpRo2rF1Mmradw6gvWsQKf63476DDXmomT9zUiGypLcG4ibIM67vhAj8jJRdbmEws2Aqw==}
     engines: {node: '>=6.14.2'}
 
-  c12@3.0.4:
-    resolution: {integrity: sha512-t5FaZTYbbCtvxuZq9xxIruYydrAGsJ+8UdP0pZzMiK2xl/gNiSOy0OxhLzHUEEb0m1QXYqfzfvyIFEmz/g9lqg==}
+  c12@3.1.0:
+    resolution: {integrity: sha512-uWoS8OU1MEIsOv8p/5a82c3H31LsWVR5qiyXVfBNOzfffjUWtPnhAb4BYI2uG2HfGmZmFjCtui5XNWaps+iFuw==}
     peerDependencies:
       magicast: ^0.3.5
     peerDependenciesMeta:
@@ -1846,6 +1846,10 @@ packages:
 
   dotenv@16.5.0:
     resolution: {integrity: sha512-m/C+AwOAr9/W1UOIZUo232ejMNnJAJtYQjUbHoNTBNTJSvqzzDh7vnrei3o3r3m9blf6ZoDkvcw0VmozNRFJxg==}
+    engines: {node: '>=12'}
+
+  dotenv@16.6.1:
+    resolution: {integrity: sha512-uBq4egWHTcTt33a72vpSG0z3HnPuIl6NqYcTrKEg2azoEyl2hpW0zqlxysq2pK9HlDIHyHyakeYaYnSAwd8bow==}
     engines: {node: '>=12'}
 
   dunder-proto@1.0.1:
@@ -2621,9 +2625,9 @@ packages:
       tedious:
         optional: true
 
-  kysely-ctl@0.13.1:
-    resolution: {integrity: sha512-DhTgpt1ru3Y74rI8O3IRLJ5HV09vMSz4q2KEeqaUX0GYMB09zO1KsdwSsF+ZMa8bHeS4F4J3Vjfbc4ulJQ1r0A==}
-    engines: {node: '>=18'}
+  kysely-ctl@0.14.0:
+    resolution: {integrity: sha512-6sU/KcnOC0So/7zWvdQa47Aa9eaWurfr2WUGzjbwxWnAjmVMg40Rt67v6nslo8cuahJ1SGTrTtFDCX3tNusejw==}
+    engines: {node: '>=20'}
     hasBin: true
     peerDependencies:
       kysely: '>=0.18.1 <0.29.0'
@@ -3015,8 +3019,8 @@ packages:
     engines: {node: '>=0.10'}
     hasBin: true
 
-  pkg-types@2.1.0:
-    resolution: {integrity: sha512-wmJwA+8ihJixSoHKxZJRBQG1oY8Yr9pGLzRmSsNms0iNWyHHAlZCa7mmKiFR10YPZuz/2k169JiS/inOjBCZ2A==}
+  pkg-types@2.2.0:
+    resolution: {integrity: sha512-2SM/GZGAEkPp3KWORxQZns4M+WSeXbC2HEvmOIJe3Cmiv6ieAJvdVhDldtHqM5J1Y7MrR1XhkBT/rMlhh9FdqQ==}
 
   pluralize@8.0.0:
     resolution: {integrity: sha512-Nc3IT5yHzflTfbjgqWcCPpo7DaKy4FnpB0l/zCAW0Tc7jxAiuqSxHasntB3D7887LSrA93kDJ9IXovxJYxyLCA==}
@@ -5123,19 +5127,19 @@ snapshots:
     dependencies:
       node-gyp-build: 4.8.4
 
-  c12@3.0.4:
+  c12@3.1.0:
     dependencies:
       chokidar: 4.0.3
       confbox: 0.2.2
       defu: 6.1.4
-      dotenv: 16.5.0
+      dotenv: 16.6.1
       exsolve: 1.0.7
       giget: 2.0.0
       jiti: 2.4.2
       ohash: 2.0.11
       pathe: 2.0.3
       perfect-debounce: 1.0.0
-      pkg-types: 2.1.0
+      pkg-types: 2.2.0
       rc9: 2.1.2
 
   cac@6.7.14: {}
@@ -5389,6 +5393,8 @@ snapshots:
       dotenv: 16.5.0
 
   dotenv@16.5.0: {}
+
+  dotenv@16.6.1: {}
 
   dunder-proto@1.0.1:
     dependencies:
@@ -6334,9 +6340,9 @@ snapshots:
     transitivePeerDependencies:
       - typescript
 
-  kysely-ctl@0.13.1(kysely@0.28.3):
+  kysely-ctl@0.14.0(kysely@0.28.3):
     dependencies:
-      c12: 3.0.4
+      c12: 3.1.0
       citty: 0.1.6
       consola: 3.4.2
       jiti: 2.4.2
@@ -6344,7 +6350,7 @@ snapshots:
       nypm: 0.6.0
       ofetch: 1.4.1
       pathe: 2.0.3
-      pkg-types: 2.1.0
+      pkg-types: 2.2.0
       std-env: 3.9.0
     transitivePeerDependencies:
       - magicast
@@ -6520,7 +6526,7 @@ snapshots:
       citty: 0.1.6
       consola: 3.4.2
       pathe: 2.0.3
-      pkg-types: 2.1.0
+      pkg-types: 2.2.0
       tinyexec: 0.3.2
 
   object-assign@4.1.1: {}
@@ -6708,7 +6714,7 @@ snapshots:
 
   pidtree@0.6.0: {}
 
-  pkg-types@2.1.0:
+  pkg-types@2.2.0:
     dependencies:
       confbox: 0.2.2
       exsolve: 1.0.7
