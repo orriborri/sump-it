@@ -160,8 +160,8 @@ importers:
         specifier: ^0.18.5
         version: 0.18.5(better-sqlite3@12.2.0)(kysely@0.28.5)(mysql2@3.14.3)(pg@8.16.3)(tarn@3.0.2)(typescript@5.9.2)
       kysely-ctl:
-        specifier: ^0.15.0
-        version: 0.15.3(kysely@0.28.5)(typescript@5.9.2)
+        specifier: ^0.17.0
+        version: 0.17.0(kysely@0.28.5)(typescript@5.9.2)
       npm-run-all2:
         specifier: ^8.0.0
         version: 8.0.4
@@ -2790,8 +2790,8 @@ packages:
       tedious:
         optional: true
 
-  kysely-ctl@0.15.3:
-    resolution: {integrity: sha512-2eWgM66EwVldk6neRESKQoss8bzZp/lhotDzsyBeDzh6QQwaV4Px5jw+YyjxpETVR4KPT3jZeY+Agvm8ydTn/Q==}
+  kysely-ctl@0.17.0:
+    resolution: {integrity: sha512-i/GAuHcRqzph1yhdVg8OUbXkRIyGf0Z8TTxgH1SaO637qrm7sr4HlOmSm2R3dR75qcCPNXCUhxYG+ESDSPoTYA==}
     engines: {node: '>=20'}
     hasBin: true
     peerDependencies:
@@ -6624,7 +6624,7 @@ snapshots:
     transitivePeerDependencies:
       - typescript
 
-  kysely-ctl@0.15.3(kysely@0.28.5)(typescript@5.9.2):
+  kysely-ctl@0.17.0(kysely@0.28.5)(typescript@5.9.2):
     dependencies:
       c12: 3.2.0
       citty: 0.1.6
