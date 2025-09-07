@@ -127,15 +127,15 @@ export const IntegratedVerticalStepper: React.FC<IntegratedVerticalStepperProps>
                     sx={{ 
                       p: 3, 
                       mb: 3,
-                      bgcolor: 'primary.light',
+                      bgcolor: '#FFFFFF',
                       border: 1,
-                      borderColor: 'primary.main',
+                      borderColor: '#8B4513',
                       borderRadius: 2,
                     }}
                   >
                     <Typography 
                       variant="subtitle1" 
-                      color="primary.dark"
+                      color="#2C1810"
                       fontWeight={600}
                       gutterBottom
                     >
@@ -144,8 +144,8 @@ export const IntegratedVerticalStepper: React.FC<IntegratedVerticalStepperProps>
                     
                     <Typography 
                       variant="body2" 
-                      color="primary.dark"
-                      sx={{ lineHeight: 1.5 }}
+                      color="#3C2415"
+                      sx={{ lineHeight: 1.6, fontSize: '0.95rem' }}
                     >
                       {instructions.description}
                     </Typography>
