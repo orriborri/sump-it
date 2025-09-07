@@ -43,15 +43,8 @@
     "@types/ms": "^2.1.0",
     "@types/pg": "^8.15.4",
     "@types/qrcode": "^1.5.5",
-<<<<<<< HEAD
     "@types/react": "19.1.11",
     "@types/react-dom": "19.1.7",
-||||||| parent of f7c4b8b (feat: Add server logging, Nix shell configuration, and coffee-themed UI enhancements)
-    "@types/react": "19.1.8",
-    "@types/react-dom": "19.1.6",
-=======
-    "@types/react-dom": "19.1.6",
->>>>>>> f7c4b8b (feat: Add server logging, Nix shell configuration, and coffee-themed UI enhancements)
     "@vercel/postgres": "0.10.0",
     "@vercel/postgres-kysely": "0.10.0",
     "autoprefixer": "10.4.21",
@@ -81,14 +74,7 @@
     "@testing-library/user-event": "^14.6.1",
     "@types/better-sqlite3": "^7.6.13",
     "@types/mui-datatables": "^4.3.12",
-<<<<<<< HEAD
     "@types/node": "24.3.0",
-||||||| parent of f7c4b8b (feat: Add server logging, Nix shell configuration, and coffee-themed UI enhancements)
-    "@types/node": "24.0.8",
-=======
-    "@types/node": "24.0.8",
-    "@types/react": "19.1.8",
->>>>>>> f7c4b8b (feat: Add server logging, Nix shell configuration, and coffee-themed UI enhancements)
     "@typescript-eslint/eslint-plugin": "^8.34.1",
     "@typescript-eslint/parser": "^8.34.1",
     "better-sqlite3": "^12.2.0",

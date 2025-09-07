@@ -19,11 +19,11 @@ const Page = () => {
       icon: <BarChart sx={{ fontSize: 40 }} />,
     },
     {
-      title: 'Manage Items',
-      description: 'Add and edit your coffee beans and brewing methods',
-      href: '/manage',
+      title: 'Manage Beans',
+      description: 'Add and edit your coffee bean collection',
+      href: '/manage/beans',
       color: 'info',
-      icon: <Settings sx={{ fontSize: 40 }} />,
+      icon: <Coffee sx={{ fontSize: 40 }} />,
     },
     {
       title: 'Manage Grinders',
@@ -152,13 +152,13 @@ const Page = () => {
             <Grid size={{ xs: 12, sm: 6, md: 3 }}>
               <Button
                 component={Link}
-                href="/manage"
+                href="/manage/beans"
                 variant="contained"
                 startIcon={<LocalCafe />}
                 fullWidth
                 sx={{ py: 1.5, bgcolor: '#D2691E', '&:hover': { bgcolor: '#B8860B' } }}
               >
-                Manage Equipment
+                Manage Beans
               </Button>
             </Grid>
             <Grid size={{ xs: 12, sm: 6, md: 3 }}>

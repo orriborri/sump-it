@@ -28,14 +28,6 @@ const MethodsPage = () => {
   return (
     <Box sx={{ p: 3, maxWidth: 1200, mx: 'auto' }}>
       <Box display="flex" alignItems="center" gap={2} mb={3}>
-        <Button
-          component={Link}
-          href="/manage"
-          startIcon={<ArrowBack />}
-          variant="outlined"
-        >
-          Back to Manage
-        </Button>
         <Typography variant="h4" sx={{ color: '#8B4513', fontWeight: 600 }}>
           ☕ Your Brew Methods
         </Typography>
