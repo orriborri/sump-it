@@ -2,7 +2,7 @@
 
 import { db } from '../lib/database'
 import { BrewsModel } from '../lib/generated-models/Brews'
-import { BrewFeedbackModel } from '../lib/generated-models/BrewFeedback'
+
 import { BrewsJoinedQueries } from '../lib/generated-models/BrewsJoined'
 import { FormData } from './types'
 import type { Kysely } from 'kysely'
@@ -12,7 +12,7 @@ import type { DB } from '../lib/db.d'
 // Allow dependency injection for testing
 let testDb: Kysely<Database> | null = null
 
-export function setTestDatabase(database: Kysely<Database> | null) {
+export async function setTestDatabase(database: Kysely<Database> | null) {
   testDb = database
 }
 
@@ -25,7 +25,7 @@ function getModels() {
   const currentDb = getDatabase()
   return {
     brewsModel: new BrewsModel(currentDb as Kysely<DB>),
-    feedbackModel: new BrewFeedbackModel(currentDb as Kysely<DB>),
+
     brewsJoined: new BrewsJoinedQueries(currentDb as Kysely<DB>),
   }
 }
@@ -74,22 +74,4 @@ export async function saveBrew(data: FormData) {
   }
 }
 
-export async function saveBrewFeedback(brewId: number, feedback: any) {
-  try {
-    const { feedbackModel } = getModels()
-    const savedFeedback = await feedbackModel.create({
-      brew_id: brewId,
-      coffee_amount_ml: feedback.coffee_amount_ml || null,
-      too_strong: feedback.too_strong || false,
-      too_weak: feedback.too_weak || false,
-      is_sour: feedback.is_sour || false,
-      is_bitter: feedback.is_bitter || false,
-      overall_rating: feedback.overall_rating || null,
-    })
-
-    return { success: true, feedback: savedFeedback }
-  } catch (error) {
-    console.error('Error saving feedback:', error)
-    return { success: false, error: 'Failed to save feedback' }
-  }
-}
+// Feedback actions moved to feedback/actions.ts

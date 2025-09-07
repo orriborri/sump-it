@@ -1,0 +1,38 @@
+{
+  "project": {
+    "name": "Sump It",
+    "description": "Coffee Brewing App"
+  },
+  "mui": {
+    "version": "7.1.2",
+    "components": {
+      "preferred": [
+        "Button",
+        "Card",
+        "TextField",
+        "Select",
+        "Dialog",
+        "AppBar",
+        "Drawer",
+        "List",
+        "Typography",
+        "Grid",
+        "Container",
+        "Box",
+        "Paper",
+        "IconButton",
+        "Tabs"
+      ]
+    },
+    "theme": {
+      "palette": {
+        "primary": {
+          "main": "#1976d2"
+        },
+        "secondary": {
+          "main": "#dc004e"
+        }
+      }
+    }
+  }
+}

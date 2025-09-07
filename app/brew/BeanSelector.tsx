@@ -34,6 +34,14 @@ export const BeanSelector: React.FC<BeanSelectorProps> = ({
     grinders || MOCK_GRINDERS
   )
 
+  // Debug logging
+  console.log('BeanSelector - Received props:', { 
+    beansCount: beans?.length, 
+    methodsCount: methods?.length, 
+    grindersCount: grinders?.length,
+    currentFormData: form.formData
+  })
+
   // Update state when props change
 
   useEffect(() => {
@@ -59,7 +67,7 @@ export const BeanSelector: React.FC<BeanSelectorProps> = ({
       </Typography>
 
       <FormControl fullWidth>
-        <InputLabel id="bean-select-label">Coffee Beans</InputLabel>
+        <InputLabel id="bean-select-label">Coffee Beans *</InputLabel>
         <Select
           labelId="bean-select-label"
           id="bean-select"
@@ -67,10 +75,12 @@ export const BeanSelector: React.FC<BeanSelectorProps> = ({
           value={
             form.formData.bean_id > 0 ? form.formData.bean_id.toString() : ''
           }
-          label="Coffee Beans"
-          onChange={e =>
-            form.updateFormData({ bean_id: parseInt(e.target.value) })
-          }
+          label="Coffee Beans *"
+          onChange={e => {
+            const beanId = parseInt(e.target.value)
+            console.log('Bean selected:', beanId)
+            form.updateFormData({ bean_id: beanId })
+          }}
         >
           {availableBeans.map(bean => (
             <MenuItem key={bean.id} value={bean.id.toString()}>
@@ -81,7 +91,7 @@ export const BeanSelector: React.FC<BeanSelectorProps> = ({
       </FormControl>
 
       <FormControl fullWidth>
-        <InputLabel id="method-select-label">Brewing Method</InputLabel>
+        <InputLabel id="method-select-label">Brewing Method *</InputLabel>
         <Select
           labelId="method-select-label"
           id="method-select"
@@ -91,10 +101,12 @@ export const BeanSelector: React.FC<BeanSelectorProps> = ({
               ? form.formData.method_id.toString()
               : ''
           }
-          label="Brewing Method"
-          onChange={e =>
-            form.updateFormData({ method_id: parseInt(e.target.value) })
-          }
+          label="Brewing Method *"
+          onChange={e => {
+            const methodId = parseInt(e.target.value)
+            console.log('Method selected:', methodId)
+            form.updateFormData({ method_id: methodId })
+          }}
         >
           {availableMethods.map(method => (
             <MenuItem key={method.id} value={method.id.toString()}>
@@ -105,7 +117,7 @@ export const BeanSelector: React.FC<BeanSelectorProps> = ({
       </FormControl>
 
       <FormControl fullWidth>
-        <InputLabel id="grinder-select-label">Grinder</InputLabel>
+        <InputLabel id="grinder-select-label">Grinder *</InputLabel>
         <Select
           labelId="grinder-select-label"
           id="grinder-select"
@@ -115,10 +127,12 @@ export const BeanSelector: React.FC<BeanSelectorProps> = ({
               ? form.formData.grinder_id.toString()
               : ''
           }
-          label="Grinder"
-          onChange={e =>
-            form.updateFormData({ grinder_id: parseInt(e.target.value) })
-          }
+          label="Grinder *"
+          onChange={e => {
+            const grinderId = parseInt(e.target.value)
+            console.log('Grinder selected:', grinderId)
+            form.updateFormData({ grinder_id: grinderId })
+          }}
         >
           {availableGrinders.map(grinder => (
             <MenuItem key={grinder.id} value={grinder.id.toString()}>

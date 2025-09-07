@@ -1,0 +1,57 @@
+
+> postgres-kysely@0.0.0 dev /home/orre/sump-it
+> next dev
+
+   ▲ Next.js 15.3.4
+   - Local:        http://localhost:3000
+   - Network:      http://10.255.255.254:3000
+   - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 3.8s
+ ○ Compiling /brew ...
+ ✓ Compiled /brew in 10.6s (2280 modules)
+🔌 Database connection check:
+DATABASE_URL available: true
+DATABASE_URL (masked): postgres:***@localhost:5432/postgres
+BeanSelector - Received props: {
+  beansCount: 5,
+  methodsCount: 5,
+  grindersCount: 5,
+  currentFormData: {
+    bean_id: 0,
+    method_id: 0,
+    grinder_id: 0,
+    water: 250,
+    dose: 15,
+    ratio: 16.67,
+    grind: 20
+  }
+}
+ GET /brew 200 in 12790ms
+BeanSelector - Received props: {
+  beansCount: 5,
+  methodsCount: 5,
+  grindersCount: 5,
+  currentFormData: {
+    bean_id: 0,
+    method_id: 0,
+    grinder_id: 0,
+    water: 250,
+    dose: 15,
+    ratio: 16.67,
+    grind: 20
+  }
+}
+ GET /brew 200 in 298ms
+🔌 Database connection check:
+DATABASE_URL available: true
+DATABASE_URL (masked): postgres:***@localhost:5432/postgres
+ POST /brew 200 in 156ms
+ POST /brew 200 in 44ms
+ POST /brew 200 in 37ms
+ POST /brew 200 in 42ms
+ POST /brew 200 in 38ms
+ POST /brew 200 in 36ms
+ POST /brew 200 in 34ms
+[?25h

@@ -24,6 +24,20 @@ export const submitBrewFeedback = async (
   revalidatePath(`/brew/${brewId}`)
 }
 
+export async function getBrewDetails(brewId: number) {
+  // Implementation will fetch brew with joined data
+  return {
+    id: brewId,
+    bean_name: 'Ethiopian Yirgacheffe',
+    method_name: 'V60', 
+    grinder_name: 'Comandante',
+    dose: 15,
+    water: 250,
+    ratio: 16.67,
+    grind: 20
+  }
+}
+
 export const getRecentBrewFeedback = async () => {
   return await db
     .selectFrom('brew_feedback')

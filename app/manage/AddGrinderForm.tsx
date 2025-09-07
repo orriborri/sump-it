@@ -1,8 +1,16 @@
 'use client'
 import React from 'react'
-import { Box, Button, TextField, Stack, Alert } from '@mui/material'
+import { Box, Button, TextField, Stack, Alert, Chip, Typography } from '@mui/material'
 import { useState } from 'react'
 import { createGrinder } from './grinders/actions'
+import { Settings } from '@mui/icons-material'
+
+const popularGrinders = [
+  { name: 'Baratza Encore', range: '1-40' },
+  { name: 'Comandante C40', range: '1-30' },
+  { name: 'Hario Mini Mill', range: '1-20' },
+  { name: 'Timemore C2', range: '1-25' }
+]
 
 export const AddGrinderForm = () => {
   const [name, setName] = useState('')
@@ -24,26 +32,18 @@ export const AddGrinderForm = () => {
     setMessage(null)
 
     try {
-      // Convert steps per unit to step size
-      // Default: 1 step per unit (whole numbers only) = step_size of 1.0
-      const stepsPerUnit = 1 // Number of steps between consecutive integers
-      const stepSize = 1.0 / stepsPerUnit // Actual step size for the slider
-
       const result = await createGrinder({
         name: name.trim(),
         min_setting: 1,
         max_setting: 40,
-        step_size: stepSize,
+        step_size: 1.0,
         setting_type: 'numeric',
       })
 
       if (result.success) {
         setName('')
-        setMessage({ type: 'success', text: 'Grinder added successfully!' })
-        // Optionally redirect after a short delay
-        setTimeout(() => {
-          window.location.href = '/manage/grinders'
-        }, 1500)
+        setMessage({ type: 'success', text: '✅ Grinder added successfully!' })
+        setTimeout(() => setMessage(null), 3000)
       } else {
         setMessage({
           type: 'error',
@@ -71,29 +71,49 @@ export const AddGrinderForm = () => {
           fullWidth
           placeholder="e.g., Baratza Encore"
           disabled={isSubmitting}
-          helperText="Default settings: Range 1-40, whole numbers only (1 step per unit)"
         />
+
+        <Box>
+          <Typography variant="body2" sx={{ mb: 1, color: '#654321' }}>
+            Popular grinders:
+          </Typography>
+          <Stack direction="row" spacing={1} flexWrap="wrap">
+            {popularGrinders.map((grinder) => (
+              <Chip
+                key={grinder.name}
+                label={`${grinder.name} (${grinder.range})`}
+                clickable
+                size="small"
+                onClick={() => setName(grinder.name)}
+                sx={{ mb: 1 }}
+              />
+            ))}
+          </Stack>
+        </Box>
+
+        <Alert severity="info" sx={{ fontSize: '0.875rem' }}>
+          Default: Range 1-40, whole number steps. Need custom settings? Use the advanced form.
+        </Alert>
 
         <Button
           type="submit"
           variant="contained"
-          color="primary"
+          startIcon={<Settings />}
           disabled={isSubmitting}
           fullWidth
         >
-          {isSubmitting ? 'Adding...' : 'Add Grinder'}
+          {isSubmitting ? 'Adding Grinder...' : 'Add Grinder'}
         </Button>
 
-        <Box sx={{ textAlign: 'center' }}>
-          <Button
-            href="/manage/grinders/new"
-            variant="text"
-            size="small"
-            disabled={isSubmitting}
-          >
-            Need custom settings? Use advanced form
-          </Button>
-        </Box>
+        <Button
+          href="/manage/grinders/new"
+          variant="outlined"
+          size="small"
+          disabled={isSubmitting}
+          fullWidth
+        >
+          Advanced Grinder Setup
+        </Button>
       </Stack>
     </Box>
   )

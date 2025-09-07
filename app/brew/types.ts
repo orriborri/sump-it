@@ -6,6 +6,13 @@ export interface FormData {
   dose: number
   ratio: number | string // Can be decimal value like 16.67
   grind: number
+  // Feedback fields
+  overall_rating?: number
+  too_weak?: boolean
+  too_strong?: boolean
+  grind_too_fine?: boolean
+  grind_too_coarse?: boolean
+  grind_notes?: string
 }
 
 // Alias for FormData to be used in brewing components

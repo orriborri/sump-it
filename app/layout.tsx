@@ -1,6 +1,7 @@
 import React from 'react'
 import { Container, Box } from '@mui/material'
 import { Header } from './common/Header'
+import { ThemeProvider } from './providers/ThemeProvider'
 
 export const metadata = {
   title: 'Sump It',
@@ -32,18 +33,20 @@ const RootLayout = ({ children }: { children: React.ReactNode }) => {
         `}</style>
       </head>
       <body suppressHydrationWarning>
-        <Container
-          maxWidth="lg"
-          sx={{
-            px: { xs: 1, sm: 2 },
-            width: '100%',
-            maxWidth: '100vw',
-            overflow: 'hidden',
-          }}
-        >
-          <Header />
-          <Box sx={{ width: '100%', overflow: 'hidden' }}>{children}</Box>
-        </Container>
+        <ThemeProvider>
+          <Container
+            maxWidth="lg"
+            sx={{
+              px: { xs: 1, sm: 2 },
+              width: '100%',
+              maxWidth: '100vw',
+              overflow: 'hidden',
+            }}
+          >
+            <Header />
+            <Box sx={{ width: '100%', overflow: 'hidden' }}>{children}</Box>
+          </Container>
+        </ThemeProvider>
       </body>
     </html>
   )

@@ -1,611 +1,254 @@
-# Next.js TypeScript Project Guidelines
+# Sump It - Coffee Brewing App AI Instructions
 
-## Project Architecture
+## Project Overview
 
-### File Structure
+**Sump It** is a Next.js 15 + TypeScript coffee brewing application with a unique **Integrated Vertical Stepper** design. The app guides users through a streamlined 2-step brewing workflow using PostgreSQL + Kysely for type-safe database operations.
 
-- Use **Domain-Driven Design (DDD)** with `/app/[feature]` structure
-- `/app/common` for reusable components across features
-- `/app/lib` for shared utilities, database types, and core logic
-- Each feature should be self-contained with all files directly in the feature folder
-- **Parent components should only import from children, never the reverse**
-- Keep feature directories flat - no nested `components/` or `hooks/` folders
+## 🎯 Critical Architecture Knowledge
 
-### Naming Conventions
+### Integrated Vertical Stepper System
+This app's defining feature is a **custom vertical stepper** where form content appears directly between step numbers:
 
-- **Folders**: lowerCamelCase (`brew`, `brewParameters`, `userManagement`)
-- **React Components**: PascalCase with `.tsx` extension (`BrewForm.tsx`, `ParameterVisualization.tsx`)
-- **TypeScript files**: lowerCamelCase (`actions.ts`, `enhanced-actions.ts`, `types.ts`)
-- **Hooks**: Start with `use` prefix (`useBrewWorkflow.ts`, `useRatioCalculation.ts`)
-- **Server Actions**: `actions.ts` files with `"use server"` directive
-
-#### Detailed Naming Rules
-
-**Variables & Functions:**
-
-- **Variables**: lowerCamelCase (`brewData`, `grindSettings`, `isLoading`)
-- **Functions**: lowerCamelCase with descriptive verbs (`calculateRatio`, `saveBrewFeedback`, `updateFormData`)
-- **Constants**: UPPER_SNAKE_CASE (`MAX_GRIND_SETTING`, `DEFAULT_RATIO`, `API_ENDPOINTS`)
-- **Types & Interfaces**: PascalCase (`BrewWithFeedback`, `ParameterSuggestion`, `FormData`)
-
-**Component Naming:**
-
-- Use descriptive, specific names (`BrewParameterForm` not `Form`)
-- Avoid generic names like `Component`, `Item`, `Element`
-- Use composition for clarity (`WaterDoseInputGroup`, `RatioInputGroup`)
-
-**File Naming:**
-
-- Match component names exactly (`BrewForm.tsx` exports `BrewForm`)
-- Use kebab-case for multi-word non-component files (`brew-parameters/`, `user-settings/`)
-- Server actions: `actions.ts` or `enhanced-actions.ts`
-- Types: `types.ts` within each feature
-
-**Database & API:**
-
-- **Tables**: snake_case (`brew_feedback`, `grinder_settings`)
-- **Columns**: snake_case (`overall_rating`, `coffee_amount_ml`)
-- **No API Routes**: Use Server Actions instead of `/api/` endpoints
-
-**Import Aliases:**
-
-- Avoid single-letter aliases except for common patterns (`React` as `React`)
-- Use descriptive aliases for long paths (`import { BrewsModel as Brews }`)
-- No default imports - use named imports consistently
-
-## Code Quality Standards
-
-### TypeScript
-
-- Use **strict TypeScript** - all types must be explicitly defined
-- Create dedicated `types.ts` files for shared types within features
-- Use proper interface definitions for API responses and database models
-- Leverage generated types from database schema
-- **NO index files** - use direct imports with explicit file paths
-
-### Import Patterns
-
-```typescript
-// ✅ Good - Direct imports
-import { BrewsModel } from '../../lib/generated-models/Brews'
-import { BrewFeedbackModel } from '../../lib/generated-models/BrewFeedback'
-
-// ❌ Bad - Index file imports
-import { BrewsModel, BrewFeedbackModel } from '../../lib/generated-models'
+```
+● 1. Select Bean & Brew    [Current Step]
+    Step instructions (coffee-themed box)
+    ┌─────────────────────────────────┐
+    │        Form Content             │
+    │    (Bean selector, dropdowns)   │
+    └─────────────────────────────────┘
+│
+○ 2. Brewing Parameters
+    (Combined: Recipe + Grind + Dosing)
 ```
 
-### Database & Server Actions
+**Key Files:**
+- `app/brew/Step.tsx` - Main container (max-width 800px)
+- `app/brew/IntegratedVerticalStepper.tsx` - Core stepper component
+- `app/brew/CombinedBrewingParameters.tsx` - Step 2 combined form
 
-- Keep all database operations in **server-side code only**
-- Use **Kysely** for all database operations with proper typing
-- Implement comprehensive error handling: `{ success: boolean, error?: string }`
-- Use generated model classes for CRUD operations
-- Server actions should return structured responses
+**Design Rules (NEVER violate):**
+- Single vertical column layout only
+- Coffee brown primary color (#8B4513)
+- Only current step shows form content (progressive disclosure)
+- Form content integrated between step numbers
+- 300ms smooth transitions
 
-#### Server Actions Best Practices
+### Database Architecture with Generated Models
 
-- Use `"use server"` directive at the top of server action files
-- Server actions can be called directly from Server Components
-- Server actions can be used in forms with `action` prop
-- Always handle errors gracefully in server actions
-- Use `revalidatePath()` or `revalidateTag()` after mutations
-- Return structured data for consistent error handling
-- **No API routes needed** - Server Actions replace traditional API endpoints
+Uses **Kysely** query builder with **auto-generated TypeScript models**:
 
 ```typescript
-// ✅ Good - Server Action Example (replaces API routes)
+// Generated models provide full CRUD + joins
+import { BrewsModel, BrewsJoinedQueries } from '../lib/generated-models'
+
+const brewsModel = new BrewsModel(db)
+const brewsJoined = new BrewsJoinedQueries(db)
+
+// Type-safe operations
+const brew = await brewsModel.create({ bean_id: 1, method_id: 2 })
+const withDetails = await brewsJoined.findByParameters(1, 2, 3)
+```
+
+**Critical Workflow Commands:**
+```bash
+pnpm run migrate               # Run database migrations
+pnpm run generate:db-types     # Generate Kysely types from DB
+pnpm run generate:models       # Generate model classes from types
+```
+
+**Important:** Database `Numeric` columns are stored as strings but used as numbers in calculations. Always convert: `Number(brew.ratio) || 0`
+
+### Server Actions Pattern (No API Routes)
+
+All data operations use **Next.js Server Actions** instead of API routes:
+
+```typescript
+// app/brew/actions.ts
 'use server'
 
 import { db } from '../lib/database'
-import { revalidatePath } from 'next/cache'
 
-export async function createBrew(data: FormData) {
+export async function saveBrew(data: FormData) {
   try {
-    const result = await db.insertInto('brews').values(data).execute()
+    const result = await brewsModel.create(data)
     revalidatePath('/brew')
     return { success: true, data: result }
   } catch (error) {
-    return { success: false, error: 'Failed to create brew' }
+    return { success: false, error: 'Failed to save brew' }
   }
 }
 ```
 
-### React Patterns
+All server actions return structured responses: `{ success: boolean, error?: string, data?: T }`
 
-- Use **functional components with hooks** exclusively
-- Use **server components by default**, only add `"use client"` when needed
-- Implement proper loading and error states
-- Use controlled components where possible
-- Keep state as close as possible to where it's used
+### Testing Architecture
 
-#### Single Responsibility Principle
-
-- **One function should do one thing** - keep functions focused and atomic
-- **Components should only handle rendering** - extract business logic to hooks
-- **Hooks should encapsulate specific logic** - one hook per concern
-- **Logic belongs outside components** - prefer hooks over component logic
-
-#### Logic Separation
-
-- **Extract business logic to custom hooks** (`useBrewWorkflow`, `useRatioCalculation`)
-- **Components focus on UI/rendering** - minimal logic in component body
-- **Functions should be pure when possible** - predictable inputs/outputs
-- **Complex calculations in separate utility functions** or hooks
+Uses **Vitest + @testing-library/react** with SQLite for testing:
 
 ```typescript
-// ✅ Good - Logic in hook
-function useBrewCalculation(dose: number, ratio: number) {
-  return useMemo(() => calculateWater(dose, ratio), [dose, ratio]);
-}
-
-function BrewForm() {
-  const water = useBrewCalculation(dose, ratio);
-  return <div>Water: {water}ml</div>;
-}
-
-// ❌ Bad - Logic in component
-function BrewForm({ dose, ratio }) {
-  const water = dose * ratio; // Logic should be in hook
-  return <div>Water: {water}ml</div>;
-}
-```
-
-#### Next.js Server Components
-
-- **Default to Server Components** - components are server-rendered by default
-- Only use `"use client"` directive when:
-  - Component needs browser APIs (localStorage, window, etc.)
-  - Component uses React hooks (useState, useEffect, etc.)
-  - Component handles user interactions (onClick, onChange, etc.)
-  - Component uses client-side libraries
-- **Server Component Benefits**:
-  - Faster initial page loads
-  - Better SEO
-  - Reduced client-side JavaScript bundle
-  - Direct database access without API routes
-  - No need for API endpoints - use Server Actions instead
-- **Data Fetching in Server Components**:
-  - Use async/await directly in server components
-  - Fetch data at the component level where it's needed
-  - No need for useEffect for data fetching
-- **File Structure for Server Components**:
-  - Place server actions in `actions.ts` files
-  - Keep server components in feature directories
-  - Use proper TypeScript types for server component props
-
-### Material-UI Implementation
-
-- Use Material-UI components as building blocks
-- Follow Material Design principles for consistency
-- Use `theme.ts` for project-wide styling customization
-- Leverage the `sx` prop for component-specific styling
-- Use **Material-UI v7 Grid system** with the new `size` prop pattern
-- Prefer MUI's Grid, Box, and Stack components over custom CSS
-
-## Component Organization
-
-### Structure
-
-- **One component per file** with the same name as the file
-- Keep all feature files directly in the feature directory (no nested folders)
-- Export components as **named exports**, not default exports
-- **Keep components focused and single-responsibility** - one purpose per component
-- **Extract complex logic to hooks** - components should primarily handle rendering
-
-### Example Structure
-
-```
-app/
-├── brew/
-│   ├── BrewForm.tsx
-│   ├── BrewWorkflow.tsx
-│   ├── useBrewWorkflow.ts
-│   ├── actions.ts
-│   ├── enhanced-actions.ts
-│   ├── types.ts
-│   └── page.tsx
-├── common/
-│   ├── Button.tsx
-│   ├── Input.tsx
-│   └── Header.tsx
-└── lib/
-    ├── database.ts
-    └── generated-models/
-        ├── Brews.ts
-        └── BrewFeedback.ts
-```
-
-## Data Type Handling
-
-### Database Types
-
-- Database `Numeric` types are stored as `string` but used as `number` in calculations
-- Always convert with `Number(value)` or `Number(value) || 0` for calculations
-- Use proper type guards for nullable values
-
-### Example
-
-```typescript
-// ✅ Good - Proper type conversion
-const avgRatio = Number(brew.ratio) || 0
-const ratioCalc = Math.round(avgRatio * multiplier)
-
-// ❌ Bad - Direct string arithmetic
-const ratioCalc = brew.ratio * multiplier // Type error
-```
-
-## Error Handling
-
-- Use try-catch blocks in server actions
-- Return structured error responses
-- Implement proper loading states and skeleton components
-- Use error boundaries for component-level error handling
-
-## Development Workflow
-
-- Run `pnpm type-check` before committing
-- Use meaningful commit messages and atomic commits
-- Write self-documenting code with JSDoc for complex functions
-- Document business logic and non-obvious decisions
-
-## Performance & Best Practices
-
-- Use `React.memo` for expensive computations
-- Implement proper data fetching patterns
-- Avoid unnecessary re-renders
-- Use proper loading states and skeleton components
-- Implement accessibility features (ARIA attributes, keyboard navigation)
-
-## Testing Guidelines
-
-### Testing Philosophy
-
-**Write tests that focus on WHAT the software does (behavior and outcomes), not HOW it does it (implementation details).**
-
-#### Core Testing Principles
-
-1. **Test User Outcomes, Not Implementation**
-   - Focus on user stories and business value
-   - Test what users can accomplish, not internal function calls
-   - Verify end-to-end workflows and user experiences
-
-2. **Co-locate Tests with Code**
-   - Place test files directly next to the code they test
-   - Use `.test.ts` or `.test.tsx` extensions
-   - Keep tests close to facilitate maintenance and discoverability
-
-3. **Mock Only External Dependencies**
-   - Mock database connections, external APIs, and third-party services
-   - Avoid mocking internal business logic or components
-   - Let your code run naturally to catch integration issues
-
-4. **Use Meaningful Test Names**
-   - Describe user value or business outcomes
-   - Use "Given/When/Then" or user story format
-   - Make test failures immediately understandable
-
-### Test File Organization
-
-```
-app/
-├── brew/
-│   ├── components/
-│   │   ├── BrewForm.tsx
-│   │   └── BrewForm.test.tsx              # Component behavior tests
-│   ├── brew-parameters/
-│   │   ├── useRatioCalculation.ts
-│   │   └── useRatioCalculation.test.ts    # Hook logic tests
-│   ├── workflow/
-│   │   ├── actions.ts
-│   │   └── actions.test.ts                # Server action tests
-│   └── business-logic.test.ts             # Pure business logic tests
-```
-
-### Types of Tests to Write
-
-#### 1. Business Logic Tests (Pure Functions)
-Test mathematical calculations, business rules, and data transformations.
-
-```typescript
-// ✅ Good - Tests coffee brewing math
-describe('Coffee Brewing Calculations', () => {
-  it('calculates correct water amount for given dose and ratio', () => {
-    // Given: User wants 20g coffee at 1:16 ratio
-    const dose = 20
-    const ratio = 16
-
-    // When: System calculates water needed
-    const water = dose * ratio
-
-    // Then: Should require 320ml water
-    expect(water).toBe(320)
-  })
-
-  it('validates reasonable brewing parameters', () => {
-    // Given: Typical brewing parameters
-    const brew = { dose: 20, water: 320, ratio: 16, grind: 15 }
-
-    // When: System validates parameters
-    const isValid = validateBrewParameters(brew)
-
-    // Then: Should accept reasonable values
-    expect(isValid).toBe(true)
-  })
-})
-```
-
-#### 2. Component Behavior Tests
-Test user interactions and component outcomes, not implementation details.
-
-```typescript
-// ✅ Good - Tests user workflow
-describe('BrewForm - User Experience', () => {
+// Tests focus on user behavior, not implementation
+describe('Coffee Brewing Workflow', () => {
   it('guides user through complete brewing setup', async () => {
     const user = userEvent.setup()
+    render(<BrewForm />)
     
-    render(<BrewForm beans={mockBeans} methods={mockMethods} />)
-
-    // User Story: "As a coffee enthusiast, I want to set up my brew"
-    
-    // User selects their coffee beans
-    await user.selectOptions(screen.getByLabelText(/bean/i), 'ethiopian-sidamo')
-    
-    // User sets coffee dose
+    // Test user journey, not internal functions
+    await user.selectOptions(screen.getByLabelText(/bean/i), 'ethiopian')
     await user.type(screen.getByLabelText(/dose/i), '20')
     
-    // System automatically calculates water (behavior, not implementation)
-    expect(screen.getByDisplayValue('320')).toBeInTheDocument()
-    
-    // User can submit their brew setup
-    await user.click(screen.getByRole('button', { name: /start brew/i }))
-    
-    // System processes the brew successfully
-    await waitFor(() => {
-      expect(screen.getByText(/brew started/i)).toBeInTheDocument()
-    })
+    expect(screen.getByDisplayValue('320')).toBeInTheDocument() // 20g * 16 ratio
   })
 })
 ```
 
-#### 3. Hook Logic Tests
-Test custom hooks behavior and state management.
+**Test Database:** Uses in-memory SQLite with `createTestDatabase()` helper
 
-```typescript
-// ✅ Good - Tests hook behavior
-describe('useRatioCalculation - Coffee Mathematics', () => {
-  it('updates water calculation when dose changes', () => {
-    const { result } = renderHook(() => 
-      useRatioCalculation({ dose: 20, ratio: 16, water: 320 })
-    )
-
-    // When: User increases dose to 25g
-    act(() => {
-      result.current.updateDose(25)
-    })
-
-    // Then: Ratio should recalculate to maintain consistency
-    expect(result.current.values.dose).toBe(25)
-    expect(result.current.values.ratio).toBe(13) // 320ml ÷ 25g ≈ 13
-  })
-})
-```
-
-
-
-### Testing Best Practices
-
-#### ✅ DO: Focus on User Value
-
-```typescript
-// ✅ Good - Tests what users care about
-it('helps user achieve perfect coffee strength', async () => {
-  // User wants stronger coffee
-  await adjustRatio(12) // 1:12 ratio
-  
-  expect(getStrengthIndicator()).toBe('Strong')
-  expect(getBrewGuidance()).toContain('rich and bold flavor')
-})
-
-// ❌ Bad - Tests implementation details
-it('calls calculateWaterAmount with correct parameters', () => {
-  component.setDose(20)
-  expect(mockCalculateWaterAmount).toHaveBeenCalledWith(20, 16)
-})
-```
-
-#### ✅ DO: Use Descriptive Test Names
-
-```typescript
-// ✅ Good - Describes user outcome
-it('prevents submission with incomplete data and shows helpful guidance')
-it('calculates water amount automatically when dose changes')
-it('learns from user brewing history to improve suggestions')
-
-// ❌ Bad - Describes implementation
-it('calls validation function')
-it('updates state when input changes')
-it('queries database for previous brews')
-```
-
-#### ✅ DO: Test Error Scenarios
-
-```typescript
-// ✅ Good - Tests error handling
-it('gracefully handles database connection failures', async () => {
-  // Given: Database is unavailable
-  mockDatabaseConnection.mockRejectedValue(new Error('Connection failed'))
-  
-  // When: User tries to save brew
-  const result = await saveBrew(validBrewData)
-  
-  // Then: Should show helpful error message
-  expect(result.success).toBe(false)
-  expect(result.error).toContain('Unable to save')
-})
-```
-
-#### ✅ DO: Test Edge Cases
-
-```typescript
-// ✅ Good - Tests boundary conditions
-it('handles extreme brewing parameters appropriately', () => {
-  // Very large dose (but not impossible)
-  expect(validateDose(100)).toBe(true)
-  
-  // Unrealistic dose
-  expect(validateDose(1000)).toBe(false)
-  
-  // Edge ratios
-  expect(validateRatio(8)).toBe(true)   // Very strong
-  expect(validateRatio(25)).toBe(true)  // Very weak
-  expect(validateRatio(1)).toBe(false)  // Impossible
-})
-```
-
-### Testing Utilities Setup
-
-#### Vitest Configuration
-```typescript
-// vitest.config.ts
-export default defineConfig({
-  test: {
-    environment: 'jsdom',
-    setupFiles: ['./test/setup.ts'],
-    globals: true,
-  },
-})
-```
-
-#### Test Setup File
-```typescript
-// test/setup.ts
-import '@testing-library/jest-dom'
-import { vi } from 'vitest'
-
-// Mock external dependencies only
-vi.mock('next/navigation', () => ({
-  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
-  useSearchParams: () => new URLSearchParams(),
-}))
-```
-
-### Common Testing Patterns
-
-#### User Event Testing
-```typescript
-// ✅ Good - Tests user interactions
-const user = userEvent.setup()
-
-// User fills out form
-await user.type(screen.getByLabelText(/coffee dose/i), '20')
-await user.selectOptions(screen.getByLabelText(/bean type/i), 'ethiopian')
-await user.click(screen.getByRole('button', { name: /start brewing/i }))
-
-// Verify user sees expected outcome
-expect(screen.getByText(/brewing started/i)).toBeInTheDocument()
-```
-
-#### Async Testing
-```typescript
-// ✅ Good - Proper async testing
-it('saves brew and shows success message', async () => {
-  await user.click(saveButton)
-  
-  await waitFor(() => {
-    expect(screen.getByText(/brew saved successfully/i)).toBeInTheDocument()
-  })
-})
-```
-
-#### Data Testing
-```typescript
-// ✅ Good - Tests data transformations
-it('converts database strings to numbers for calculations', () => {
-  const dbBrew = { dose: '20', ratio: '16' } // Database returns strings
-  const calculated = calculateWaterAmount(dbBrew)
-  
-  expect(calculated.water).toBe(320) // Should be number
-  expect(typeof calculated.water).toBe('number')
-})
-```
-
-### What NOT to Test
-
-#### ❌ Avoid Testing Implementation Details
-
-```typescript
-// ❌ Bad - Tests internal state
-expect(component.state.isLoading).toBe(true)
-
-// ❌ Bad - Tests function calls
-expect(mockFunction).toHaveBeenCalledTimes(1)
-
-// ❌ Bad - Tests CSS classes
-expect(element.className).toContain('active')
-```
-
-#### ❌ Avoid Over-Mocking
-
-```typescript
-// ❌ Bad - Mocks internal logic
-vi.mock('./useRatioCalculation')
-vi.mock('./calculateWater')
-vi.mock('./validateBrew')
-
-// ✅ Good - Only mocks external dependencies
-vi.mock('../lib/database')
-vi.mock('next/navigation')
-```
-
-### Running Tests
+### Development Commands
 
 ```bash
-# Run all tests
-pnpm test
+# Essential workflow
+pnpm dev                    # Development server
+pnpm run type-check         # TypeScript checking (run before commits)
+pnpm test                   # Run tests
+pnpm run docker:compose     # Full stack with PostgreSQL
 
-# Run tests in watch mode
-pnpm test:watch
+# Database operations
+pnpm run setup              # Run migrations + generate all types/models
+pnpm run migrate            # Run pending migrations
+pnpm run generate-all       # Regenerate all types and models
 
-# Run tests with UI
-pnpm test:ui
-
-# Run specific test file
-pnpm test brew-logic.test.ts
-
-# Run tests with coverage
-pnpm test --coverage
+# Docker commands
+pnpm run docker:compose     # Start with PostgreSQL
+pnpm run docker:compose:down # Stop services
 ```
 
-### Test Maintenance
+### File Structure Patterns
 
-1. **Update tests when behavior changes** - not when implementation changes
-2. **Keep tests simple and focused** - one concept per test
-3. **Use test data builders** for complex objects
-4. **Clean up mocks** in `beforeEach` blocks
-5. **Group related tests** in `describe` blocks with clear names
+```
+app/brew/                          # Main feature
+├── Step.tsx                       # Stepper container
+├── IntegratedVerticalStepper.tsx  # Core stepper component  
+├── BeanSelector.tsx               # Step 1 content
+├── CombinedBrewingParameters.tsx  # Step 2 content
+├── actions.ts                     # Server actions
+├── types.ts                       # Feature types
+├── brew-parameters/               # Sub-components
+│   ├── GrindSettingInput.tsx     # Grind setting component
+│   └── WaterDoseInputGroup.tsx   # Water dosing component
+└── services/                      # Business logic
+    └── grindRecommendations.ts   # AI recommendations
 
-### Example Test Structure
+app/lib/
+├── database.ts                    # Kysely database connection
+├── db.d.ts                        # Generated Kysely types (DO NOT EDIT)
+└── generated-models/              # Auto-generated model classes
+    ├── Brews.ts                   # CRUD operations
+    ├── BrewsJoined.ts            # Complex queries with joins
+    └── index.ts                   # Model exports
+```
+
+### Import Hierarchy Rules
+
+**CRITICAL:** Follow the **downward dependency rule** - files should only import from:
+- Same level (sibling files)
+- Lower levels (subdirectories)
+- **NEVER** import from parent or higher levels
 
 ```typescript
-describe('Coffee Brewing Feature', () => {
-  describe('Ratio Calculations', () => {
-    it('calculates water amount from dose and ratio')
-    it('calculates ratio from dose and water amount')
-    it('handles decimal ratios accurately')
-  })
+// ✅ GOOD - Same level imports
+import { FormData } from './types'
+import { BeanSelector } from './BeanSelector'
 
-  describe('User Workflow', () => {
-    it('guides user through complete brewing setup')
-    it('prevents invalid submissions with helpful messages')
-    it('saves successful brews with all parameters')
-  })
+// ✅ GOOD - Downward imports (parent → child)
+import { GrindSettingInput } from './parameters/GrindSettingInput'
+import { useGrinderSettings } from './equipment/useGrinderSettings'
 
-  describe('Error Handling', () => {
-    it('gracefully handles database failures')
-    it('validates brewing parameters within reasonable ranges')
-    it('provides helpful error messages for invalid inputs')
-  })
-})
+// ❌ BAD - Upward imports (child → parent)
+import { Step } from '../Step'           // parameters/ → brew/
+import { actions } from '../../actions'  // parameters/water-dose/ → brew/
+
+// ✅ GOOD - Shared utilities from lib
+import { db } from '../../lib/database'
 ```
 
-This testing approach ensures your tests remain valuable even as you refactor implementation details, helping you build reliable, user-focused software.
+**Why this matters:**
+- Prevents circular dependencies
+- Makes refactoring safer
+- Creates clear architectural layers
+- Enables domain boundaries
+
+### Material-UI v7 Patterns
+
+Uses MUI v7 with coffee theme and new Grid system:
+
+```typescript
+// Coffee theme colors
+sx={{ 
+  bgcolor: 'primary.main',        // #8B4513 (coffee brown)
+  color: 'success.main'           // #4CAF50 (green)
+}}
+
+// New MUI v7 Grid pattern
+<Grid container size={{ xs: 12, md: 6 }}>
+  <Grid size={8}>Content</Grid>
+</Grid>
+
+// Responsive Stack patterns
+<Stack 
+  direction={{ xs: 'column', sm: 'row' }}
+  spacing={2}
+>
+```
+
+## 🚫 Critical Don'ts
+
+1. **Never modify** `app/lib/db.d.ts` - it's auto-generated
+2. **Never use API routes** - use Server Actions only  
+3. **Never break the vertical stepper design** - it was specifically requested
+4. **Never manually create index files** - use direct imports (exception: auto-generated files like `app/lib/generated-models/index.ts` are allowed)
+5. **Never change coffee theme colors** without strong justification
+6. **Never import upward** - only import from same level or subdirectories, never from parent directories
+
+## 🔧 Common Tasks
+
+**Add new form field:**
+1. Update `types.ts` interface
+2. Add field to relevant component
+3. Update validation in server action
+
+**Add database column:**
+1. Create new migration file
+2. Run `pnpm run migrate`
+3. Run `pnpm run generate:db-types`
+4. Run `pnpm run generate:models`
+
+**Debug stepper issues:**
+- Check that only current step shows content (`isActive` condition)
+- Verify smooth transitions (300ms)
+- Ensure coffee theme colors are consistent
+- Test mobile responsive behavior
+
+This architecture enables rapid development while maintaining type safety, design consistency, and excellent user experience through the integrated vertical stepper pattern.
+
+## 📋 Quick Reference
+
+### Essential Files to Know
+- `app/brew/Step.tsx` - Main stepper orchestration
+- `app/brew/IntegratedVerticalStepper.tsx` - Core stepper with coffee theme
+- `app/lib/database.ts` - Kysely connection
+- `migrations/` - Database schema evolution
+- `generate-models.ts` - Model class generator
+
+### Coffee Theme Colors
+```css
+Primary (Coffee Brown): #8B4513
+Success (Green): #4CAF50
+Grey (Inactive): #9E9E9E
+```
+
+### Data Flow Pattern
+```
+Database Migration → Type Generation → Model Generation → Server Actions → Components
+```
+
+The integrated vertical stepper and type-safe database patterns are the core architectural decisions that drive this application's design and development workflow.

@@ -1,12 +1,12 @@
 'use client'
 import React from 'react'
-import { Box, Button, Typography, Stack } from '@mui/material'
+import { Box, Button, Typography, Stack, Paper, Alert } from '@mui/material'
 import { BeanSelector } from './BeanSelector'
 import type { UseFormReturn } from './useForm'
-import { FormStepper } from './Stepper'
-import { EnhancedRecipe } from './recipe/EnhancedRecipe'
-import { GrindSettingInput } from './brew-parameters/GrindSettingInput'
-import { WaterDoseInputGroup } from './brew-parameters/WaterDoseInputGroup'
+import { IntegratedVerticalStepper } from './IntegratedVerticalStepper'
+import { BrewingParameters } from './BrewingParameters'
+import { BrewRating } from './feedback/BrewRating'
+import { useStepNavigation } from './useStepNavigation'
 import type { RuntimeType } from '@/app/lib/types'
 import type { Beans, Methods, Grinders } from '@/app/lib/db.d'
 
@@ -25,74 +25,54 @@ export const Step: React.FC<StepProps> = ({
   methods,
   grinders,
 }) => {
-  const steps = [
-    'Select Bean & Brew',
-    'Recipe',
-    'Grind Setting',
-    'Water Dosing',
+  const stepConfig = [
+    {
+      label: 'Equipment Selection',
+      title: "Select your coffee and brewing equipment",
+      description: "Choose the coffee beans, brewing method, and grinder for your brew.",
+      content: (
+        <BeanSelector
+          form={form}
+          beans={beans}
+          methods={methods}
+          grinders={grinders}
+        />
+      )
+    },
+    {
+      label: 'Brewing Parameters',
+      title: "Configure your brewing parameters",
+      description: "Set coffee amount, grind setting, and ratio based on previous brew feedback.",
+      content: (
+        <BrewingParameters
+          formData={form.formData}
+          updateFormData={form.updateFormData}
+        />
+      )
+    },
+    {
+      label: 'Brew & Rate',
+      title: "Rate your brew and provide feedback",
+      description: "Rate the coffee and provide recommendations for future brews.",
+      content: (
+        <BrewRating
+          formData={form.formData}
+          updateFormData={form.updateFormData}
+          onSubmit={onSubmit}
+        />
+      )
+    }
   ]
 
-  const renderStepContent = () => {
-    switch (form.currentStep) {
-      case 0:
-        // Selection step - Bean & Brew
-        return (
-          <Box>
-            <Typography variant="h6" gutterBottom>
-              Select your coffee and brewing method
-            </Typography>
-            <BeanSelector
-              form={form}
-              beans={beans}
-              methods={methods}
-              grinders={grinders}
-            />
-          </Box>
-        )
-      case 1:
-        // Selection step - Reference
-        return (
-          <Box>
-            <Typography variant="h6" gutterBottom>
-              Recipe
-            </Typography>
-            <EnhancedRecipe
-              formData={form.formData}
-              updateFormData={form.updateFormData}
-            />
-          </Box>
-        )
-      case 2:
-        // Grind Setting step
-        return (
-          <Box>
-            <Typography variant="h6" gutterBottom>
-              Set grind setting
-            </Typography>
-            <GrindSettingInput
-              formData={form.formData}
-              updateFormData={form.updateFormData}
-            />
-          </Box>
-        )
-      case 3:
-        // Water Dosing step
-        return (
-          <Box>
-            <Typography variant="h6" gutterBottom>
-              Set water & coffee dose
-            </Typography>
-            <WaterDoseInputGroup
-              formData={form.formData}
-              updateFormData={form.updateFormData}
-            />
-          </Box>
-        )
+  const steps = stepConfig.map(step => step.label)
+  const getStepInstructions = (stepIndex: number) => stepConfig[stepIndex] || stepConfig[0]
+  const getStepContent = (stepIndex: number) => stepConfig[stepIndex]?.content || null
 
-      default:
-        return null
-    }
-  }
+  const navigation = useStepNavigation({
+    currentStep: form.currentStep,
+    formData: form.formData,
+    totalSteps: steps.length,
+  })
 
   const {
     currentStep,
@@ -101,31 +81,86 @@ export const Step: React.FC<StepProps> = ({
     formData: _formData,
     updateFormData: _updateFormData,
   } = form
-  const isLastStep = currentStep === steps.length - 1
+
 
   return (
-    <Box sx={{ width: '100%' }}>
-      <FormStepper steps={steps} activeStep={currentStep} />
+    <Box sx={{ width: '100%', maxWidth: 800, mx: 'auto' }}>
+      <Paper
+        elevation={1}
+        sx={{
+          p: { xs: 3, sm: 4 },
+          bgcolor: 'background.paper',
+          minHeight: '70vh',
+        }}
+      >
+        <Typography variant="h6" gutterBottom sx={{ mb: 4, color: 'primary.main', fontWeight: 600 }}>
+          Brewing Steps
+        </Typography>
 
-      <Box sx={{ mt: 4, mb: 4 }}>{renderStepContent()}</Box>
+        {/* Integrated Vertical Stepper with Form Content */}
+        <IntegratedVerticalStepper
+          steps={steps}
+          activeStep={currentStep}
+          getStepInstructions={getStepInstructions}
+          getStepContent={getStepContent}
+        />
 
-      <Stack direction="row" spacing={2} justifyContent="space-between">
-        <Button
-          variant="outlined"
-          disabled={currentStep === 0}
-          onClick={prevStep}
-        >
-          Back
-        </Button>
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={isLastStep ? onSubmit : nextStep}
-          type="button"
-        >
-          {isLastStep ? 'Start Brewing' : 'Next'}
-        </Button>
-      </Stack>
+        {/* Navigation Buttons */}
+        <Box sx={{ mt: 6, pt: 3, borderTop: 1, borderColor: 'divider' }}>
+          {navigation.isLastStep && !navigation.isFormValid && (
+            <Alert severity="warning" sx={{ mb: 2 }}>
+              Please complete all selections in Step 1 before brewing:
+              {navigation.validationErrors.map((error, idx) => (
+                <div key={idx}>• {error}</div>
+              ))}
+            </Alert>
+          )}
+          <Stack
+            direction={{ xs: 'column', sm: 'row' }}
+            spacing={2}
+            justifyContent="space-between"
+            alignItems="center"
+          >
+            <Button
+              variant="outlined"
+              disabled={!navigation.canGoBack}
+              onClick={prevStep}
+              size="large"
+              sx={{
+                minWidth: { xs: '100%', sm: 120 },
+                order: { xs: 2, sm: 1 }
+              }}
+            >
+              Back
+            </Button>
+
+            <Box sx={{
+              display: { xs: 'block', sm: 'none' },
+              textAlign: 'center',
+              order: 1
+            }}>
+              <Typography variant="body2" color="text.secondary">
+                {steps[currentStep]}
+              </Typography>
+            </Box>
+
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={navigation.isLastStep ? onSubmit : nextStep}
+              type="button"
+              size="large"
+              disabled={navigation.isLastStep && !navigation.canSubmit}
+              sx={{
+                minWidth: { xs: '100%', sm: 120 },
+                order: { xs: 1, sm: 2 }
+              }}
+            >
+              {navigation.isLastStep ? 'Start Brewing' : 'Next'}
+            </Button>
+          </Stack>
+        </Box>
+      </Paper>
     </Box>
   )
 }

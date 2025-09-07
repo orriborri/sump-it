@@ -18,8 +18,8 @@ export const brewFormSchema = z.object({
     .max(100, 'Dose amount too large'),
   grind: z
     .number()
-    .min(1, 'Grind setting must be positive')
-    .max(50, 'Grind setting too large'),
+    .min(0.1, 'Grind setting must be positive')
+    .max(100, 'Grind setting too large'),
   ratio: z.union([z.number(), z.string()]).refine(val => {
     const num = typeof val === 'string' ? parseFloat(val) : val
     return !isNaN(num) && num >= 1 && num <= 30

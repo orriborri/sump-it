@@ -9,7 +9,7 @@ export type MethodsUpdate = Updateable<DB['methods']>;
  * Methods Model - Provides CRUD operations for the methods table
  */
 export class MethodsModel {
-  constructor(private db: Kysely<DB>) {} // eslint-disable-line no-unused-vars
+  constructor(private db: Kysely<DB>) {}
 
   /**
    * Create a new method record

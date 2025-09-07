@@ -25,10 +25,15 @@ export interface BrewFeedback {
   brew_id: number;
   coffee_amount_ml: number | null;
   created_at: Generated<Timestamp>;
+  grind_notes: string | null;
+  grind_perfect: Generated<boolean>;
+  grind_too_coarse: Generated<boolean>;
+  grind_too_fine: Generated<boolean>;
   id: Generated<number>;
   is_bitter: Generated<boolean>;
   is_sour: Generated<boolean>;
   overall_rating: number | null;
+  recommended_grind_adjustment: number | null;
   too_strong: Generated<boolean>;
   too_weak: Generated<boolean>;
 }

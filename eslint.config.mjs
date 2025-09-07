@@ -1,34 +1,21 @@
-import { FlatCompat } from '@eslint/eslintrc'
+import { dirname } from "path";
+import { fileURLToPath } from "url";
+import { FlatCompat } from "@eslint/eslintrc";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const compat = new FlatCompat({
-  // import.meta.dirname is available after Node.js v20.11.0
-  baseDirectory: import.meta.dirname,
-})
+  baseDirectory: __dirname,
+});
 
-const eslintConfig = [
-  ...compat.config({
-    extends: ['next', 'prettier'],
-    plugins: ['prettier'],
-  }),
+export default [
+  ...compat.extends("next/core-web-vitals"),
   {
     rules: {
-      // Prettier formatting rules
-      'prettier/prettier': 'error',
-
-      // Allow underscore-prefixed unused variables
-      'no-unused-vars': [
-        'error',
-        {
-          argsIgnorePattern: '^_',
-          varsIgnorePattern: '^_',
-          caughtErrorsIgnorePattern: '^_',
-        },
-      ],
       // Disable some Next.js rules that conflict with our patterns
-      'react/no-unescaped-entities': 'off',
-      '@next/next/no-img-element': 'warn', // Keep as warning instead of error
+      "react/no-unescaped-entities": "off",
+      "@next/next/no-img-element": "warn",
     },
   },
-]
-
-export default eslintConfig
+];

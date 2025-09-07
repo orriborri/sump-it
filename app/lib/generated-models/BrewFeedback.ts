@@ -9,7 +9,7 @@ export type BrewFeedbackUpdate = Updateable<DB['brew_feedback']>;
  * BrewFeedback Model - Provides CRUD operations for the brew_feedback table
  */
 export class BrewFeedbackModel {
-  constructor(private db: Kysely<DB>) {} // eslint-disable-line no-unused-vars
+  constructor(private db: Kysely<DB>) {}
 
   /**
    * Create a new brew_feedbac record

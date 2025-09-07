@@ -1,6 +1,6 @@
 import { db } from '../lib/database'
 import { Box, Typography } from '@mui/material'
-import FormWrapper from './FormWrapper'
+import { BrewingWorkflow } from './BrewingWorkflow'
 import { BeansModel } from '../lib/generated-models/Beans'
 import { MethodsModel } from '../lib/generated-models/Methods'
 import { GrindersModel } from '../lib/generated-models/Grinders'
@@ -23,8 +23,8 @@ const Page = async () => {
     <Box
       sx={{
         width: '100%',
-        maxWidth: '100vw',
-        overflow: 'hidden',
+        maxWidth: '100%',
+        py: 2,
       }}
     >
       <Typography
@@ -33,13 +33,16 @@ const Page = async () => {
         gutterBottom
         sx={{
           fontSize: { xs: '1.5rem', sm: '2rem', md: '2.125rem' },
-          textAlign: { xs: 'center', sm: 'left' },
+          textAlign: 'center',
+          mb: 4,
+          color: 'primary.main',
+          fontWeight: 600,
         }}
       >
         Coffee Brewing
       </Typography>
 
-      <FormWrapper beans={beans} methods={methods} grinders={grinders} />
+      <BrewingWorkflow beans={beans} methods={methods} grinders={grinders} />
     </Box>
   )
 }

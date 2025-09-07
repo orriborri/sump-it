@@ -288,6 +288,17 @@ export async function getPreviousBrews(
 
 export async function saveBrew(data: FormData) {
   try {
+    // Validate required fields
+    if (!data.bean_id || data.bean_id === 0) {
+      return { success: false, error: 'Please select a coffee bean' }
+    }
+    if (!data.method_id || data.method_id === 0) {
+      return { success: false, error: 'Please select a brewing method' }
+    }
+    if (!data.grinder_id || data.grinder_id === 0) {
+      return { success: false, error: 'Please select a grinder' }
+    }
+
     const savedBrew = await brewsModel.create({
       bean_id: Number(data.bean_id),
       method_id: Number(data.method_id),
@@ -301,7 +312,7 @@ export async function saveBrew(data: FormData) {
     return { success: true, brew: savedBrew }
   } catch (error) {
     console.error('Error saving brew:', error)
-    return { success: false, error: 'Failed to save brew' }
+    return { success: false, error: 'Failed to save brew to database' }
   }
 }
 

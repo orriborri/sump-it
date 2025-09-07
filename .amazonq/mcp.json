@@ -1,58 +1,9 @@
 {
   "mcpServers": {
-    "aws-frontend": {
-      "command": "uvx",
-      "args": [
-        "awslabs.frontend-mcp-server@latest"
-      ],
-      "env": {},
-      "timeout": 120000,
-      "disabled": false
-    },
-    "postgres": {
-      "command": "uvx",
-      "args": [
-        "mcp-server-postgres"
-      ],
-      "env": {
-        "DATABASE_URL": "${DATABASE_URL}"
-      },
-      "timeout": 120000,
-      "disabled": false
-    },
-    "sqlite": {
+    "mui-mcp": {
+      "type": "stdio",
       "command": "npx",
-      "args": [
-        "-y",
-        "@modelcontextprotocol/server-sqlite",
-        "/home/orre/sump-it/test.db"
-      ],
-      "env": {},
-      "timeout": 120000,
-      "disabled": false
-    },
-    "filesystem": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@modelcontextprotocol/server-filesystem",
-        "/home/orre/sump-it"
-      ],
-      "env": {},
-      "timeout": 120000,
-      "disabled": false
-    },
-    "github": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@modelcontextprotocol/server-github"
-      ],
-      "env": {
-        "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_TOKEN}"
-      },
-      "timeout": 120000,
-      "disabled": false
+      "args": ["-y", "@mui/mcp@latest"]
     }
   }
 }
