@@ -7,10 +7,8 @@ import { GrindersModel } from '../lib/generated-models/Grinders'
 
 export interface BeanFormData {
   name: string
-  roster: string
-  rostery: string
-  origin?: string
-  roast_level?: string
+  roster?: string
+  rostery?: string
 }
 
 export interface MethodFormData {

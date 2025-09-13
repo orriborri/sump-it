@@ -1,5 +1,6 @@
 'use client'
 
+import React from 'react'
 import { Box, Button, Stack, Alert } from '@mui/material'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
@@ -44,17 +45,12 @@ export const AddBeanForm = () => {
         <Input
           control={control}
           name="rostery"
-          label="Roaster"
+          label="Roastery"
         />
         <Input
           control={control}
-          name="origin"
-          label="Origin"
-        />
-        <Input
-          control={control}
-          name="roast_level"
-          label="Roast Level"
+          name="roster"
+          label="Roster"
         />
         
         <Button
