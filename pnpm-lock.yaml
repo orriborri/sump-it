@@ -172,8 +172,8 @@ importers:
         specifier: ^0.19.0
         version: 0.19.0(better-sqlite3@12.2.0)(kysely@0.28.5)(mysql2@3.14.5)(pg@8.16.3)(tarn@3.0.2)(typescript@5.9.2)
       kysely-ctl:
-        specifier: ^0.17.0
-        version: 0.17.0(kysely@0.28.5)(typescript@5.9.2)
+        specifier: ^0.19.0
+        version: 0.19.0(kysely@0.28.5)(typescript@5.9.2)
       npm-run-all2:
         specifier: ^8.0.0
         version: 8.0.4
@@ -2851,15 +2851,21 @@ packages:
       tedious:
         optional: true
 
-  kysely-ctl@0.17.0:
-    resolution: {integrity: sha512-i/GAuHcRqzph1yhdVg8OUbXkRIyGf0Z8TTxgH1SaO637qrm7sr4HlOmSm2R3dR75qcCPNXCUhxYG+ESDSPoTYA==}
+  kysely-ctl@0.19.0:
+    resolution: {integrity: sha512-89hzOd1cy/H063jB2E9wYHq+uKYpaHv6Mb5RiNFpRZL6BYCah9ncsdl3x5b52eirxry4UyWSmGNN3sFv+gK+ig==}
     engines: {node: '>=20'}
     hasBin: true
     peerDependencies:
       kysely: '>=0.18.1 <0.29.0'
-      kysely-postgres-js: ^2
+      kysely-neon: ^2
+      kysely-postgres-js: ^2 || ^3
+      kysely-prisma-postgres: ^0.1
     peerDependenciesMeta:
+      kysely-neon:
+        optional: true
       kysely-postgres-js:
+        optional: true
+      kysely-prisma-postgres:
         optional: true
 
   kysely@0.28.5:
@@ -3244,8 +3250,8 @@ packages:
     engines: {node: '>=0.10'}
     hasBin: true
 
-  pkg-types@2.2.0:
-    resolution: {integrity: sha512-2SM/GZGAEkPp3KWORxQZns4M+WSeXbC2HEvmOIJe3Cmiv6ieAJvdVhDldtHqM5J1Y7MrR1XhkBT/rMlhh9FdqQ==}
+  pkg-types@2.3.0:
+    resolution: {integrity: sha512-SIqCzDRg0s9npO5XQ3tNZioRY1uK06lA41ynBC1YmFTmnY6FjUjVt6s4LoADmwoig1qqD0oK8h1p/8mlMx8Oig==}
 
   pluralize@8.0.0:
     resolution: {integrity: sha512-Nc3IT5yHzflTfbjgqWcCPpo7DaKy4FnpB0l/zCAW0Tc7jxAiuqSxHasntB3D7887LSrA93kDJ9IXovxJYxyLCA==}
@@ -5516,7 +5522,7 @@ snapshots:
       ohash: 2.0.11
       pathe: 2.0.3
       perfect-debounce: 1.0.0
-      pkg-types: 2.2.0
+      pkg-types: 2.3.0
       rc9: 2.1.2
 
   cac@6.7.14: {}
@@ -6752,17 +6758,18 @@ snapshots:
     transitivePeerDependencies:
       - typescript
 
-  kysely-ctl@0.17.0(kysely@0.28.5)(typescript@5.9.2):
+  kysely-ctl@0.19.0(kysely@0.28.5)(typescript@5.9.2):
     dependencies:
       c12: 3.2.0
       citty: 0.1.6
+      confbox: 0.2.2
       consola: 3.4.2
       jiti: 2.5.1
       kysely: 0.28.5
       nypm: 0.6.1
       ofetch: 1.4.1
       pathe: 2.0.3
-      pkg-types: 2.2.0
+      pkg-types: 2.3.0
       std-env: 3.9.0
       tsconfck: 3.1.6(typescript@5.9.2)
     transitivePeerDependencies:
@@ -6940,7 +6947,7 @@ snapshots:
       citty: 0.1.6
       consola: 3.4.2
       pathe: 2.0.3
-      pkg-types: 2.2.0
+      pkg-types: 2.3.0
       tinyexec: 1.0.1
 
   object-assign@4.1.1: {}
@@ -7126,7 +7133,7 @@ snapshots:
 
   pidtree@0.6.0: {}
 
-  pkg-types@2.2.0:
+  pkg-types@2.3.0:
     dependencies:
       confbox: 0.2.2
       exsolve: 1.0.7
