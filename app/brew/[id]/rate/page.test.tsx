@@ -24,7 +24,7 @@ describe('Rate Page', () => {
       getBrewDetails: vi.fn().mockResolvedValue(mockBrewData)
     }))
     
-    const page = await RatePage({ params: { id: '1' } })
+    const page = await RatePage({ params: Promise.resolve({ id: '1' }) })
     render(page)
     
     expect(screen.getByText(/rate this brew/i)).toBeInTheDocument()
@@ -36,7 +36,7 @@ describe('Rate Page', () => {
       getBrewDetails: vi.fn().mockResolvedValue(mockBrewData)
     }))
     
-    const page = await RatePage({ params: { id: '1' } })
+    const page = await RatePage({ params: Promise.resolve({ id: '1' }) })
     render(page)
     
     expect(screen.getByText(/your rating/i)).toBeInTheDocument()
