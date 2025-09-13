@@ -23,10 +23,10 @@ import { AddBeanModal } from './AddBeanModal'
 
 interface Bean {
   id: number
-  name: string
-  roster?: string
-  rostery?: string
-  roast_level?: string
+  name: string | null
+  roster?: string | null
+  rostery?: string | null
+  roast_level?: string | null
 }
 
 interface BeansPageClientProps {
@@ -110,13 +110,13 @@ export function BeansPageClient({ beans }: BeansPageClientProps) {
                     <Box display="flex" alignItems="center" gap={1}>
                       <Coffee sx={{ color: '#8B4513' }} />
                       <Typography variant="subtitle1" sx={{ color: '#8B4513', fontWeight: 600 }}>
-                        {bean.name}
+                        {bean.name || 'Unnamed Bean'}
                       </Typography>
                     </Box>
                   </TableCell>
                   <TableCell>
                     <Typography variant="body2" color="text.secondary">
-                      {bean.rostery}
+                      {bean.rostery || '-'}
                     </Typography>
                   </TableCell>
                   <TableCell>

@@ -125,9 +125,10 @@ jobs:
           
           # Update the image tag in kustomization.yaml using kustomize
           cd apps/sump-it
-          kustomize edit set image ghcr.io/orriborri/sump-it:${{ github.sha }}
+          SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)
+          kustomize edit set image ghcr.io/orriborri/sump-it=sha-${SHORT_SHA}
           
           # Commit and push changes
           git add kustomization.yaml
-          git commit -m "Update sump-it image to ${{ github.sha }}" || exit 0
+          git commit -m "Update sump-it image to sha-${SHORT_SHA}" || exit 0
           git push
