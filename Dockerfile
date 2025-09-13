@@ -39,9 +39,6 @@ ENV NEXT_TELEMETRY_DISABLED=1
 # Build the application - this will be cached unless source code changes
 RUN pnpm build
 
-# Compile migration script to JavaScript using existing tsconfig
-RUN npx tsc migrate.ts --outDir . --skipLibCheck
-
 # Production image, copy all the files and run next
 FROM base AS runner
 WORKDIR /app
