@@ -104,6 +104,9 @@ jobs:
           build-args: |
             BUILDKIT_INLINE_CACHE=1
 
+  # Kustomize Validation Job
+ 
+
   # GitOps Deployment Job
   deploy:
     runs-on: ubuntu-latest
@@ -111,7 +114,7 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     
     steps:
-      - name: Update GitOps repository
+      - name: Update GitOps repository with Kustomize
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
@@ -120,10 +123,11 @@ jobs:
           git clone https://${{ secrets.GIT_OPS_TOKEN }}@github.com/orriborri/homelab.git gitops-repo
           cd gitops-repo
           
-          # Update the image tag in kustomization.yaml
-          sed -i "s|newTag:.*|newTag: ${{ github.sha }}|g" apps/sump-it/kustomization.yaml
+          # Update the image tag in kustomization.yaml using kustomize
+          cd apps/sump-it
+          kustomize edit set image ghcr.io/orriborri/sump-it:${{ github.sha }}
           
           # Commit and push changes
-          git add apps/sump-it/kustomization.yaml
+          git add kustomization.yaml
           git commit -m "Update sump-it image to ${{ github.sha }}" || exit 0
           git push

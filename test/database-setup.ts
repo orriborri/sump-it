@@ -20,8 +20,10 @@ export async function setupTestDatabase(db: Kysely<DatabaseType>) {
     .createTable('beans')
     .addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
     .addColumn('name', 'text', (col) => col.notNull())
-    .addColumn('origin', 'text')
+    .addColumn('roster', 'text')
+    .addColumn('rostery', 'text')
     .addColumn('roast_level', 'text')
+    .addColumn('created_at', 'text', (col) => col.defaultTo('CURRENT_TIMESTAMP'))
     .execute()
 
   await db.schema
@@ -54,8 +56,8 @@ export async function setupTestDatabase(db: Kysely<DatabaseType>) {
 
   // Insert test data
   await db.insertInto('beans' as any).values([
-    { id: 1, name: 'Ethiopian Sidamo', origin: 'Ethiopia', roast_level: 'Medium' },
-    { id: 2, name: 'Colombian Supremo', origin: 'Colombia', roast_level: 'Medium-Dark' },
+    { id: 1, name: 'Ethiopian Sidamo', roster: 'Ethiopia', rostery: 'Medium', roast_level: 'Medium' },
+    { id: 2, name: 'Colombian Supremo', roster: 'Colombia', rostery: 'Medium-Dark', roast_level: 'Medium-Dark' },
   ]).execute()
 
   await db.insertInto('methods' as any).values([

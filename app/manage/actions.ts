@@ -9,6 +9,7 @@ export interface BeanFormData {
   name: string
   roster?: string
   rostery?: string
+  roast_level?: string
 }
 
 export interface MethodFormData {

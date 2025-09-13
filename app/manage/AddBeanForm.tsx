@@ -8,7 +8,11 @@ import { Input } from '../common/Input'
 import { BeanFormData, addBean } from './actions'
 import { Coffee } from '@mui/icons-material'
 
-export const AddBeanForm = () => {
+interface AddBeanFormProps {
+  onSuccess?: () => void
+}
+
+export const AddBeanForm = ({ onSuccess }: AddBeanFormProps = {}) => {
   const { control, handleSubmit, reset } = useForm<BeanFormData>()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
@@ -20,6 +24,7 @@ export const AddBeanForm = () => {
       reset()
       setSuccess(true)
       setTimeout(() => setSuccess(false), 3000)
+      onSuccess?.()
     } catch (error) {
       console.error('Failed to add bean:', error)
     } finally {
@@ -42,6 +47,21 @@ export const AddBeanForm = () => {
           label="Bean Name"
           rules={{ required: 'Bean name is required' }}
         />
+        <Input
+          control={control}
+          name="roster"
+          label="Roster"
+        />
+        <Input
+          control={control}
+          name="rostery"
+          label="Roastery"
+        />
+        <Input
+          control={control}
+          name="roast_level"
+          label="Roast Level"
+        />
         
         <Button
           type="submit"
@@ -49,7 +69,11 @@ export const AddBeanForm = () => {
           startIcon={<Coffee />}
           disabled={isSubmitting}
           fullWidth
-          sx={{ mt: 2 }}
+          sx={{ 
+            mt: 2,
+            bgcolor: '#8B4513', 
+            '&:hover': { bgcolor: '#6B3410' }
+          }}
         >
           {isSubmitting ? 'Adding Bean...' : 'Add Coffee Bean'}
         </Button>
