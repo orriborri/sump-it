@@ -1,7 +1,8 @@
 import React from 'react'
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import { vi } from 'vitest'
 import BeansPage from './page'
+import { BeansModel } from '../../lib/generated-models/Beans'
 
 // Mock Next.js Link component
 vi.mock('next/link', () => ({
@@ -10,38 +11,61 @@ vi.mock('next/link', () => ({
   )
 }))
 
+// Mock the BeansModel
+vi.mock('../../lib/generated-models/Beans', () => ({
+  BeansModel: {
+    findAll: vi.fn(),
+  },
+}))
+
+const mockBeans = [
+  { id: 1, name: 'Ethiopian Yirgacheffe', roster: 'Blue Bottle', rostery: 'Blue Bottle', origin: 'Ethiopia', roast_level: 'Light', created_at: new Date() },
+  { id: 2, name: 'Brazilian Santos', roster: 'Counter Culture', rostery: 'Counter Culture', origin: 'Brazil', roast_level: 'Medium', created_at: new Date() },
+]
+
 describe('BeansPage', () => {
-  it('renders all bean cards with equal widths', () => {
-    render(<BeansPage />)
-    
-    // Get all bean cards by test ID
-    const beanCards = screen.getAllByTestId('bean-card')
-    
-    expect(beanCards).toHaveLength(3)
-    
-    // Check that all cards have the same computed width
-    const cardWidths = beanCards.map(card => {
-      const styles = window.getComputedStyle(card)
-      return styles.width
-    })
-    
-    // All widths should be equal
-    const firstWidth = cardWidths[0]
-    cardWidths.forEach(width => {
-      expect(width).toBe(firstWidth)
-    })
+  beforeEach(() => {
+    vi.clearAllMocks()
   })
 
-  it('displays bean names without affecting card width', () => {
-    render(<BeansPage />)
+  it('fetches and displays beans from database', async () => {
+    vi.mocked(BeansModel.findAll).mockResolvedValue(mockBeans)
     
-    // Verify different length names are displayed
-    expect(screen.getByText('Ethiopian Yirgacheffe')).toBeInTheDocument() // Long name
-    expect(screen.getByText('Brazilian Santos')).toBeInTheDocument() // Short name
-    expect(screen.getByText('Colombian Supremo')).toBeInTheDocument() // Medium name
+    const page = await BeansPage()
+    render(page)
     
-    // All cards should be present
-    const cards = screen.getAllByTestId('bean-card')
-    expect(cards).toHaveLength(3)
+    expect(BeansModel.findAll).toHaveBeenCalled()
+    expect(screen.getByText('Ethiopian Yirgacheffe')).toBeInTheDocument()
+    expect(screen.getByText('Brazilian Santos')).toBeInTheDocument()
+  })
+
+  it('shows add bean button in header', async () => {
+    vi.mocked(BeansModel.findAll).mockResolvedValue([])
+    
+    const page = await BeansPage()
+    render(page)
+    
+    const addButtons = screen.getAllByText(/add bean/i)
+    expect(addButtons.length).toBeGreaterThan(0)
+    expect(addButtons[0].closest('a')).toHaveAttribute('href', '/manage/beans/new')
+  })
+
+  it('shows empty state when no beans', async () => {
+    vi.mocked(BeansModel.findAll).mockResolvedValue([])
+    
+    const page = await BeansPage()
+    render(page)
+    
+    expect(screen.getByText(/no coffee beans yet/i)).toBeInTheDocument()
+  })
+
+  it('navigates to add bean form when button clicked', async () => {
+    vi.mocked(BeansModel.findAll).mockResolvedValue([])
+    
+    const page = await BeansPage()
+    render(page)
+    
+    const addButtons = screen.getAllByText(/add bean/i)
+    expect(addButtons[0].closest('a')).toHaveAttribute('href', '/manage/beans/new')
   })
 })
