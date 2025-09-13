@@ -39,26 +39,22 @@ export const AddBeanForm = () => {
           control={control}
           name="name"
           label="Bean Name"
-          placeholder="e.g., Ethiopian Yirgacheffe"
           rules={{ required: 'Bean name is required' }}
         />
         <Input
           control={control}
-          name="roster"
+          name="rostery"
           label="Roaster"
-          placeholder="e.g., Blue Bottle Coffee"
         />
         <Input
           control={control}
           name="origin"
           label="Origin"
-          placeholder="e.g., Ethiopia, Yirgacheffe"
         />
         <Input
           control={control}
           name="roast_level"
           label="Roast Level"
-          placeholder="e.g., Light, Medium, Dark"
         />
         
         <Button

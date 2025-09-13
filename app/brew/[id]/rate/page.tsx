@@ -1,3 +1,4 @@
+import React from 'react'
 import { ShareableBrew } from '../../feedback/ShareableBrew'
 import { getBrewDetails } from '../actions'
 

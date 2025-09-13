@@ -21,7 +21,7 @@ export const BrewRating: React.FC<BrewRatingProps> = ({
         <Typography component="legend">Overall Rating</Typography>
         <Rating
           value={formData.overall_rating || 0}
-          onChange={(_, value) => updateFormData({ overall_rating: value })}
+          onChange={(_, value) => updateFormData({ overall_rating: value || undefined })}
           size="large"
         />
       </Box>

@@ -40,7 +40,6 @@ export const AddMethodForm = () => {
           control={control}
           name="name"
           label="Method Name"
-          placeholder="e.g., V60, French Press"
           rules={{ required: 'Method name is required' }}
         />
         
