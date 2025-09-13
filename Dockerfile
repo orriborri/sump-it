@@ -39,6 +39,9 @@ ENV NEXT_TELEMETRY_DISABLED=1
 # Build the application - this will be cached unless source code changes
 RUN pnpm build
 
+# Compile migration script to JavaScript
+RUN npx tsc migrate.ts --target es2022 --module esnext --moduleResolution node
+
 # Production image, copy all the files and run next
 FROM base AS runner
 WORKDIR /app
@@ -64,8 +67,7 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 # Copy migration files and scripts needed for database setup
 COPY --from=builder --chown=nextjs:nodejs /app/migrations ./migrations
-COPY --from=builder --chown=nextjs:nodejs /app/migrate.ts ./migrate.ts
-COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
+COPY --from=builder --chown=nextjs:nodejs /app/migrate.js ./migrate.js
 COPY --from=builder --chown=nextjs:nodejs /app/start.sh ./start.sh
 
 # Make start script executable
