@@ -105,11 +105,19 @@ jobs:
             BUILDKIT_INLINE_CACHE=1
 
       - name: Update image tag in GitOps repo
-        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
-        uses: idener/kustomize-tag-updater-action@main
-        with:
-          repo: 'orriborri/homelab'
-          image: 'sump-it'
-          tag: '${{ github.sha }}'
-          kustomize-path: 'apps/sump-it'
-          token: '${{ secrets.GIT_OPS_TOKEN }}'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Clone the GitOps repo
+          git clone https://${{ secrets.GIT_OPS_TOKEN }}@github.com/orriborri/homelab.git gitops-repo
+          cd gitops-repo
+          
+          # Update the image tag in kustomization.yaml
+          sed -i "s|newTag:.*|newTag: ${{ github.sha }}|g" apps/sump-it/kustomization.yaml
+          
+          # Commit and push changes
+          git add apps/sump-it/kustomization.yaml
+          git commit -m "Update sump-it image to ${{ github.sha }}" || exit 0
+          git push
