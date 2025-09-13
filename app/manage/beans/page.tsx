@@ -13,10 +13,11 @@ import {
   TableRow,
   Paper,
 } from '@mui/material'
-import { Coffee, Edit, Delete, Add } from '@mui/icons-material'
+import { Coffee, Edit, Add } from '@mui/icons-material'
 import Link from 'next/link'
 import { db } from '../../lib/database'
 import { BeansModel } from '../../lib/generated-models/Beans'
+import { DeleteButton } from './DeleteButton'
 
 const BeansPage = async () => {
   const beansModel = new BeansModel(db)
@@ -123,12 +124,7 @@ const BeansPage = async () => {
                       >
                         <Edit fontSize="small" />
                       </IconButton>
-                      <IconButton 
-                        size="small" 
-                        sx={{ color: '#DC143C' }}
-                      >
-                        <Delete fontSize="small" />
-                      </IconButton>
+                      <DeleteButton beanId={bean.id} beanName={bean.name || 'Unknown'} />
                     </Box>
                   </TableCell>
                 </TableRow>
