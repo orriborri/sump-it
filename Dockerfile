@@ -46,12 +46,6 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Enable pnpm for production
-RUN corepack enable pnpm
-
-# Install ts-node for migration scripts
-RUN npm install -g ts-node typescript
-
 # Create non-root user for security
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
@@ -69,8 +63,7 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 # Copy migration files and scripts needed for database setup
-COPY --from=builder --chown=nextjs:nodejs /app/migrations ./migrations
-COPY --from=builder --chown=nextjs:nodejs /app/migrate.ts ./migrate.ts
+COPY --from=builder --chown=nextjs:nodejs /app/migrate-simple.js ./migrate-simple.js
 COPY --from=builder --chown=nextjs:nodejs /app/start.sh ./start.sh
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
 

@@ -1,5 +1,5 @@
 #!/bin/sh
 echo "Running database migrations..."
-node --loader ts-node/esm ./migrate.ts
+node migrate-simple.js
 echo "Starting application..."
 node server.js
