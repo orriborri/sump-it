@@ -50,7 +50,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN corepack enable pnpm
 
 # Install ts-node for migration scripts
-RUN pnpm add -g ts-node typescript
+RUN npm install -g ts-node typescript
 
 # Create non-root user for security
 RUN addgroup --system --gid 1001 nodejs
