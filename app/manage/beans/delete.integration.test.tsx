@@ -10,12 +10,6 @@ vi.mock('next/cache', () => ({
   revalidatePath: vi.fn(),
 }))
 
-// Mock confirm dialog
-Object.defineProperty(window, 'confirm', {
-  writable: true,
-  value: vi.fn(),
-})
-
 describe('Delete Bean Integration Tests', () => {
   let beansModel: BeansModel
 
@@ -29,48 +23,52 @@ describe('Delete Bean Integration Tests', () => {
     await db.deleteFrom('beans').execute()
   })
 
-  it('deletes bean when confirmed', async () => {
+  it('deletes bean when confirmed in modal', async () => {
     // Create test bean
     const bean = await beansModel.create({
       name: 'Test Bean to Delete'
     })
 
-    // Mock confirm to return true
-    vi.mocked(window.confirm).mockReturnValue(true)
-
     render(<DeleteButton beanId={bean!.id} beanName="Test Bean to Delete" />)
     
+    // Click delete button to open modal
     const deleteButton = screen.getByRole('button')
     fireEvent.click(deleteButton)
+
+    // Verify modal is open
+    expect(screen.getByText('Delete Coffee Bean')).toBeInTheDocument()
+    expect(screen.getByText('Are you sure you want to delete "Test Bean to Delete"?')).toBeInTheDocument()
+
+    // Click confirm delete
+    const confirmButton = screen.getByText('Delete')
+    fireEvent.click(confirmButton)
 
     await waitFor(async () => {
       const deletedBean = await beansModel.findById(bean!.id)
       expect(deletedBean).toBeUndefined()
     })
-
-    expect(window.confirm).toHaveBeenCalledWith('Delete "Test Bean to Delete"?')
   })
 
-  it('does not delete bean when cancelled', async () => {
+  it('does not delete bean when cancelled in modal', async () => {
     // Create test bean
     const bean = await beansModel.create({
       name: 'Test Bean to Keep'
     })
 
-    // Mock confirm to return false
-    vi.mocked(window.confirm).mockReturnValue(false)
-
     render(<DeleteButton beanId={bean!.id} beanName="Test Bean to Keep" />)
     
+    // Click delete button to open modal
     const deleteButton = screen.getByRole('button')
     fireEvent.click(deleteButton)
+
+    // Click cancel
+    const cancelButton = screen.getByText('Cancel')
+    fireEvent.click(cancelButton)
 
     await waitFor(async () => {
       const existingBean = await beansModel.findById(bean!.id)
       expect(existingBean).toBeDefined()
       expect(existingBean?.name).toBe('Test Bean to Keep')
     })
-
-    expect(window.confirm).toHaveBeenCalledWith('Delete "Test Bean to Keep"?')
   })
 })
