@@ -4,6 +4,50 @@
 
 **Write tests that focus on WHAT the software does (user outcomes and business value), not HOW it does it (internal function calls and implementation details).**
 
+## 🚨 **CRITICAL RULE: Integration Tests Over Mocked Tests**
+
+**Prefer integration tests with real database connections over mocked tests.**
+
+### Why Integration Tests Are Essential:
+- **Catch Real Bugs**: Mocking hides implementation issues that break in production
+- **Database Schema Validation**: Reveals mismatches between code and actual database
+- **Environment Issues**: Catches differences between test/production setups
+- **End-to-End Confidence**: Tests complete data flow from database to UI
+
+### Example: Bugs Caught by Integration Tests
+```typescript
+// ❌ Mocked test - missed the bug
+vi.mock('../../lib/generated-models/Beans', () => ({
+  BeansModel: { findAll: vi.fn() } // Static method mock
+}))
+
+// ✅ Integration test - caught the bug
+const beansModel = new BeansModel(db) // Real instantiation required
+const beans = await beansModel.findAll() // Instance method
+```
+
+### Integration Test Pattern:
+```typescript
+describe('Component Integration Tests', () => {
+  beforeEach(async () => {
+    // Clean up real database
+    await db.deleteFrom('table').execute()
+  })
+  
+  it('works with real database', async () => {
+    // Insert real test data
+    await model.create({ name: 'Test Data' })
+    
+    // Test actual component
+    const page = await ComponentPage()
+    render(page)
+    
+    // Verify real behavior
+    expect(screen.getByText('Test Data')).toBeInTheDocument()
+  })
+})
+```
+
 ## Quick Reference
 
 ### Test File Organization
