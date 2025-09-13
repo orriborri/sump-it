@@ -3,11 +3,12 @@ import { ShareableBrew } from '../../feedback/ShareableBrew'
 import { getBrewDetails } from '../actions'
 
 interface RatePageProps {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }
 
 export default async function RatePage({ params }: RatePageProps) {
-  const brewData = await getBrewDetails(parseInt(params.id))
+  const { id } = await params
+  const brewData = await getBrewDetails(parseInt(id))
 
   if (!brewData) {
     return <div>Brew not found</div>
