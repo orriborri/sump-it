@@ -26,12 +26,9 @@ describe('Add Bean Integration Tests', () => {
   it('saves bean to database when form is submitted', async () => {
     render(<AddBeanForm />)
     
-    // Fill out the form
+    // Fill out only the name field
     fireEvent.change(screen.getByLabelText(/bean name/i), {
       target: { value: 'Test Ethiopian Bean' }
-    })
-    fireEvent.change(screen.getByLabelText(/roaster/i), {
-      target: { value: 'Test Roastery' }
     })
     
     // Submit the form
@@ -46,7 +43,6 @@ describe('Add Bean Integration Tests', () => {
     const beans = await beansModel.findAll()
     expect(beans).toHaveLength(1)
     expect(beans[0].name).toBe('Test Ethiopian Bean')
-    expect(beans[0].rostery).toBe('Test Roastery')
   })
 
   it('handles form validation errors', async () => {

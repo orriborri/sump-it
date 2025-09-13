@@ -19,32 +19,33 @@ export interface GrinderFormData {
   name: string
 }
 
-// Initialize models
-const beansModel = new BeansModel(db)
-const methodsModel = new MethodsModel(db)
-const grindersModel = new GrindersModel(db)
-
 export async function addBean(data: BeanFormData) {
+  const beansModel = new BeansModel(db)
   return await beansModel.create(data)
 }
 
 export async function addMethod(data: MethodFormData) {
+  const methodsModel = new MethodsModel(db)
   return await methodsModel.create(data)
 }
 
 export async function addGrinder(data: GrinderFormData) {
+  const grindersModel = new GrindersModel(db)
   return await grindersModel.create(data)
 }
 
 // Actions to get existing items for validation
 export async function getBeans() {
+  const beansModel = new BeansModel(db)
   return await beansModel.findAll()
 }
 
 export async function getMethods() {
+  const methodsModel = new MethodsModel(db)
   return await methodsModel.findAll()
 }
 
 export async function getGrinders() {
+  const grindersModel = new GrindersModel(db)
   return await grindersModel.findAll()
 }

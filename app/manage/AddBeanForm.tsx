@@ -42,16 +42,6 @@ export const AddBeanForm = () => {
           label="Bean Name"
           rules={{ required: 'Bean name is required' }}
         />
-        <Input
-          control={control}
-          name="rostery"
-          label="Roastery"
-        />
-        <Input
-          control={control}
-          name="roster"
-          label="Roster"
-        />
         
         <Button
           type="submit"
