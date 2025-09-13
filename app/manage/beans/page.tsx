@@ -15,10 +15,12 @@ import {
 } from '@mui/material'
 import { Coffee, Edit, Delete, Add } from '@mui/icons-material'
 import Link from 'next/link'
+import { db } from '../../lib/database'
 import { BeansModel } from '../../lib/generated-models/Beans'
 
 const BeansPage = async () => {
-  const beans = await BeansModel.findAll()
+  const beansModel = new BeansModel(db)
+  const beans = await beansModel.findAll()
 
   return (
     <Box sx={{ p: 3, maxWidth: 1200, mx: 'auto' }}>

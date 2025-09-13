@@ -11,11 +11,16 @@ vi.mock('next/link', () => ({
   )
 }))
 
+// Mock the database
+vi.mock('../../lib/database', () => ({
+  db: {},
+}))
+
 // Mock the BeansModel
 vi.mock('../../lib/generated-models/Beans', () => ({
-  BeansModel: {
+  BeansModel: vi.fn().mockImplementation(() => ({
     findAll: vi.fn(),
-  },
+  })),
 }))
 
 const mockBeans = [
@@ -24,23 +29,29 @@ const mockBeans = [
 ]
 
 describe('BeansPage', () => {
+  let mockFindAll: any
+
   beforeEach(() => {
     vi.clearAllMocks()
+    mockFindAll = vi.fn()
+    vi.mocked(BeansModel).mockImplementation(() => ({
+      findAll: mockFindAll,
+    }) as any)
   })
 
   it('fetches and displays beans from database', async () => {
-    vi.mocked(BeansModel.findAll).mockResolvedValue(mockBeans)
+    mockFindAll.mockResolvedValue(mockBeans)
     
     const page = await BeansPage()
     render(page)
     
-    expect(BeansModel.findAll).toHaveBeenCalled()
+    expect(mockFindAll).toHaveBeenCalled()
     expect(screen.getByText('Ethiopian Yirgacheffe')).toBeInTheDocument()
     expect(screen.getByText('Brazilian Santos')).toBeInTheDocument()
   })
 
   it('shows add bean button in header', async () => {
-    vi.mocked(BeansModel.findAll).mockResolvedValue([])
+    mockFindAll.mockResolvedValue([])
     
     const page = await BeansPage()
     render(page)
@@ -51,7 +62,7 @@ describe('BeansPage', () => {
   })
 
   it('shows empty state when no beans', async () => {
-    vi.mocked(BeansModel.findAll).mockResolvedValue([])
+    mockFindAll.mockResolvedValue([])
     
     const page = await BeansPage()
     render(page)
@@ -60,7 +71,7 @@ describe('BeansPage', () => {
   })
 
   it('navigates to add bean form when button clicked', async () => {
-    vi.mocked(BeansModel.findAll).mockResolvedValue([])
+    mockFindAll.mockResolvedValue([])
     
     const page = await BeansPage()
     render(page)
