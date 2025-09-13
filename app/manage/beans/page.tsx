@@ -77,8 +77,8 @@ const BeansPage = async () => {
             <TableHead sx={{ bgcolor: '#8B4513' }}>
               <TableRow>
                 <TableCell sx={{ color: 'white', fontWeight: 600 }}>Bean Name</TableCell>
-                <TableCell sx={{ color: 'white', fontWeight: 600 }}>Roaster</TableCell>
-                <TableCell sx={{ color: 'white', fontWeight: 600 }}>Origin</TableCell>
+                <TableCell sx={{ color: 'white', fontWeight: 600 }}>Roastery</TableCell>
+                <TableCell sx={{ color: 'white', fontWeight: 600 }}>Roster</TableCell>
                 <TableCell sx={{ color: 'white', fontWeight: 600 }}>Roast Level</TableCell>
                 <TableCell sx={{ color: 'white', fontWeight: 600 }}>Actions</TableCell>
               </TableRow>
@@ -104,12 +104,12 @@ const BeansPage = async () => {
                   </TableCell>
                   <TableCell>
                     <Typography variant="body2" color="text.secondary">
-                      {bean.origin || '-'}
+                      {bean.roster || '-'}
                     </Typography>
                   </TableCell>
                   <TableCell>
                     <Chip 
-                      label={bean.roast_level || 'Unknown'} 
+                      label="Unknown" 
                       size="small" 
                       sx={{ bgcolor: '#8B4513', color: 'white' }}
                     />
