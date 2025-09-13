@@ -1,0 +1,19 @@
+FROM node:22-alpine
+
+WORKDIR /app
+
+# Install pnpm
+RUN corepack enable pnpm
+
+# Copy package files
+COPY package.json pnpm-lock.yaml ./
+
+# Install dependencies
+RUN pnpm install --frozen-lockfile
+
+# Copy migration files
+COPY migrations ./migrations
+COPY migrate.ts ./migrate.ts
+
+# Run migrations
+CMD ["node", "--loader", "ts-node/esm", "./migrate.ts"]

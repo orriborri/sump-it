@@ -39,6 +39,9 @@ ENV NEXT_TELEMETRY_DISABLED=1
 # Build the application - this will be cached unless source code changes
 RUN pnpm build
 
+# Install tsx for TypeScript execution in production
+RUN pnpm add tsx
+
 # Production image, copy all the files and run next
 FROM base AS runner
 WORKDIR /app
@@ -63,9 +66,11 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 # Copy migration files and scripts needed for database setup
-COPY --from=builder --chown=nextjs:nodejs /app/migrate-simple.js ./migrate-simple.js
+COPY --from=builder --chown=nextjs:nodejs /app/migrations ./migrations
+COPY --from=builder --chown=nextjs:nodejs /app/migrate.ts ./migrate.ts
 COPY --from=builder --chown=nextjs:nodejs /app/start.sh ./start.sh
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
+COPY --from=builder --chown=nextjs:nodejs /app/tsconfig.json ./tsconfig.json
 
 # Make start script executable
 RUN chmod +x start.sh
