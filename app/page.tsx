@@ -1,8 +1,27 @@
 import { Box, Button, Stack, Typography, Paper, Grid, Card, CardContent, Avatar, Chip } from '@mui/material'
 import { Coffee, BarChart, Settings, Tune, LocalCafe, Add, Dashboard, TrendingUp } from '@mui/icons-material'
 import Link from 'next/link'
+import { db } from './lib/database'
+import { BeansModel } from './lib/generated-models/Beans'
+import { MethodsModel } from './lib/generated-models/Methods'
+import { GrindersModel } from './lib/generated-models/Grinders'
 
-const Page = () => {
+// Force dynamic rendering
+export const dynamic = 'force-dynamic'
+
+const Page = async () => {
+  // Fetch real stats from database
+  const beansModel = new BeansModel(db)
+  const methodsModel = new MethodsModel(db)
+  const grindersModel = new GrindersModel(db)
+
+  const [beansCount, methodsCount, grindersCount, brewsCount] = await Promise.all([
+    beansModel.count(),
+    methodsModel.count(),
+    grindersModel.count(),
+    db.selectFrom('brews').select(({ fn }) => fn.count<number>('id').as('count')).executeTakeFirst().then(result => result?.count ?? 0)
+  ])
+
   const navigationCards = [
     {
       title: "Let's brew coffee",
@@ -62,7 +81,7 @@ const Page = () => {
               <Avatar sx={{ bgcolor: '#8B4513', mx: 'auto', mb: 1 }}>
                 <Coffee />
               </Avatar>
-              <Typography variant="h6" sx={{ color: '#654321' }}>12</Typography>
+              <Typography variant="h6" sx={{ color: '#654321' }}>{beansCount}</Typography>
               <Typography variant="body2" color="text.secondary">Coffee Beans</Typography>
             </CardContent>
           </Card>
@@ -78,7 +97,7 @@ const Page = () => {
               <Avatar sx={{ bgcolor: '#D2691E', mx: 'auto', mb: 1 }}>
                 <LocalCafe />
               </Avatar>
-              <Typography variant="h6" sx={{ color: '#654321' }}>5</Typography>
+              <Typography variant="h6" sx={{ color: '#654321' }}>{methodsCount}</Typography>
               <Typography variant="body2" color="text.secondary">Brew Methods</Typography>
             </CardContent>
           </Card>
@@ -94,7 +113,7 @@ const Page = () => {
               <Avatar sx={{ bgcolor: '#A0522D', mx: 'auto', mb: 1 }}>
                 <Settings />
               </Avatar>
-              <Typography variant="h6" sx={{ color: '#654321' }}>3</Typography>
+              <Typography variant="h6" sx={{ color: '#654321' }}>{grindersCount}</Typography>
               <Typography variant="body2" color="text.secondary">Grinders</Typography>
             </CardContent>
           </Card>
@@ -110,7 +129,7 @@ const Page = () => {
               <Avatar sx={{ bgcolor: '#228B22', mx: 'auto', mb: 1 }}>
                 <TrendingUp />
               </Avatar>
-              <Typography variant="h6" sx={{ color: '#654321' }}>47</Typography>
+              <Typography variant="h6" sx={{ color: '#654321' }}>{brewsCount}</Typography>
               <Typography variant="body2" color="text.secondary">Total Brews</Typography>
             </CardContent>
           </Card>
