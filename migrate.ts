@@ -57,11 +57,8 @@ async function migrateToLatest(
     console.log('Database connection established')
   }
 
-  // Create migrator - use dist/migrations in production, migrations/ in development
-  const migrationFolder =
-    process.env.NODE_ENV === 'production'
-      ? path.join(__dirname, 'dist', 'migrations')
-      : path.join(__dirname, 'migrations')
+  // Create migrator - use migrations/ folder in both dev and production
+  const migrationFolder = path.join(__dirname, 'migrations')
 
   const migrator = new Migrator({
     db,
