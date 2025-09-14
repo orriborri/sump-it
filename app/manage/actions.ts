@@ -53,5 +53,17 @@ export async function getGrinders() {
 
 export async function deleteMethod(id: number) {
   const methodsModel = new MethodsModel(db)
+  
+  // Check if method is used in any brews
+  const brewsUsingMethod = await db
+    .selectFrom('brews')
+    .where('method_id', '=', id)
+    .select('id')
+    .executeTakeFirst()
+  
+  if (brewsUsingMethod) {
+    throw new Error('Cannot delete method that is used in existing brews')
+  }
+  
   return await methodsModel.deleteById(id)
 }
