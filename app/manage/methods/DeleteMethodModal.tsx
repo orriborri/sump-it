@@ -1,8 +1,9 @@
 'use client'
 
-import React from 'react'
-import { Dialog, DialogTitle, DialogContent, IconButton } from '@mui/material'
-import { Close } from '@mui/icons-material'
+import React, { useState } from 'react'
+import { Dialog, DialogTitle, DialogContent, DialogActions, IconButton, Typography, Button } from '@mui/material'
+import { Close, Delete } from '@mui/icons-material'
+import { deleteMethod } from '../actions'
 
 interface Method {
   id: number
@@ -16,6 +17,20 @@ interface DeleteMethodModalProps {
 }
 
 export function DeleteMethodModal({ open, onClose, method }: DeleteMethodModalProps) {
+  const [isDeleting, setIsDeleting] = useState(false)
+
+  const handleDelete = async () => {
+    setIsDeleting(true)
+    try {
+      await deleteMethod(method.id)
+      onClose()
+    } catch (error) {
+      console.error('Failed to delete method:', error)
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
   return (
     <Dialog 
       open={open} 
@@ -43,9 +58,27 @@ export function DeleteMethodModal({ open, onClose, method }: DeleteMethodModalPr
         </IconButton>
       </DialogTitle>
       <DialogContent>
-        {/* Delete confirmation will be implemented */}
-        <p>Are you sure you want to delete "{method.name}"?</p>
+        <Typography>
+          Are you sure you want to delete "{method.name}"? This action cannot be undone.
+        </Typography>
       </DialogContent>
+      <DialogActions sx={{ p: 2 }}>
+        <Button onClick={onClose} sx={{ color: '#8B4513' }}>
+          Cancel
+        </Button>
+        <Button
+          onClick={handleDelete}
+          disabled={isDeleting}
+          variant="contained"
+          startIcon={<Delete />}
+          sx={{ 
+            bgcolor: '#DC143C', 
+            '&:hover': { bgcolor: '#B91C3C' }
+          }}
+        >
+          {isDeleting ? 'Deleting...' : 'Delete'}
+        </Button>
+      </DialogActions>
     </Dialog>
   )
 }

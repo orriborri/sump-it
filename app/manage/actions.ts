@@ -50,3 +50,8 @@ export async function getGrinders() {
   const grindersModel = new GrindersModel(db)
   return await grindersModel.findAll()
 }
+
+export async function deleteMethod(id: number) {
+  const methodsModel = new MethodsModel(db)
+  return await methodsModel.delete(id)
+}
