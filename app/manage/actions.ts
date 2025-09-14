@@ -53,5 +53,5 @@ export async function getGrinders() {
 
 export async function deleteMethod(id: number) {
   const methodsModel = new MethodsModel(db)
-  return await methodsModel.delete(id)
+  return await methodsModel.deleteById(id)
 }
