@@ -105,8 +105,8 @@ importers:
         specifier: ^2.9.0
         version: 2.9.0
       zod:
-        specifier: ^3.25.67
-        version: 3.25.76
+        specifier: ^4.0.0
+        version: 4.1.8
     devDependencies:
       '@hookform/resolvers':
         specifier: ^5.1.1
