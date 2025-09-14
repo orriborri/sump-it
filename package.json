@@ -91,7 +91,7 @@
     "npm-run-all2": "^8.0.0",
     "prettier": "^3.6.2",
     "tailwindcss": "4.1.13",
-    "ts-morph": "^26.0.0",
+    "ts-morph": "^27.0.0",
     "ts-node": "10.9.2",
     "tsx": "^4.20.3",
     "typescript": "^5.8.3",
