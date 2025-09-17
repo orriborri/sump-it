@@ -41,21 +41,10 @@ export const Step: React.FC<StepProps> = ({
     },
     {
       label: 'Brewing Parameters',
-      title: "Configure your brewing parameters",
+      title: "Configure your brewing parameters and start brewing",
       description: "Set coffee amount, grind setting, and ratio based on previous brew feedback.",
       content: (
         <BrewingParameters
-          formData={form.formData}
-          updateFormData={form.updateFormData}
-        />
-      )
-    },
-    {
-      label: 'Brew & Rate',
-      title: "Rate your brew and provide feedback",
-      description: "Rate the coffee and provide recommendations for future brews.",
-      content: (
-        <BrewRating
           formData={form.formData}
           updateFormData={form.updateFormData}
           onSubmit={onSubmit}
@@ -107,12 +96,9 @@ export const Step: React.FC<StepProps> = ({
 
         {/* Navigation Buttons */}
         <Box sx={{ mt: 6, pt: 3, borderTop: 1, borderColor: 'divider' }}>
-          {navigation.isLastStep && !navigation.isFormValid && (
-            <Alert severity="warning" sx={{ mb: 2 }}>
-              Please complete all selections in Step 1 before brewing:
-              {navigation.validationErrors.map((error, idx) => (
-                <div key={idx}>• {error}</div>
-              ))}
+          {!navigation.canGoBack && (
+            <Alert severity="info" sx={{ mb: 2 }}>
+              Please complete all selections before proceeding to brewing parameters.
             </Alert>
           )}
           <Stack
@@ -144,20 +130,22 @@ export const Step: React.FC<StepProps> = ({
               </Typography>
             </Box>
 
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={navigation.isLastStep ? onSubmit : nextStep}
-              type="button"
-              size="large"
-              disabled={navigation.isLastStep && !navigation.canSubmit}
-              sx={{
-                minWidth: { xs: '100%', sm: 120 },
-                order: { xs: 1, sm: 2 }
-              }}
-            >
-              {navigation.isLastStep ? 'Start Brewing' : 'Next'}
-            </Button>
+            {!navigation.isLastStep && (
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={nextStep}
+                type="button"
+                size="large"
+                disabled={!navigation.canGoForward}
+                sx={{
+                  minWidth: { xs: '100%', sm: 120 },
+                  order: { xs: 1, sm: 2 }
+                }}
+              >
+                Next
+              </Button>
+            )}
           </Stack>
         </Box>
       </Paper>
