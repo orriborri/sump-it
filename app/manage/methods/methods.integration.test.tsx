@@ -44,8 +44,8 @@ describe('Methods Integration Tests', () => {
     const user = userEvent.setup()
     render(<MethodsPageClient methods={mockMethods} />)
     
-    const addButton = screen.getByText('Add Method')
-    await user.click(addButton)
+    const addButtons = screen.getAllByText('Add Method')
+    await user.click(addButtons[0]) // Click the header button
     
     expect(screen.getByText('Add New Brew Method')).toBeInTheDocument()
     expect(screen.getByLabelText('Method Name')).toBeInTheDocument()
@@ -56,13 +56,14 @@ describe('Methods Integration Tests', () => {
     render(<MethodsPageClient methods={mockMethods} />)
     
     // Open modal
-    await user.click(screen.getByText('Add Method'))
+    const addButtons = screen.getAllByText('Add Method')
+    await user.click(addButtons[0]) // Click the header button, not the form button
     
     // Fill form
     const nameInput = screen.getByLabelText('Method Name')
     await user.type(nameInput, 'V60 Pour Over')
     
-    // Submit form
+    // Submit form - use the submit button inside the form
     const submitButton = screen.getByRole('button', { name: /adding method|add method/i })
     await user.click(submitButton)
     
