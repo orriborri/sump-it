@@ -15,7 +15,6 @@
     }
   ],
   "platformAutomerge": true,
-  "recreateClosed": true,
   "rebaseWhen": "auto",
   "prCreation": "not-pending",
   "recreateWhen": "always",
