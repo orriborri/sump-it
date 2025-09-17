@@ -48,6 +48,7 @@ export const Step: React.FC<StepProps> = ({
           formData={form.formData}
           updateFormData={form.updateFormData}
           onSubmit={onSubmit}
+          grinders={grinders}
         />
       )
     }
