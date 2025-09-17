@@ -34,11 +34,17 @@ export const useStepNavigation = ({ currentStep, formData, totalSteps }: UseStep
   const isLastStep = currentStep === totalSteps - 1
   const canGoBack = currentStep > 0
   const canSubmit = isLastStep && isFormValid
+  
+  // Can go forward if current step is valid
+  const canGoForward = currentStep === 0 ? 
+    formData.bean_id > 0 && formData.method_id > 0 && formData.grinder_id > 0 :
+    true
 
   return {
     isFormValid,
     isLastStep,
     canGoBack,
+    canGoForward,
     canSubmit,
     validationErrors,
   }
