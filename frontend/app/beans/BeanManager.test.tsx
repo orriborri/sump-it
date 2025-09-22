@@ -82,6 +82,16 @@ describe('BeanManager', () => {
     );
   });
 
+  it('opens the add dialog from the empty-state action', async () => {
+    const user = userEvent.setup();
+    render(<BeanManager client={makeClient()} now={NOW} />);
+    await waitFor(() => screen.getByText('No active beans. Add your first bag.'));
+
+    await user.click(screen.getByRole('button', { name: 'Add bean from empty state' }));
+
+    expect(screen.getByRole('dialog', { name: 'Add Bean' })).toBeInTheDocument();
+  });
+
   it('treats a success with no payload as an empty list', async () => {
     // getActive resolves successfully but without a `data` field.
     const client = makeClient({ getActive: () => Promise.resolve({}) });
@@ -170,6 +180,33 @@ describe('BeanManager', () => {
     await waitFor(() => expect(create).toHaveBeenCalledTimes(1));
     expect(create.mock.calls[0][0].name).toBe('Colombia');
     await waitFor(() => expect(screen.getByText('Colombia')).toBeInTheDocument());
+  });
+
+  it('keeps the dialog open and resets the form when adding many beans', async () => {
+    const user = userEvent.setup();
+    const create = vi.fn((_data: CreateCoffeeBeanRequest) =>
+      Promise.resolve({ data: makeBean() })
+    );
+    const getActive = vi.fn<() => Promise<ApiResponse<CoffeeBean[]>>>()
+      .mockResolvedValue({ data: [] });
+
+    render(<BeanManager client={makeClient({ create, getActive })} now={NOW} />);
+    await waitFor(() => screen.getByText('No active beans. Add your first bag.'));
+
+    await user.click(screen.getByRole('button', { name: 'Add Bean' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Add many beans' }));
+    await fillForm(user);
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => expect(create).toHaveBeenCalledTimes(1));
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: 'Add many beans' })).toBeChecked();
+    expect(screen.getByLabelText('Name')).toHaveValue('');
+    expect(screen.getByText('Bean added. You can add another.')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    expect(await screen.findByText('Name is required')).toBeInTheDocument();
+    expect(screen.queryByText('Bean added. You can add another.')).not.toBeInTheDocument();
   });
 
   it('shows a client-side validation error without calling create', async () => {
