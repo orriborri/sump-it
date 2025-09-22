@@ -24,8 +24,7 @@ export const useGrinderSettings = (grinderId?: string) => {
         } else {
           setError('Grinder not found')
         }
-      } catch (error) {
-        console.error('Error fetching grinder settings:', error)
+      } catch {
         setError('Failed to load grinder settings')
         setGrinderSettings(null)
       } finally {

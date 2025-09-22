@@ -1,5 +1,5 @@
-import { Box, Button, Stack, Typography, Paper, Grid, Card, CardContent, Avatar, Chip } from '@mui/material'
-import { Coffee, BarChart, Settings, Tune, LocalCafe, Add, Dashboard, TrendingUp } from '@mui/icons-material'
+import { Box, Button, Typography, Paper, Grid, Card, CardContent, Avatar } from '@mui/material'
+import { Coffee, BarChart, Settings, Tune, LocalCafe, Dashboard, TrendingUp } from '@mui/icons-material'
 import Link from 'next/link'
 import { db } from './lib/database'
 import { BeansModel } from './lib/generated-models/Beans'

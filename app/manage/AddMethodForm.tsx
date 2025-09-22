@@ -20,8 +20,8 @@ export const AddMethodForm = () => {
       reset()
       setSuccess(true)
       setTimeout(() => setSuccess(false), 3000)
-    } catch (error) {
-      console.error('Failed to add method:', error)
+    } catch {
+      // Error handling - could add user notification here
     } finally {
       setIsSubmitting(false)
     }

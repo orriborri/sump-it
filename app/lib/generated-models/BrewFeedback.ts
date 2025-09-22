@@ -9,13 +9,13 @@ export type BrewFeedbackUpdate = Updateable<DB['brew_feedback']>;
  * BrewFeedback Model - Provides CRUD operations for the brew_feedback table
  */
 export class BrewFeedbackModel {
-  constructor(private db: Kysely<DB>) {}
+  constructor(private _db: Kysely<DB>) {}
 
   /**
    * Create a new brew_feedbac record
    */
   async create(data: Omit<BrewFeedbackInsert, 'id' | 'created_at'>): Promise<BrewFeedbackSelect | undefined> {
-    return await this.db
+    return await this._db
       .insertInto('brew_feedback')
       .values(data)
       .returningAll()
@@ -26,7 +26,7 @@ export class BrewFeedbackModel {
    * Get a brew_feedbac by id
    */
   async findById(id: number): Promise<BrewFeedbackSelect | undefined> {
-    return await this.db
+    return await this._db
       .selectFrom('brew_feedback')
       .where('id', '=', id)
       .selectAll()
@@ -37,7 +37,7 @@ export class BrewFeedbackModel {
    * Get all brew_feedback records
    */
   async findAll(): Promise<BrewFeedbackSelect[]> {
-    return await this.db
+    return await this._db
       .selectFrom('brew_feedback')
       .selectAll()
       .execute();
@@ -50,7 +50,7 @@ export class BrewFeedbackModel {
     id: number, 
     data: BrewFeedbackUpdate
   ): Promise<BrewFeedbackSelect | undefined> {
-    return await this.db
+    return await this._db
       .updateTable('brew_feedback')
       .set(data)
       .where('id', '=', id)
@@ -62,7 +62,7 @@ export class BrewFeedbackModel {
    * Delete a brew_feedbac by id
    */
   async deleteById(id: number): Promise<void> {
-    await this.db
+    await this._db
       .deleteFrom('brew_feedback')
       .where('id', '=', id)
       .execute();
@@ -72,7 +72,7 @@ export class BrewFeedbackModel {
    * Count total brew_feedback records
    */
   async count(): Promise<number> {
-    const result = await this.db
+    const result = await this._db
       .selectFrom('brew_feedback')
       .select(({ fn }) => fn.count<number>('id').as('count'))
       .executeTakeFirst();
@@ -84,7 +84,7 @@ export class BrewFeedbackModel {
    * Check if a brew_feedbac exists by id
    */
   async exists(id: number): Promise<boolean> {
-    const result = await this.db
+    const result = await this._db
       .selectFrom('brew_feedback')
       .where('id', '=', id)
       .select('id')
@@ -100,7 +100,7 @@ export class BrewFeedbackModel {
     limit: number = 10, 
     offset: number = 0
   ): Promise<BrewFeedbackSelect[]> {
-    return await this.db
+    return await this._db
       .selectFrom('brew_feedback')
       .selectAll()
       .limit(limit)
@@ -112,7 +112,7 @@ export class BrewFeedbackModel {
    * Create multiple brew_feedback records
    */
   async createMany(data: Omit<BrewFeedbackInsert, 'id' | 'created_at'>[]): Promise<BrewFeedbackSelect[]> {
-    return await this.db
+    return await this._db
       .insertInto('brew_feedback')
       .values(data)
       .returningAll()

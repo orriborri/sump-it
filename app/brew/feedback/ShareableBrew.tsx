@@ -1,6 +1,6 @@
 'use client'
 import React, { useState } from 'react'
-import { Box, Typography, Button, Rating, Stack, Switch, FormControlLabel, Card, CardContent, TextField, Checkbox, Chip } from '@mui/material'
+import { Box, Typography, Button, Rating, Stack, Card, CardContent, TextField, Chip } from '@mui/material'
 import { Share, Coffee, Scale, Water, Settings } from '@mui/icons-material'
 import { generateBrewSuggestions } from './BrewSuggestions'
 import { saveBrewFeedback } from './actions'
@@ -21,8 +21,6 @@ interface ShareableBrewProps {
 }
 
 export const ShareableBrew: React.FC<ShareableBrewProps> = ({ brewData }) => {
-  const [showShare, setShowShare] = useState(false)
-  const [showAdvanced, setShowAdvanced] = useState(false)
   const [feedback, setFeedback] = useState({
     too_weak: false,
     too_strong: false,

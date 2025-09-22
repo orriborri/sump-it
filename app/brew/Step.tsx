@@ -5,7 +5,7 @@ import { BeanSelector } from './BeanSelector'
 import type { UseFormReturn } from './useForm'
 import { IntegratedVerticalStepper } from './IntegratedVerticalStepper'
 import { BrewingParameters } from './BrewingParameters'
-import { BrewRating } from './feedback/BrewRating'
+
 import { useStepNavigation } from './useStepNavigation'
 import type { RuntimeType } from '@/app/lib/types'
 import type { Beans, Methods, Grinders } from '@/app/lib/db.d'

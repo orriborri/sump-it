@@ -77,8 +77,7 @@ export const SharedBrewFeedback: React.FC<SharedBrewFeedbackProps> = ({
       } else {
         setError(result.error || 'Failed to save feedback')
       }
-    } catch (error) {
-      console.error('Error submitting feedback:', error)
+    } catch {
       setError('An unexpected error occurred')
     } finally {
       setSubmitting(false)

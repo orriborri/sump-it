@@ -50,9 +50,8 @@ export const AddGrinderForm = () => {
           text: result.error || 'Failed to add grinder',
         })
       }
-    } catch (error) {
+    } catch {
       setMessage({ type: 'error', text: 'Failed to add grinder' })
-      console.error('Failed to add grinder:', error)
     } finally {
       setIsSubmitting(false)
     }

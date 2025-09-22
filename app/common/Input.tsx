@@ -14,8 +14,7 @@ interface Props<T extends FieldValues> {
   label: string
   rules?: object
   type?: string
-  // eslint-disable-next-line no-unused-vars
-  onChange?: (value: number) => void
+  onChange?: (_value: number) => void
   disabled?: boolean
 }
 

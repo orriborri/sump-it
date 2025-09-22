@@ -5,7 +5,7 @@ import { FormData } from '../types'
 
 interface BrewRatingProps {
   formData: FormData
-  updateFormData: (data: Partial<FormData>) => void
+  updateFormData: (_data: Partial<FormData>) => void
   onSubmit?: () => void
 }
 

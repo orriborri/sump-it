@@ -42,8 +42,7 @@ export async function saveBrewFeedback(brewId: number, feedback: BrewFeedbackInp
     })
 
     return { success: true, feedback: savedFeedback }
-  } catch (error) {
-    console.error('Error saving feedback:', error)
+  } catch {
     return { success: false, error: 'Failed to save feedback' }
   }
 }

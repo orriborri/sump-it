@@ -12,7 +12,7 @@ export interface BrewsWithJoins extends BrewsSelect {
  * Brews Joined Queries - Provides queries with joined data
  */
 export class BrewsJoinedQueries {
-  constructor(private db: Kysely<DB>) {}
+  constructor(private _db: Kysely<DB>) {}
 
   /**
    * Find brews with all joined data by parameters
@@ -22,7 +22,7 @@ export class BrewsJoinedQueries {
     methodId: number,
     grinderId: number
   ): Promise<BrewsWithJoins[]> {
-    return await this.db
+    return await this._db
       .selectFrom('brews')
       .leftJoin('beans', 'brews.bean_id', 'beans.id')
       .leftJoin('methods', 'brews.method_id', 'methods.id')
@@ -59,7 +59,7 @@ export class BrewsJoinedQueries {
    * Find brews with all joined data by id
    */
   async findByIdWithJoins(id: number): Promise<BrewsWithJoins | undefined> {
-    return await this.db
+    return await this._db
       .selectFrom('brews')
       .leftJoin('beans', 'brews.bean_id', 'beans.id')
       .leftJoin('methods', 'brews.method_id', 'methods.id')
@@ -93,7 +93,7 @@ export class BrewsJoinedQueries {
    * Find top rated brews with all joined data
    */
   async findTopRated(limit: number = 10): Promise<BrewsWithJoins[]> {
-    return await this.db
+    return await this._db
       .selectFrom('brews')
       .leftJoin('beans', 'brews.bean_id', 'beans.id')
       .leftJoin('methods', 'brews.method_id', 'methods.id')

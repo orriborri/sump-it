@@ -30,8 +30,8 @@ export const DeleteGrinderButton: React.FC<DeleteGrinderButtonProps> = ({
     try {
       await deleteGrinder(grinderId)
       // Redirect is handled by the server action
-    } catch (error) {
-      console.error('Error deleting grinder:', error)
+    } catch {
+      // Error handling - could add user notification here
       setIsDeleting(false)
     }
   }

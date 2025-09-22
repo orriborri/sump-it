@@ -34,13 +34,7 @@ export const BeanSelector: React.FC<BeanSelectorProps> = ({
     grinders || MOCK_GRINDERS
   )
 
-  // Debug logging
-  console.log('BeanSelector - Received props:', { 
-    beansCount: beans?.length, 
-    methodsCount: methods?.length, 
-    grindersCount: grinders?.length,
-    currentFormData: form.formData
-  })
+  // Component initialized with data
 
   // Update state when props change
 
@@ -78,7 +72,7 @@ export const BeanSelector: React.FC<BeanSelectorProps> = ({
           label="Coffee Beans *"
           onChange={e => {
             const beanId = parseInt(e.target.value)
-            console.log('Bean selected:', beanId)
+
             form.updateFormData({ bean_id: beanId })
           }}
         >
@@ -104,7 +98,7 @@ export const BeanSelector: React.FC<BeanSelectorProps> = ({
           label="Brewing Method *"
           onChange={e => {
             const methodId = parseInt(e.target.value)
-            console.log('Method selected:', methodId)
+
             form.updateFormData({ method_id: methodId })
           }}
         >
@@ -130,7 +124,7 @@ export const BeanSelector: React.FC<BeanSelectorProps> = ({
           label="Grinder *"
           onChange={e => {
             const grinderId = parseInt(e.target.value)
-            console.log('Grinder selected:', grinderId)
+
             form.updateFormData({ grinder_id: grinderId })
           }}
         >

@@ -67,8 +67,7 @@ const SharedBrewPage = async ({ params }: PageProps) => {
         <SharedBrewFeedback brewDetails={brewDetails} />
       </Box>
     )
-  } catch (error) {
-    console.error('Error loading brew details:', error)
+  } catch {
     return (
       <Box>
         <Typography variant="h4" component="h1" gutterBottom>

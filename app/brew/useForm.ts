@@ -37,15 +37,10 @@ export const useForm = (): UseFormReturn => {
   }
 
   const updateFormData = (_data: Partial<FormData>) => {
-    console.log('updateFormData called with:', _data)
-    setFormData(prevData => {
-      const newData = {
-        ...prevData,
-        ..._data,
-      }
-      console.log('Form data updated from:', prevData, 'to:', newData)
-      return newData
-    })
+    setFormData(prevData => ({
+      ...prevData,
+      ..._data,
+    }))
   }
 
   return {

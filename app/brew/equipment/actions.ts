@@ -31,8 +31,7 @@ export async function getGrinderSettings(grinderId: string): Promise<GrinderSett
       step_size: grinder.step_size || 1.0,
       setting_type: grinder.setting_type || 'numeric',
     }
-  } catch (error) {
-    console.error('Error fetching grinder settings:', error)
+  } catch {
     return null
   }
 }

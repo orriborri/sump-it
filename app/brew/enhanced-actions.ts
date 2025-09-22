@@ -96,8 +96,7 @@ export async function getBrewsWithFeedback(
             }
           : undefined,
     }))
-  } catch (error) {
-    console.error('Error fetching brews with feedback:', error)
+  } catch {
     return []
   }
 }
@@ -176,14 +175,14 @@ function analyzeAndSuggestImprovements(
 ): ParameterSuggestion {
   // Get the most recent brew as base
   const baseBrew = brews[0]
-  let adjustedParams = {
+  const adjustedParams = {
     water: baseBrew.water,
     dose: baseBrew.dose,
     grind: baseBrew.grind,
     ratio: Number(baseBrew.ratio) || 0,
   }
 
-  let reasoning = 'Adjusted based on feedback: '
+  const reasoning = 'Adjusted based on feedback: '
   const adjustments: string[] = []
 
   // Analyze common feedback patterns
@@ -264,8 +263,7 @@ async function getDefaultParameters(
       confidence: 'low',
       reasoning: `Default parameters for ${methodName || 'this brewing method'} (no previous brews found)`,
     }
-  } catch (error) {
-    console.error('Error getting method name:', error)
+  } catch {
     return {
       water: 250,
       dose: 15,
@@ -310,8 +308,7 @@ export async function saveBrew(data: FormData) {
     })
 
     return { success: true, brew: savedBrew }
-  } catch (error) {
-    console.error('Error saving brew:', error)
+  } catch {
     return { success: false, error: 'Failed to save brew to database' }
   }
 }
@@ -329,8 +326,7 @@ export async function saveBrewFeedback(brewId: number, feedback: any) {
     })
 
     return { success: true, feedback: savedFeedback }
-  } catch (error) {
-    console.error('Error saving feedback:', error)
+  } catch {
     return { success: false, error: 'Failed to save feedback' }
   }
 }

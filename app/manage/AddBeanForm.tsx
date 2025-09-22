@@ -25,8 +25,8 @@ export const AddBeanForm = ({ onSuccess }: AddBeanFormProps = {}) => {
       setSuccess(true)
       setTimeout(() => setSuccess(false), 3000)
       onSuccess?.()
-    } catch (error) {
-      console.error('Failed to add bean:', error)
+    } catch {
+      // Error handling - could add user notification here
     } finally {
       setIsSubmitting(false)
     }

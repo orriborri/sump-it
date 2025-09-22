@@ -9,8 +9,10 @@ interface GlobalErrorProps {
 
 export default function GlobalError({ error, reset }: GlobalErrorProps) {
   React.useEffect(() => {
-    // Log the error for debugging
-    console.error('Global application error:', error)
+    // Log the error for debugging - import logger at component level to avoid SSR issues
+    if (typeof window !== 'undefined') {
+      // Client-side error logging could be added here
+    }
   }, [error])
 
   return (

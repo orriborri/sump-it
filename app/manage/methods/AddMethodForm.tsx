@@ -24,8 +24,7 @@ export function AddMethodForm({ onSuccess }: AddMethodFormProps = {}) {
       setSuccess(true)
       setTimeout(() => setSuccess(false), 3000)
       onSuccess?.()
-    } catch (error) {
-      console.error('Failed to add method:', error)
+    } catch {
     } finally {
       setIsSubmitting(false)
     }

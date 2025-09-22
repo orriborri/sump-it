@@ -15,7 +15,18 @@ export default [
     rules: {
       // Disable some Next.js rules that conflict with our patterns
       "react/no-unescaped-entities": "off",
-      "@next/next/no-img-element": "warn",
+      "@next/next/no-img-element": "error",
+      
+      // Strict rules - fix all issues
+      "no-unused-vars": ["error", { 
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_",
+        "ignoreRestSiblings": true,
+        "args": "after-used"
+      }],
+      "no-console": "warn", // Allow console for development, warn in production
+      "prefer-const": "error",
+      "no-var": "error",
     },
   },
 ];

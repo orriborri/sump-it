@@ -164,7 +164,7 @@ describe('Coffee Brewing Business Logic', () => {
 
     it('preserves user intentions during parameter updates', () => {
       // Given: User changes one parameter
-      let brew = { dose: 20, water: 320, ratio: 16 }
+      const brew = { dose: 20, water: 320, ratio: 16 }
 
       // When: User increases dose to 25g
       brew.dose = 25

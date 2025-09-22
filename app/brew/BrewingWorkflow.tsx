@@ -22,16 +22,12 @@ export const BrewingWorkflow: React.FC<BrewingWorkflowProps> = ({
   const router = useRouter()
   
   const handleSubmit = async () => {
-    console.log('Saving brew...', form.formData)
     const result = await saveBrew(form.formData)
-    console.log('Save result:', result)
     
     if (result.success && result.brew) {
-      console.log('Redirecting to:', `/brew/${result.brew.id}/rate`)
       router.push(`/brew/${result.brew.id}/rate`)
-    } else {
-      console.error('Failed to save brew:', result)
     }
+    // Error handling could be added here
   }
 
   return (

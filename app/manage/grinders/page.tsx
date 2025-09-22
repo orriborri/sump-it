@@ -13,7 +13,7 @@ import {
   TableRow,
   Paper,
 } from '@mui/material'
-import { Edit, Add, ArrowBack } from '@mui/icons-material'
+import { Edit, Add } from '@mui/icons-material'
 import Link from 'next/link'
 import { db } from '@/app/lib/database'
 import { GrindersModel } from '@/app/lib/generated-models/Grinders'

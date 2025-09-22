@@ -6,7 +6,7 @@ import { FormData } from '../types'
 
 interface RecipeProps {
   formData: FormData
-  updateFormData: (updates: Partial<FormData>) => void
+  updateFormData: (_updates: Partial<FormData>) => void
 }
 
 export const Recipe: React.FC<RecipeProps> = ({ formData, updateFormData }) => {

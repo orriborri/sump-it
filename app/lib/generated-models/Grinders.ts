@@ -9,13 +9,13 @@ export type GrindersUpdate = Updateable<DB['grinders']>;
  * Grinders Model - Provides CRUD operations for the grinders table
  */
 export class GrindersModel {
-  constructor(private db: Kysely<DB>) {}
+  constructor(private _db: Kysely<DB>) {}
 
   /**
    * Create a new grinder record
    */
   async create(data: Omit<GrindersInsert, 'id' | 'created_at'>): Promise<GrindersSelect | undefined> {
-    return await this.db
+    return await this._db
       .insertInto('grinders')
       .values(data)
       .returningAll()
@@ -26,7 +26,7 @@ export class GrindersModel {
    * Get a grinder by id
    */
   async findById(id: number): Promise<GrindersSelect | undefined> {
-    return await this.db
+    return await this._db
       .selectFrom('grinders')
       .where('id', '=', id)
       .selectAll()
@@ -37,7 +37,7 @@ export class GrindersModel {
    * Get all grinders records
    */
   async findAll(): Promise<GrindersSelect[]> {
-    return await this.db
+    return await this._db
       .selectFrom('grinders')
       .selectAll()
       .execute();
@@ -50,7 +50,7 @@ export class GrindersModel {
     id: number, 
     data: GrindersUpdate
   ): Promise<GrindersSelect | undefined> {
-    return await this.db
+    return await this._db
       .updateTable('grinders')
       .set(data)
       .where('id', '=', id)
@@ -62,7 +62,7 @@ export class GrindersModel {
    * Delete a grinder by id
    */
   async deleteById(id: number): Promise<void> {
-    await this.db
+    await this._db
       .deleteFrom('grinders')
       .where('id', '=', id)
       .execute();
@@ -72,7 +72,7 @@ export class GrindersModel {
    * Count total grinders records
    */
   async count(): Promise<number> {
-    const result = await this.db
+    const result = await this._db
       .selectFrom('grinders')
       .select(({ fn }) => fn.count<number>('id').as('count'))
       .executeTakeFirst();
@@ -84,7 +84,7 @@ export class GrindersModel {
    * Check if a grinder exists by id
    */
   async exists(id: number): Promise<boolean> {
-    const result = await this.db
+    const result = await this._db
       .selectFrom('grinders')
       .where('id', '=', id)
       .select('id')
@@ -100,7 +100,7 @@ export class GrindersModel {
     limit: number = 10, 
     offset: number = 0
   ): Promise<GrindersSelect[]> {
-    return await this.db
+    return await this._db
       .selectFrom('grinders')
       .selectAll()
       .limit(limit)
@@ -112,7 +112,7 @@ export class GrindersModel {
    * Create multiple grinders records
    */
   async createMany(data: Omit<GrindersInsert, 'id' | 'created_at'>[]): Promise<GrindersSelect[]> {
-    return await this.db
+    return await this._db
       .insertInto('grinders')
       .values(data)
       .returningAll()

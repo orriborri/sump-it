@@ -1,4 +1,5 @@
 import { migrateToLatest } from '../../migrate'
+import { logger } from './logger'
 
 // Track if migrations have been run to avoid running them multiple times
 let migrationsRun = false
@@ -23,7 +24,7 @@ export async function ensureMigrations(): Promise<void> {
   // Start the migration process
   migrationPromise = (async () => {
     try {
-      console.log('🔄 Ensuring database migrations are up to date...')
+      logger.info('Ensuring database migrations are up to date')
       const result = await migrateToLatest({
         silent: false,
         exitOnError: false,
@@ -34,9 +35,9 @@ export async function ensureMigrations(): Promise<void> {
       }
 
       migrationsRun = true
-      console.log('✅ Database migrations completed successfully')
-    } catch (error) {
-      console.error('❌ Failed to run migrations:', error)
+      logger.info('Database migrations completed successfully')
+    } catch {
+      logger.error('Failed to run migrations', {}, error as Error)
       // Reset the promise so migrations can be retried
       migrationPromise = null
       throw error

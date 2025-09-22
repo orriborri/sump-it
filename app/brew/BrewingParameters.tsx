@@ -11,7 +11,7 @@ import type { Grinders } from '@/app/lib/db.d'
 
 interface BrewingParametersProps {
   formData: FormData
-  updateFormData: (data: Partial<FormData>) => void
+  updateFormData: (_data: Partial<FormData>) => void
   onSubmit?: () => void
   grinders?: RuntimeType<Grinders>[]
 }
@@ -31,12 +31,7 @@ export const BrewingParameters: React.FC<BrewingParametersProps> = ({
   const lastBrew = previousBrews[0]
   const currentGrinder = grinders?.find(g => g.id === formData.grinder_id)
 
-  // Debug log
-  console.log('Previous brews:', previousBrews, 'for combination:', {
-    bean_id: formData.bean_id,
-    method_id: formData.method_id,
-    grinder_id: formData.grinder_id
-  })
+  // Previous brews loaded for this combination
 
   // Convert numeric grind setting to display format based on grinder
   const formatGrindSetting = (grindValue: number, grinder?: RuntimeType<Grinders>) => {

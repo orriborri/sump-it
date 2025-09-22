@@ -1,5 +1,4 @@
-import React from 'react'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import { vi } from 'vitest'
 import BeansPage from './page'
 import { BeansModel } from '../../lib/generated-models/Beans'

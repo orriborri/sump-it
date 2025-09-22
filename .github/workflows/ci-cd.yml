@@ -51,11 +51,16 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Run linting
+      - name: Run linting (strict mode)
         run: pnpm lint
 
       - name: Run type checking
         run: pnpm type-check
+
+      - name: Run tests
+        run: pnpm test
+        env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/sump_it_test
 
       - name: Build application
         run: pnpm build

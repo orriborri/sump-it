@@ -1,6 +1,6 @@
 import React from 'react'
 import { describe, it, expect, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MethodsPageClient } from './MethodsPageClient'
 

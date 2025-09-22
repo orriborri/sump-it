@@ -48,8 +48,7 @@ export async function getPreviousBrews(
       Number(method_id),
       Number(grinder_id)
     )
-  } catch (error) {
-    console.error('Error fetching previous brews:', error)
+  } catch {
     return []
   }
 }
@@ -68,8 +67,7 @@ export async function saveBrew(data: FormData) {
     })
 
     return { success: true, brew: savedBrew }
-  } catch (error) {
-    console.error('Error saving brew:', error)
+  } catch {
     return { success: false, error: 'Failed to save brew' }
   }
 }

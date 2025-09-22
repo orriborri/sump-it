@@ -14,8 +14,7 @@ async function getGrinder(id: string) {
     const grindersModel = new GrindersModel(db)
     const grinder = await grindersModel.findById(parseInt(id))
     return grinder
-  } catch (error) {
-    console.error('Error fetching grinder:', error)
+  } catch {
     return null
   }
 }

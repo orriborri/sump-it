@@ -77,7 +77,7 @@ RUN chmod +x start.sh
 
 USER nextjs
 
-EXPOSE 3000
+EXPOSE 3000 9090
 
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"

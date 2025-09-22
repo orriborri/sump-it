@@ -9,7 +9,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "next lint --max-warnings 0",
+    "lint:lenient": "next lint",
     "lint:fix": "next lint --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -25,10 +26,19 @@
     "docker:compose": "docker-compose up --build",
     "docker:compose:down": "docker-compose down",
     "ci": "run-s type-check lint format:check test",
-    "setup": "run-s migrate generate generate-models",
+    "setup": "run-s migrate generate:db-types generate:models",
     "docker:full": "run-s docker:build docker:run",
     "check-all": "run-p type-check lint format:check",
-    "generate-all": "npm-run-all migrate generate:*"
+    "check-strict": "run-s type-check lint format:check",
+    "pre-commit": "run-s type-check lint format:check",
+    "generate-all": "npm-run-all migrate generate:*",
+    "clean": "rm -rf .next dist node_modules/.cache",
+    "reset-db": "pnpm run migrate && pnpm run generate-models",
+    "dev:clean": "pnpm run clean && pnpm run dev",
+    "analyze": "ANALYZE=true pnpm run build",
+    "dev:telemetry": "OTEL_SERVICE_NAME=sump-it-dev pnpm run dev",
+    "test:health": "curl -s http://localhost:3000/api/health | jq",
+    "test:metrics": "curl -s http://localhost:9090/metrics"
   },
   "dependencies": {
     "@emotion/cache": "^11.14.0",
@@ -40,6 +50,16 @@
     "@mui/material-nextjs": "^7.1.1",
     "@mui/mcp": "^0.1.0",
     "@mui/x-data-grid": "^8.11.1",
+    "@opentelemetry/api": "^1.9.0",
+    "@opentelemetry/auto-instrumentations-node": "^0.64.1",
+    "@opentelemetry/exporter-jaeger": "^2.1.0",
+    "@opentelemetry/exporter-prometheus": "^0.205.0",
+    "@opentelemetry/instrumentation-express": "^0.54.0",
+    "@opentelemetry/instrumentation-http": "^0.205.0",
+    "@opentelemetry/instrumentation-pg": "^0.58.0",
+    "@opentelemetry/resources": "^2.1.0",
+    "@opentelemetry/sdk-node": "^0.205.0",
+    "@opentelemetry/semantic-conventions": "^1.37.0",
     "@types/ms": "^2.1.0",
     "@types/pg": "^8.15.4",
     "@types/qrcode": "^1.5.5",
@@ -94,6 +114,7 @@
     "ts-node": "10.9.2",
     "tsx": "^4.20.3",
     "typescript": "^5.8.3",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "webpack-bundle-analyzer": "^4.10.2"
   }
 }

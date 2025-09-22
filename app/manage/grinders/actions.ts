@@ -24,8 +24,7 @@ export async function createGrinder(data: GrinderFormData) {
     })
 
     return { success: true, data: result }
-  } catch (error) {
-    console.error('Error creating grinder:', error)
+  } catch {
     return { success: false, error: 'Failed to create grinder' }
   }
 }
@@ -43,8 +42,7 @@ export async function updateGrinder(id: number, data: GrinderFormData) {
     })
 
     return { success: true, data: result }
-  } catch (error) {
-    console.error('Error updating grinder:', error)
+  } catch {
     return { success: false, error: 'Failed to update grinder' }
   }
 }
@@ -54,8 +52,7 @@ export async function deleteGrinder(id: number) {
     const grindersModel = new GrindersModel(db)
     await grindersModel.deleteById(id)
     return { success: true }
-  } catch (error) {
-    console.error('Error deleting grinder:', error)
+  } catch {
     return { success: false, error: 'Failed to delete grinder' }
   }
 }

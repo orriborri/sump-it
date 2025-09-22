@@ -9,13 +9,13 @@ export type BeansUpdate = Updateable<DB['beans']>;
  * Beans Model - Provides CRUD operations for the beans table
  */
 export class BeansModel {
-  constructor(private db: Kysely<DB>) {}
+  constructor(private _db: Kysely<DB>) {}
 
   /**
    * Create a new bean record
    */
   async create(data: Omit<BeansInsert, 'id' | 'created_at'>): Promise<BeansSelect | undefined> {
-    return await this.db
+    return await this._db
       .insertInto('beans')
       .values(data)
       .returningAll()
@@ -26,7 +26,7 @@ export class BeansModel {
    * Get a bean by id
    */
   async findById(id: number): Promise<BeansSelect | undefined> {
-    return await this.db
+    return await this._db
       .selectFrom('beans')
       .where('id', '=', id)
       .selectAll()
@@ -37,7 +37,7 @@ export class BeansModel {
    * Get all beans records
    */
   async findAll(): Promise<BeansSelect[]> {
-    return await this.db
+    return await this._db
       .selectFrom('beans')
       .selectAll()
       .execute();
@@ -50,7 +50,7 @@ export class BeansModel {
     id: number, 
     data: BeansUpdate
   ): Promise<BeansSelect | undefined> {
-    return await this.db
+    return await this._db
       .updateTable('beans')
       .set(data)
       .where('id', '=', id)
@@ -62,7 +62,7 @@ export class BeansModel {
    * Delete a bean by id
    */
   async deleteById(id: number): Promise<void> {
-    await this.db
+    await this._db
       .deleteFrom('beans')
       .where('id', '=', id)
       .execute();
@@ -72,7 +72,7 @@ export class BeansModel {
    * Count total beans records
    */
   async count(): Promise<number> {
-    const result = await this.db
+    const result = await this._db
       .selectFrom('beans')
       .select(({ fn }) => fn.count<number>('id').as('count'))
       .executeTakeFirst();
@@ -84,7 +84,7 @@ export class BeansModel {
    * Check if a bean exists by id
    */
   async exists(id: number): Promise<boolean> {
-    const result = await this.db
+    const result = await this._db
       .selectFrom('beans')
       .where('id', '=', id)
       .select('id')
@@ -100,7 +100,7 @@ export class BeansModel {
     limit: number = 10, 
     offset: number = 0
   ): Promise<BeansSelect[]> {
-    return await this.db
+    return await this._db
       .selectFrom('beans')
       .selectAll()
       .limit(limit)
@@ -112,7 +112,7 @@ export class BeansModel {
    * Create multiple beans records
    */
   async createMany(data: Omit<BeansInsert, 'id' | 'created_at'>[]): Promise<BeansSelect[]> {
-    return await this.db
+    return await this._db
       .insertInto('beans')
       .values(data)
       .returningAll()

@@ -21,7 +21,7 @@ interface Suggestions {
 export function generateBrewSuggestions(feedback: Feedback, current: CurrentBrew): Suggestions {
   let grindAdjustment = 0
   let ratioAdjustment = 0
-  let reasons = []
+  const reasons = []
 
   if (feedback.too_weak) {
     grindAdjustment -= 2 // Finer grind

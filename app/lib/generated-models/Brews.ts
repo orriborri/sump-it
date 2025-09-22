@@ -9,13 +9,13 @@ export type BrewsUpdate = Updateable<DB['brews']>;
  * Brews Model - Provides CRUD operations for the brews table
  */
 export class BrewsModel {
-  constructor(private db: Kysely<DB>) {}
+  constructor(private _db: Kysely<DB>) {}
 
   /**
    * Create a new brew record
    */
   async create(data: Omit<BrewsInsert, 'id' | 'created_at'>): Promise<BrewsSelect | undefined> {
-    return await this.db
+    return await this._db
       .insertInto('brews')
       .values(data)
       .returningAll()
@@ -26,7 +26,7 @@ export class BrewsModel {
    * Get a brew by id
    */
   async findById(id: number): Promise<BrewsSelect | undefined> {
-    return await this.db
+    return await this._db
       .selectFrom('brews')
       .where('id', '=', id)
       .selectAll()
@@ -37,7 +37,7 @@ export class BrewsModel {
    * Get all brews records
    */
   async findAll(): Promise<BrewsSelect[]> {
-    return await this.db
+    return await this._db
       .selectFrom('brews')
       .selectAll()
       .execute();
@@ -50,7 +50,7 @@ export class BrewsModel {
     id: number, 
     data: BrewsUpdate
   ): Promise<BrewsSelect | undefined> {
-    return await this.db
+    return await this._db
       .updateTable('brews')
       .set(data)
       .where('id', '=', id)
@@ -62,7 +62,7 @@ export class BrewsModel {
    * Delete a brew by id
    */
   async deleteById(id: number): Promise<void> {
-    await this.db
+    await this._db
       .deleteFrom('brews')
       .where('id', '=', id)
       .execute();
@@ -72,7 +72,7 @@ export class BrewsModel {
    * Count total brews records
    */
   async count(): Promise<number> {
-    const result = await this.db
+    const result = await this._db
       .selectFrom('brews')
       .select(({ fn }) => fn.count<number>('id').as('count'))
       .executeTakeFirst();
@@ -84,7 +84,7 @@ export class BrewsModel {
    * Check if a brew exists by id
    */
   async exists(id: number): Promise<boolean> {
-    const result = await this.db
+    const result = await this._db
       .selectFrom('brews')
       .where('id', '=', id)
       .select('id')
@@ -100,7 +100,7 @@ export class BrewsModel {
     limit: number = 10, 
     offset: number = 0
   ): Promise<BrewsSelect[]> {
-    return await this.db
+    return await this._db
       .selectFrom('brews')
       .selectAll()
       .limit(limit)
@@ -112,7 +112,7 @@ export class BrewsModel {
    * Create multiple brews records
    */
   async createMany(data: Omit<BrewsInsert, 'id' | 'created_at'>[]): Promise<BrewsSelect[]> {
-    return await this.db
+    return await this._db
       .insertInto('brews')
       .values(data)
       .returningAll()
