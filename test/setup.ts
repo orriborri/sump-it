@@ -1,4 +1,5 @@
 import '@testing-library/jest-dom'
+import { cleanup } from '@testing-library/react'
 import { vi, beforeEach, afterEach } from 'vitest'
 import { createTestDatabase, setupTestDatabase, cleanupTestDatabase } from './database-setup'
 
@@ -30,6 +31,7 @@ beforeEach(async () => {
 })
 
 afterEach(async () => {
+  cleanup()
   if (testDb) {
     await cleanupTestDatabase(testDb)
   }

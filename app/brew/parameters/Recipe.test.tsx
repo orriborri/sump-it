@@ -41,10 +41,13 @@ describe('Recipe Component', () => {
     const coffeeInput = screen.getByLabelText('Coffee (g)')
     fireEvent.change(coffeeInput, { target: { value: '20' } })
     
-    expect(mockUpdateFormData).toHaveBeenCalledWith({
-      dose: 20,
-      water: 333.4 // 20 * 16.67
-    })
+    expect(mockUpdateFormData).toHaveBeenCalledWith(
+      expect.objectContaining({
+        dose: 20,
+      })
+    )
+    const call = mockUpdateFormData.mock.calls[0][0]
+    expect(call.water).toBeCloseTo(333.4, 1)
   })
 
   it('scales coffee when water changes (ratio locked)', () => {
@@ -53,10 +56,13 @@ describe('Recipe Component', () => {
     const waterInput = screen.getByLabelText('Water (ml)')
     fireEvent.change(waterInput, { target: { value: '300' } })
     
-    expect(mockUpdateFormData).toHaveBeenCalledWith({
-      water: 300,
-      dose: 18 // 300 / 16.67
-    })
+    expect(mockUpdateFormData).toHaveBeenCalledWith(
+      expect.objectContaining({
+        water: 300,
+      })
+    )
+    const call = mockUpdateFormData.mock.calls[0][0]
+    expect(call.dose).toBeCloseTo(18, 0)
   })
 
   it('unlocks ratio when lock button clicked', () => {

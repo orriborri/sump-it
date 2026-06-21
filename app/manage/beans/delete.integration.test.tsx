@@ -57,9 +57,9 @@ describe('Delete Bean Integration Tests', () => {
 
     render(<DeleteButton beanId={bean!.id} beanName="Test Bean to Keep" />)
     
-    // Click delete button to open modal
-    const deleteButtons = screen.getAllByRole('button', { name: /delete/i })
-    fireEvent.click(deleteButtons[0])
+    // Click delete button to open modal (it's an icon button, get it by role)
+    const deleteButton = screen.getByRole('button')
+    fireEvent.click(deleteButton)
 
     // Click cancel
     const cancelButton = screen.getByText('Cancel')
