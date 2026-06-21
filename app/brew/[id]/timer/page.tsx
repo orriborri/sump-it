@@ -35,7 +35,7 @@ export default function TimerPage() {
   }
 
   const handleDone = () => {
-    router.push(`/brew/${id}/rate`)
+    router.push(`/brew/${id}/rate?brew_time=${elapsedSeconds}`)
   }
 
   const handleSkip = () => {
