@@ -59,11 +59,12 @@ jobs:
         run: pnpm type-check
 
       - name: Run tests with coverage
-        run: pnpm test -- --coverage
+        run: pnpm test:coverage
         env:
           DATABASE_URL: postgres://postgres:postgres@localhost:5432/sump_it_test
 
       - name: Report coverage to DeepSource
+        continue-on-error: true
         run: |
           curl -fsSL https://cli.deepsource.com/install | BINDIR=./bin sh
           ./bin/deepsource report --analyzer test-coverage --key javascript --value-file ./coverage/lcov.info --use-oidc --host https://app.deepsource.com
