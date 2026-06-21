@@ -26,18 +26,20 @@ describe('Delete Bean Integration Tests', () => {
   it('deletes bean when confirmed in modal', async () => {
     // Create test bean
     const bean = await beansModel.create({
-      name: 'Test Bean to Delete'
+      name: 'Test Bean to Delete',
     })
 
     render(<DeleteButton beanId={bean!.id} beanName="Test Bean to Delete" />)
-    
+
     // Click delete button to open modal
     const deleteButton = screen.getByRole('button')
     fireEvent.click(deleteButton)
 
     // Verify modal is open
     expect(screen.getByText('Delete Coffee Bean')).toBeInTheDocument()
-    expect(screen.getByText('Are you sure you want to delete "Test Bean to Delete"?')).toBeInTheDocument()
+    expect(
+      screen.getByText('Are you sure you want to delete "Test Bean to Delete"?')
+    ).toBeInTheDocument()
 
     // Click confirm delete
     const confirmButton = screen.getByText('Delete')
@@ -52,11 +54,11 @@ describe('Delete Bean Integration Tests', () => {
   it('does not delete bean when cancelled in modal', async () => {
     // Create test bean
     const bean = await beansModel.create({
-      name: 'Test Bean to Keep'
+      name: 'Test Bean to Keep',
     })
 
     render(<DeleteButton beanId={bean!.id} beanName="Test Bean to Keep" />)
-    
+
     // Click delete button to open modal (it's an icon button, get it by role)
     const deleteButton = screen.getByRole('button')
     fireEvent.click(deleteButton)
