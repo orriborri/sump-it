@@ -16,6 +16,7 @@ import {
   Chip,
   Card,
   CardContent,
+  CircularProgress,
   useMediaQuery,
   useTheme,
 } from '@mui/material'
@@ -109,13 +110,15 @@ function BrewCard({
 
 const StatsTable = () => {
   const [items, setItems] = useState<BrewResult[]>([])
+  const [loading, setLoading] = useState(true)
   const theme = useTheme()
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'))
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'), { noSsr: true })
 
   useEffect(() => {
     const fetchItems = async () => {
       const brews = await getBrews()
       setItems(brews)
+      setLoading(false)
     }
     fetchItems()
   }, [])
@@ -132,7 +135,15 @@ const StatsTable = () => {
         Statistics
       </Typography>
 
-      {isMobile ? (
+      {loading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+          <CircularProgress sx={{ color: '#8B4513' }} />
+        </Box>
+      ) : items.length === 0 ? (
+        <Typography variant="body1" sx={{ color: '#654321', textAlign: 'center', py: 4 }}>
+          No brews logged yet. Start brewing to see your stats here!
+        </Typography>
+      ) : isMobile ? (
         <Stack spacing={2}>
           {items.map(brew => (
             <BrewCard key={brew.id} brew={brew} onDelete={handleDelete} />

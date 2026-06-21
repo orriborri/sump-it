@@ -37,12 +37,12 @@ export const useForm = (): UseFormReturn => {
     setCurrentStep(prev => prev - 1)
   }
 
-  const updateFormData = (_data: Partial<FormData>) => {
+  const updateFormData = useCallback((_data: Partial<FormData>) => {
     setFormData(prevData => ({
       ...prevData,
       ..._data,
     }))
-  }
+  }, [])
 
   /**
    * Pre-fill all form fields at once and optionally jump to a specific step.
