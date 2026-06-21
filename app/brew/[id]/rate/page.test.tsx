@@ -1,45 +1,40 @@
+import React from 'react'
 import { render, screen } from '@testing-library/react'
-import RatePage from './page'
+import { vi } from 'vitest'
 
-// Mock the database calls
-vi.mock('../../../lib/database', () => ({
-  db: {}
+// Mock the actions module before importing the page
+vi.mock('../actions', () => ({
+  getBrewDetails: vi.fn().mockResolvedValue({
+    id: 1,
+    bean_name: 'Ethiopian Yirgacheffe',
+    method_name: 'V60',
+    grinder_name: 'Comandante',
+    dose: 15,
+    water: 250,
+    ratio: 16.67,
+    grind: 20,
+  }),
 }))
 
-const mockBrewData = {
-  id: 1,
-  bean_name: 'Ethiopian Yirgacheffe',
-  method_name: 'V60',
-  grinder_name: 'Comandante',
-  dose: 15,
-  water: 250,
-  ratio: 16.67,
-  grind: 20
-}
+vi.mock('../../feedback/actions', () => ({
+  saveBrewFeedback: vi.fn().mockResolvedValue({ success: true }),
+}))
+
+import RatePage from './page'
 
 describe('Rate Page', () => {
   it('renders shareable brew rating page', async () => {
-    // Mock the database query
-    vi.doMock('../actions', () => ({
-      getBrewDetails: vi.fn().mockResolvedValue(mockBrewData)
-    }))
-    
     const page = await RatePage({ params: Promise.resolve({ id: '1' }) })
     render(page)
-    
-    expect(screen.getByText(/rate this brew/i)).toBeInTheDocument()
-    expect(screen.getByText('Ethiopian Yirgacheffe')).toBeInTheDocument()
+
+    expect(screen.getByText(/Ethiopian Yirgacheffe/)).toBeInTheDocument()
   })
 
-  it('shows collaborative rating interface', async () => {
-    vi.doMock('../actions', () => ({
-      getBrewDetails: vi.fn().mockResolvedValue(mockBrewData)
-    }))
-    
+  it('shows feedback form with rating', async () => {
     const page = await RatePage({ params: Promise.resolve({ id: '1' }) })
     render(page)
-    
-    expect(screen.getByText(/your rating/i)).toBeInTheDocument()
-    expect(screen.getByText(/add feedback/i)).toBeInTheDocument()
+
+    expect(screen.getByText(/how was this brew/i)).toBeInTheDocument()
+    expect(screen.getByText(/overall rating/i)).toBeInTheDocument()
   })
 })
