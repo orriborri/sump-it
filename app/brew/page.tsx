@@ -1,6 +1,7 @@
 import { db } from '../lib/database'
 import { Box, Typography } from '@mui/material'
 import { BrewingWorkflow } from './BrewingWorkflow'
+import { OnboardingWizard } from './onboarding/OnboardingWizard'
 import { BeansModel } from '../lib/generated-models/Beans'
 import { MethodsModel } from '../lib/generated-models/Methods'
 import { GrindersModel } from '../lib/generated-models/Grinders'
@@ -22,6 +23,9 @@ const Page = async () => {
     grindersModel.findAll(),
     getRecentBrewConfigs(),
   ])
+
+  const needsOnboarding =
+    beans.length === 0 || methods.length === 0 || grinders.length === 0
 
   return (
     <Box
@@ -46,12 +50,16 @@ const Page = async () => {
         Coffee Brewing
       </Typography>
 
-      <BrewingWorkflow
-        beans={beans}
-        methods={methods}
-        grinders={grinders}
-        recentConfigs={recentConfigs}
-      />
+      {needsOnboarding ? (
+        <OnboardingWizard />
+      ) : (
+        <BrewingWorkflow
+          beans={beans}
+          methods={methods}
+          grinders={grinders}
+          recentConfigs={recentConfigs}
+        />
+      )}
     </Box>
   )
 }
