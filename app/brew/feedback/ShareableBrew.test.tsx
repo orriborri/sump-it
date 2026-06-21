@@ -23,39 +23,39 @@ describe('ShareableBrew Component', () => {
   it('renders brew details', () => {
     render(<ShareableBrew brewData={mockBrewData} />)
 
-    expect(screen.getAllByText(/Ethiopian Yirgacheffe/).length).toBeGreaterThan(0)
-    expect(screen.getAllByText('V60').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('15g').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('250ml').length).toBeGreaterThan(0)
+    expect(screen.getByRole('heading', { level: 5, name: /Ethiopian Yirgacheffe/ })).toBeInTheDocument()
+    expect(screen.getByText('V60')).toBeInTheDocument()
+    expect(screen.getByText('15g')).toBeInTheDocument()
+    expect(screen.getByText('250ml')).toBeInTheDocument()
   })
 
   it('shows copy link button', () => {
     render(<ShareableBrew brewData={mockBrewData} />)
 
-    expect(screen.getAllByText(/copy link/i).length).toBeGreaterThan(0)
+    expect(screen.getByText(/copy link/i)).toBeInTheDocument()
   })
 
   it('shows feedback heading and rating', () => {
     render(<ShareableBrew brewData={mockBrewData} />)
 
-    expect(screen.getAllByText(/how was this brew/i).length).toBeGreaterThan(0)
-    expect(screen.getAllByText(/overall rating/i).length).toBeGreaterThan(0)
+    expect(screen.getByText(/how was this brew/i)).toBeInTheDocument()
+    expect(screen.getByText(/overall rating/i)).toBeInTheDocument()
   })
 
   it('shows taste note chips', () => {
     render(<ShareableBrew brewData={mockBrewData} />)
 
-    expect(screen.getAllByText(/taste notes/i).length).toBeGreaterThan(0)
-    expect(screen.getAllByText('Too Weak').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('Too Strong').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('Bitter').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('Sour').length).toBeGreaterThan(0)
+    expect(screen.getByText(/taste notes/i)).toBeInTheDocument()
+    expect(screen.getByText('Too Weak')).toBeInTheDocument()
+    expect(screen.getByText('Too Strong')).toBeInTheDocument()
+    expect(screen.getByText('Bitter')).toBeInTheDocument()
+    expect(screen.getByText('Sour')).toBeInTheDocument()
   })
 
   it('shows save button disabled when no rating', () => {
     render(<ShareableBrew brewData={mockBrewData} />)
 
-    const saveButtons = screen.getAllByRole('button', { name: /save feedback/i })
-    expect(saveButtons[0]).toBeDisabled()
+    const saveButton = screen.getByRole('button', { name: /save feedback/i })
+    expect(saveButton).toBeDisabled()
   })
 })
