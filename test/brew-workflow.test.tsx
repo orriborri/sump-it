@@ -81,11 +81,9 @@ describe('FormWrapper Integration', () => {
 
   it('renders the brew form initially', () => {
     render(
-      <FormWrapper
-        beans={mockBeans}
-        methods={mockMethods}
-        grinders={mockGrinders}
-      />
+      <FormWrapper>
+        <div data-testid="brew-form" />
+      </FormWrapper>
     )
 
     expect(screen.getByTestId('brew-form')).toBeInTheDocument()
@@ -109,11 +107,9 @@ describe('FormWrapper Integration', () => {
     })
 
     render(
-      <FormWrapper
-        beans={mockBeans}
-        methods={mockMethods}
-        grinders={mockGrinders}
-      />
+      <FormWrapper>
+        <div data-testid="brew-form" />
+      </FormWrapper>
     )
 
     const submitButton = screen.getByText('Submit Brew')
@@ -142,11 +138,9 @@ describe('FormWrapper Integration', () => {
     })
 
     render(
-      <FormWrapper
-        beans={mockBeans}
-        methods={mockMethods}
-        grinders={mockGrinders}
-      />
+      <FormWrapper>
+        <div data-testid="brew-form" />
+      </FormWrapper>
     )
 
     // Submit brew

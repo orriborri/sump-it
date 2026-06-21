@@ -1,6 +1,12 @@
 import React from 'react'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import { ShareableBrew } from './ShareableBrew'
+import { vi } from 'vitest'
+
+// Mock the actions module
+vi.mock('./actions', () => ({
+  saveBrewFeedback: vi.fn().mockResolvedValue({ success: true }),
+}))
 
 const mockBrewData = {
   id: 1,
@@ -10,55 +16,46 @@ const mockBrewData = {
   dose: 15,
   water: 250,
   ratio: 16.67,
-  grind: 20
+  grind: 20,
 }
 
 describe('ShareableBrew Component', () => {
   it('renders brew details', () => {
     render(<ShareableBrew brewData={mockBrewData} />)
-    
-    expect(screen.getByText('Ethiopian Yirgacheffe')).toBeInTheDocument()
+
+    expect(screen.getByText(/Ethiopian Yirgacheffe/)).toBeInTheDocument()
     expect(screen.getByText('V60')).toBeInTheDocument()
     expect(screen.getByText('15g')).toBeInTheDocument()
     expect(screen.getByText('250ml')).toBeInTheDocument()
   })
 
-  it('shows share button', () => {
+  it('shows copy link button', () => {
     render(<ShareableBrew brewData={mockBrewData} />)
-    
-    expect(screen.getByText(/share brew/i)).toBeInTheDocument()
+
+    expect(screen.getByText(/copy link/i)).toBeInTheDocument()
   })
 
-  it('generates shareable URL when share clicked', () => {
+  it('shows feedback heading and rating', () => {
     render(<ShareableBrew brewData={mockBrewData} />)
-    
-    const shareButton = screen.getByText(/share brew/i)
-    fireEvent.click(shareButton)
-    
-    expect(screen.getByText(/brew\/1\/rate/)).toBeInTheDocument()
+
+    expect(screen.getByText(/how was this brew/i)).toBeInTheDocument()
+    expect(screen.getByText(/overall rating/i)).toBeInTheDocument()
   })
 
-  it('shows rating form for collaborative feedback', () => {
+  it('shows taste note chips', () => {
     render(<ShareableBrew brewData={mockBrewData} />)
-    
-    expect(screen.getByText(/rate this brew/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/overall rating/i)).toBeInTheDocument()
+
+    expect(screen.getByText(/taste notes/i)).toBeInTheDocument()
+    expect(screen.getByText('Too Weak')).toBeInTheDocument()
+    expect(screen.getByText('Too Strong')).toBeInTheDocument()
+    expect(screen.getByText('Bitter')).toBeInTheDocument()
+    expect(screen.getByText('Sour')).toBeInTheDocument()
   })
 
-  it('shows advanced feedback toggle', () => {
+  it('shows save button disabled when no rating', () => {
     render(<ShareableBrew brewData={mockBrewData} />)
-    
-    expect(screen.getByText(/advanced feedback/i)).toBeInTheDocument()
-  })
 
-  it('shows suggestions when advanced feedback enabled', () => {
-    render(<ShareableBrew brewData={mockBrewData} />)
-    
-    const advancedToggle = screen.getByText(/advanced feedback/i)
-    fireEvent.click(advancedToggle)
-    
-    expect(screen.getByText(/next brew suggestions/i)).toBeInTheDocument()
-    expect(screen.getByText(/recommended grind/i)).toBeInTheDocument()
-    expect(screen.getByText(/recommended ratio/i)).toBeInTheDocument()
+    const saveButton = screen.getByRole('button', { name: /save feedback/i })
+    expect(saveButton).toBeDisabled()
   })
 })

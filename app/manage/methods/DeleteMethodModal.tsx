@@ -26,8 +26,8 @@ export function DeleteMethodModal({ open, onClose, method }: DeleteMethodModalPr
     try {
       await deleteMethod(method.id)
       onClose()
-    } catch {
-      setError(error instanceof Error ? error.message : 'Failed to delete method')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete method')
     } finally {
       setIsDeleting(false)
     }

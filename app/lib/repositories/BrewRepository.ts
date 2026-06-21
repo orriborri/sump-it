@@ -41,7 +41,7 @@ export class BrewRepository extends BaseRepository<'brews'> {
   }
 
   async create(data: CreateBrewData) {
-    const [result] = await this.db
+    const [result] = await this._db
       .insertInto('brews')
       .values(data)
       .returning('id')
@@ -55,7 +55,7 @@ export class BrewRepository extends BaseRepository<'brews'> {
     methodId: number,
     grinderId: number
   ): Promise<BrewWithDetails[]> {
-    return (await this.db
+    return (await this._db
       .selectFrom('brews')
       .leftJoin('brew_feedback', 'brews.id', 'brew_feedback.brew_id')
       .leftJoin('beans', 'brews.bean_id', 'beans.id')
@@ -89,7 +89,7 @@ export class BrewRepository extends BaseRepository<'brews'> {
   }
 
   async findWithDetails(id: number): Promise<BrewWithDetails | undefined> {
-    const result = await this.db
+    const result = await this._db
       .selectFrom('brews')
       .leftJoin('beans', 'brews.bean_id', 'beans.id')
       .leftJoin('methods', 'brews.method_id', 'methods.id')
@@ -115,7 +115,7 @@ export class BrewRepository extends BaseRepository<'brews'> {
   }
 
   async findTopRated(limit: number = 10): Promise<BrewWithDetails[]> {
-    return (await this.db
+    return (await this._db
       .selectFrom('brews')
       .leftJoin('brew_feedback', 'brews.id', 'brew_feedback.brew_id')
       .leftJoin('beans', 'brews.bean_id', 'beans.id')
