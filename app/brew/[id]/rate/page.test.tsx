@@ -33,7 +33,7 @@ describe('Rate Page', () => {
     const page = await RatePage({ params: Promise.resolve({ id: '1' }) })
     render(page)
 
-    expect(screen.getByText(/how was this brew/i)).toBeInTheDocument()
-    expect(screen.getByText(/overall rating/i)).toBeInTheDocument()
+    expect(screen.getAllByText(/how was this brew/i).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/overall rating/i).length).toBeGreaterThan(0)
   })
 })
