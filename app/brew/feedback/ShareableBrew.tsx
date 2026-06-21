@@ -47,17 +47,25 @@ export const ShareableBrew: React.FC<ShareableBrewProps> = ({ brewData }) => {
     setSuggestions(newSuggestions)
   }, [feedback, brewData.grind, brewData.ratio])
 
+  const [error, setError] = useState<string | null>(null)
+
   const handleSaveFeedback = async () => {
     setSaving(true)
+    setError(null)
     const feedbackData = {
       ...feedback,
       recommended_grind_adjustment: suggestions.grind - brewData.grind,
       grind_notes: `Next brew: Grind ${suggestions.grind}, Ratio 1:${suggestions.ratio}. ${suggestions.reason}`
     }
     
-    await saveBrewFeedback(brewData.id, feedbackData)
+    const result = await saveBrewFeedback(brewData.id, feedbackData)
     setSaving(false)
-    setSaved(true)
+
+    if (result.success) {
+      setSaved(true)
+    } else {
+      setError(result.error || 'Failed to save feedback. Please try again.')
+    }
   }
 
   const shareUrl = typeof window !== 'undefined' 
@@ -85,9 +93,9 @@ export const ShareableBrew: React.FC<ShareableBrewProps> = ({ brewData }) => {
 
         {/* Suggestions Summary */}
         {suggestions.reason && (
-          <Card sx={{ bgcolor: '#F5F5DC', border: '2px solid #228B22' }}>
+          <Card sx={{ bgcolor: '#F5F5DC', border: '2px solid', borderColor: 'success.main' }}>
             <CardContent>
-              <Typography variant="subtitle2" sx={{ color: '#228B22', mb: 1, fontWeight: 600 }}>
+              <Typography variant="subtitle2" sx={{ color: 'success.main', mb: 1, fontWeight: 600 }}>
                 Next Brew Suggestions
               </Typography>
               <Typography variant="body2" sx={{ color: '#654321', mb: 1.5 }}>
@@ -96,13 +104,13 @@ export const ShareableBrew: React.FC<ShareableBrewProps> = ({ brewData }) => {
               <Stack direction="row" spacing={3}>
                 <Box>
                   <Typography variant="caption" color="text.secondary">Grind</Typography>
-                  <Typography variant="body1" sx={{ fontWeight: 600, color: '#228B22' }}>
+                  <Typography variant="body1" sx={{ fontWeight: 600, color: 'success.main' }}>
                     {suggestions.grind}
                   </Typography>
                 </Box>
                 <Box>
                   <Typography variant="caption" color="text.secondary">Ratio</Typography>
-                  <Typography variant="body1" sx={{ fontWeight: 600, color: '#228B22' }}>
+                  <Typography variant="body1" sx={{ fontWeight: 600, color: 'success.main' }}>
                     1:{suggestions.ratio}
                   </Typography>
                 </Box>
@@ -289,6 +297,12 @@ export const ShareableBrew: React.FC<ShareableBrewProps> = ({ brewData }) => {
                 />
               </Stack>
             </Box>
+          )}
+
+          {error && (
+            <Alert severity="error" sx={{ mb: 1 }}>
+              {error}
+            </Alert>
           )}
 
           <Button 

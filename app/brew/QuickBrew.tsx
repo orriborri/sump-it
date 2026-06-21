@@ -11,7 +11,7 @@ import {
   Rating,
   Alert,
 } from '@mui/material'
-import { Coffee, Replay, TrendingUp, AccessTime } from '@mui/icons-material'
+import { Replay, TrendingUp, AccessTime } from '@mui/icons-material'
 import type { QuickBrewConfig } from './quickBrewActions'
 import type { FormData } from './types'
 
@@ -87,7 +87,7 @@ export const QuickBrew: React.FC<QuickBrewProps> = ({ configs, onSelect }) => {
               transition: 'all 0.2s ease',
               '&:hover': {
                 transform: 'translateY(-3px)',
-                boxShadow: '0 6px 20px rgba(139, 69, 19, 0.25)',
+                boxShadow: (theme) => `0 6px 20px ${theme.palette.primary.main}40`,
                 borderColor: 'primary.main',
               },
             }}
@@ -98,7 +98,7 @@ export const QuickBrew: React.FC<QuickBrewProps> = ({ configs, onSelect }) => {
                 <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 1.5 }}>
                   <Typography
                     variant="subtitle1"
-                    sx={{ fontWeight: 600, color: '#2C1810', lineHeight: 1.3 }}
+                    sx={{ fontWeight: 600, color: 'text.primary', lineHeight: 1.3 }}
                   >
                     {config.bean_name}
                   </Typography>

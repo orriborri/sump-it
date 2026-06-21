@@ -1,6 +1,7 @@
 'use server'
 
-import { db } from '../lib/database'
+import { db } from '@/app/lib/database'
+import { logger } from '@/app/lib/logger'
 
 export interface QuickBrewConfig {
   id: number
@@ -107,7 +108,7 @@ export async function getRecentBrewConfigs(): Promise<QuickBrewConfig[]> {
     // Return top 5 most recent unique configs
     return Array.from(seenCombos.values()).slice(0, 5)
   } catch (error) {
-    console.error('Failed to fetch recent brew configs:', error)
+    logger.error('Failed to fetch recent brew configs', { error: String(error) })
     return []
   }
 }
