@@ -4,6 +4,9 @@ import { useRouter } from 'next/navigation'
 import { Step } from './Step'
 import { useForm } from './useForm'
 import { saveBrew } from './actions'
+import { QuickBrew } from './QuickBrew'
+import type { QuickBrewConfig } from './quickBrewActions'
+import type { FormData } from './types'
 import type { RuntimeType } from '@/app/lib/types'
 import type { Beans, Methods, Grinders } from '@/app/lib/db.d'
 
@@ -11,12 +14,14 @@ interface BrewingWorkflowProps {
   beans: RuntimeType<Beans>[]
   methods: RuntimeType<Methods>[]
   grinders: RuntimeType<Grinders>[]
+  recentConfigs: QuickBrewConfig[]
 }
 
 export const BrewingWorkflow: React.FC<BrewingWorkflowProps> = ({
   beans,
   methods,
   grinders,
+  recentConfigs,
 }) => {
   const form = useForm()
   const router = useRouter()
@@ -30,13 +35,21 @@ export const BrewingWorkflow: React.FC<BrewingWorkflowProps> = ({
     // Error handling could be added here
   }
 
+  const handleQuickBrewSelect = (config: FormData) => {
+    // Pre-fill the form and skip to Step 2 (Brewing Parameters)
+    form.prefillForm(config, { skipToStep: 1 })
+  }
+
   return (
-    <Step
-      form={form}
-      onSubmit={handleSubmit}
-      beans={beans}
-      methods={methods}
-      grinders={grinders}
-    />
+    <>
+      <QuickBrew configs={recentConfigs} onSelect={handleQuickBrewSelect} />
+      <Step
+        form={form}
+        onSubmit={handleSubmit}
+        beans={beans}
+        methods={methods}
+        grinders={grinders}
+      />
+    </>
   )
 }

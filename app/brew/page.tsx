@@ -4,6 +4,7 @@ import { BrewingWorkflow } from './BrewingWorkflow'
 import { BeansModel } from '../lib/generated-models/Beans'
 import { MethodsModel } from '../lib/generated-models/Methods'
 import { GrindersModel } from '../lib/generated-models/Grinders'
+import { getRecentBrewConfigs } from './quickBrewActions'
 
 // Force dynamic rendering since we need database access
 export const dynamic = 'force-dynamic'
@@ -14,10 +15,13 @@ const Page = async () => {
   const methodsModel = new MethodsModel(db)
   const grindersModel = new GrindersModel(db)
 
-  // Use generated models for data fetching
-  const beans = await beansModel.findAll()
-  const methods = await methodsModel.findAll()
-  const grinders = await grindersModel.findAll()
+  // Fetch equipment data and recent brew configs in parallel
+  const [beans, methods, grinders, recentConfigs] = await Promise.all([
+    beansModel.findAll(),
+    methodsModel.findAll(),
+    grindersModel.findAll(),
+    getRecentBrewConfigs(),
+  ])
 
   return (
     <Box
@@ -42,7 +46,12 @@ const Page = async () => {
         Coffee Brewing
       </Typography>
 
-      <BrewingWorkflow beans={beans} methods={methods} grinders={grinders} />
+      <BrewingWorkflow
+        beans={beans}
+        methods={methods}
+        grinders={grinders}
+        recentConfigs={recentConfigs}
+      />
     </Box>
   )
 }

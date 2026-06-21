@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { FormData } from './types'
 
 // Constants moved to the top for better readability
@@ -14,6 +14,7 @@ export interface UseFormReturn {
   nextStep: () => void
   prevStep: () => void
   updateFormData: (_data: Partial<FormData>) => void
+  prefillForm: (_data: FormData, _options?: { skipToStep?: number }) => void
 }
 
 export const useForm = (): UseFormReturn => {
@@ -43,11 +44,23 @@ export const useForm = (): UseFormReturn => {
     }))
   }
 
+  /**
+   * Pre-fill all form fields at once and optionally jump to a specific step.
+   * Used by Quick Brew to skip the equipment selection step entirely.
+   */
+  const prefillForm = useCallback((_data: FormData, _options?: { skipToStep?: number }) => {
+    setFormData(_data)
+    if (_options?.skipToStep !== undefined) {
+      setCurrentStep(_options.skipToStep)
+    }
+  }, [])
+
   return {
     formData,
     currentStep,
     nextStep,
     prevStep,
     updateFormData,
+    prefillForm,
   }
 }

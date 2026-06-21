@@ -1,7 +1,8 @@
 'use client'
 import React, { useState } from 'react'
-import { Box, Typography, Button, Rating, Stack, Card, CardContent, TextField, Chip } from '@mui/material'
-import { Share, Coffee, Scale, Water, Settings } from '@mui/icons-material'
+import { Box, Typography, Button, Rating, Stack, Card, CardContent, TextField, Chip, Alert } from '@mui/material'
+import { Share, Coffee, Scale, Water, Settings, Replay, Home, BarChart } from '@mui/icons-material'
+import Link from 'next/link'
 import { generateBrewSuggestions } from './BrewSuggestions'
 import { saveBrewFeedback } from './actions'
 
@@ -37,6 +38,9 @@ export const ShareableBrew: React.FC<ShareableBrewProps> = ({ brewData }) => {
     reason: ''
   })
 
+  const [saved, setSaved] = useState(false)
+  const [saving, setSaving] = useState(false)
+
   // Update suggestions when feedback changes
   React.useEffect(() => {
     const newSuggestions = generateBrewSuggestions(feedback, { grind: brewData.grind, ratio: brewData.ratio })
@@ -44,6 +48,7 @@ export const ShareableBrew: React.FC<ShareableBrewProps> = ({ brewData }) => {
   }, [feedback, brewData.grind, brewData.ratio])
 
   const handleSaveFeedback = async () => {
+    setSaving(true)
     const feedbackData = {
       ...feedback,
       recommended_grind_adjustment: suggestions.grind - brewData.grind,
@@ -51,13 +56,109 @@ export const ShareableBrew: React.FC<ShareableBrewProps> = ({ brewData }) => {
     }
     
     await saveBrewFeedback(brewData.id, feedbackData)
-    alert('Feedback saved!')
+    setSaving(false)
+    setSaved(true)
   }
 
   const shareUrl = typeof window !== 'undefined' 
     ? `${window.location.origin}/brew/${brewData.id}/rate`
     : `/brew/${brewData.id}/rate`
 
+  // ─── Success State: Feedback Saved ───────────────────────────────
+  if (saved) {
+    return (
+      <Stack spacing={3}>
+        {/* Success Message */}
+        <Alert
+          severity="success"
+          sx={{
+            '& .MuiAlert-message': { width: '100%' },
+          }}
+        >
+          <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 0.5 }}>
+            Feedback saved!
+          </Typography>
+          <Typography variant="body2">
+            Your suggestions will be applied to your next brew with this combination.
+          </Typography>
+        </Alert>
+
+        {/* Suggestions Summary */}
+        {suggestions.reason && (
+          <Card sx={{ bgcolor: '#F5F5DC', border: '2px solid #228B22' }}>
+            <CardContent>
+              <Typography variant="subtitle2" sx={{ color: '#228B22', mb: 1, fontWeight: 600 }}>
+                Next Brew Suggestions
+              </Typography>
+              <Typography variant="body2" sx={{ color: '#654321', mb: 1.5 }}>
+                {suggestions.reason}
+              </Typography>
+              <Stack direction="row" spacing={3}>
+                <Box>
+                  <Typography variant="caption" color="text.secondary">Grind</Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 600, color: '#228B22' }}>
+                    {suggestions.grind}
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography variant="caption" color="text.secondary">Ratio</Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 600, color: '#228B22' }}>
+                    1:{suggestions.ratio}
+                  </Typography>
+                </Box>
+              </Stack>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Action Buttons */}
+        <Card sx={{ bgcolor: '#F5F5DC', border: '2px solid #8B4513' }}>
+          <CardContent>
+            <Typography variant="subtitle2" sx={{ color: '#8B4513', mb: 2, fontWeight: 600 }}>
+              What&apos;s next?
+            </Typography>
+            <Stack spacing={2}>
+              <Button
+                component={Link}
+                href="/brew"
+                variant="contained"
+                size="large"
+                startIcon={<Replay />}
+                fullWidth
+                sx={{ py: 1.5 }}
+              >
+                Brew Again
+              </Button>
+              <Stack direction="row" spacing={2}>
+                <Button
+                  component={Link}
+                  href="/stats"
+                  variant="outlined"
+                  startIcon={<BarChart />}
+                  fullWidth
+                  sx={{ py: 1.25 }}
+                >
+                  View History
+                </Button>
+                <Button
+                  component={Link}
+                  href="/"
+                  variant="outlined"
+                  startIcon={<Home />}
+                  fullWidth
+                  sx={{ py: 1.25 }}
+                >
+                  Home
+                </Button>
+              </Stack>
+            </Stack>
+          </CardContent>
+        </Card>
+      </Stack>
+    )
+  }
+
+  // ─── Feedback Form ───────────────────────────────────────────────
   return (
     <Stack spacing={3}>
       {/* Brew Details */}
@@ -137,7 +238,7 @@ export const ShareableBrew: React.FC<ShareableBrewProps> = ({ brewData }) => {
           {/* Quick Taste Feedback */}
           <Box mb={3}>
             <Typography variant="subtitle2" sx={{ mb: 1, color: '#654321' }}>Taste Notes</Typography>
-            <Stack direction="row" spacing={1} flexWrap="wrap">
+            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
               {[
                 { key: 'too_weak', label: 'Too Weak' },
                 { key: 'too_strong', label: 'Too Strong' },
@@ -164,7 +265,7 @@ export const ShareableBrew: React.FC<ShareableBrewProps> = ({ brewData }) => {
           {(feedback.too_weak || feedback.too_strong || feedback.is_bitter || feedback.is_sour || feedback.grind_too_coarse || feedback.grind_too_fine) && (
             <Box mb={3} sx={{ bgcolor: 'rgba(139, 69, 19, 0.05)', p: 2, borderRadius: 1 }}>
               <Typography variant="subtitle2" sx={{ mb: 1, color: '#8B4513' }}>
-                💡 Next Brew Suggestions
+                Next Brew Suggestions
               </Typography>
               <Typography variant="body2" sx={{ mb: 2, color: '#654321' }}>
                 {suggestions.reason}
@@ -194,10 +295,10 @@ export const ShareableBrew: React.FC<ShareableBrewProps> = ({ brewData }) => {
             variant="contained" 
             size="large"
             onClick={handleSaveFeedback}
-            disabled={feedback.overall_rating === 0}
+            disabled={feedback.overall_rating === 0 || saving}
             fullWidth
           >
-            Save Feedback & Suggestions
+            {saving ? 'Saving...' : 'Save Feedback & Suggestions'}
           </Button>
         </CardContent>
       </Card>
