@@ -110,7 +110,7 @@ class Logger {
         span.setStatus({ code: SpanStatusCode.OK })
         span.end()
         return result
-      } catch {
+      } catch (error) {
         this.error(`Operation ${name} failed`, { operation: name }, error as Error)
         span.recordException(error as Error)
         span.setStatus({ code: SpanStatusCode.ERROR, message: (error as Error).message })

@@ -95,14 +95,13 @@ export async function GET() {
       })
     } catch {
       const duration = Date.now() - startTime
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      const errorMessage = 'Unknown error'
       
       // Record metrics
       healthCheckCounter.add(1, { status: 'error' })
       healthCheckDuration.record(duration)
       dbConnectionGauge.add(-1)
 
-      span.recordException(error as Error)
       span.setAttributes({
         'health.status': 'unhealthy',
         'error.message': errorMessage
@@ -111,7 +110,7 @@ export async function GET() {
       logger.error('Health check failed', {
         duration_ms: duration,
         error: errorMessage
-      }, error as Error)
+      })
 
       return NextResponse.json(
         {

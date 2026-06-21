@@ -36,7 +36,7 @@ export async function ensureMigrations(): Promise<void> {
 
       migrationsRun = true
       logger.info('Database migrations completed successfully')
-    } catch {
+    } catch (error) {
       logger.error('Failed to run migrations', {}, error as Error)
       // Reset the promise so migrations can be retried
       migrationPromise = null
