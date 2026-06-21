@@ -50,7 +50,7 @@ export const OnboardingWizard: React.FC = () => {
       await addGrinder({ name: grinderName.trim() })
       setCompletedItems((prev) => ({ ...prev, 1: true }))
       setTimeout(() => handleNext(), 600)
-    } catch (_err) {
+    } catch {
       setError('Failed to add grinder. Please try again.')
     } finally {
       setLoading(false)
@@ -71,7 +71,7 @@ export const OnboardingWizard: React.FC = () => {
       })
       setCompletedItems((prev) => ({ ...prev, 2: true }))
       setTimeout(() => handleNext(), 600)
-    } catch (_err) {
+    } catch {
       setError('Failed to add beans. Please try again.')
     } finally {
       setLoading(false)
@@ -90,7 +90,7 @@ export const OnboardingWizard: React.FC = () => {
       await addMethod({ name: finalName })
       setCompletedItems((prev) => ({ ...prev, 3: true }))
       setTimeout(() => handleNext(), 600)
-    } catch (_err) {
+    } catch {
       setError('Failed to add method. Please try again.')
     } finally {
       setLoading(false)
