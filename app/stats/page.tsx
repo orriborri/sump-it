@@ -144,9 +144,13 @@ const StatsTable = () => {
 
   const confirmDelete = async () => {
     if (brewToDelete === null) return
-    await deleteBrew(brewToDelete)
-    const brews = await getBrews()
-    setItems(brews)
+    try {
+      await deleteBrew(brewToDelete)
+      const brews = await getBrews()
+      setItems(brews)
+    } catch {
+      setError('Failed to delete brew')
+    }
     setDeleteDialogOpen(false)
     setBrewToDelete(null)
   }

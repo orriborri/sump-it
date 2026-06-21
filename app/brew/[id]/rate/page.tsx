@@ -19,7 +19,7 @@ export default async function RatePage({ params, searchParams }: RatePageProps) 
   const brewTimeParam = searchParamsResolved.brew_time
   const brewTimeStr = Array.isArray(brewTimeParam) ? brewTimeParam[0] : brewTimeParam
   const brewTime = brewTimeStr ? parseInt(brewTimeStr, 10) : undefined
-  const validBrewTime = brewTime !== undefined && !isNaN(brewTime) ? brewTime : undefined
+  const validBrewTime = brewTime !== undefined && !isNaN(brewTime) && brewTime > 0 && brewTime <= 86400 ? brewTime : undefined
 
   return (
     <div style={{ maxWidth: 600, margin: '0 auto', padding: 20 }}>
