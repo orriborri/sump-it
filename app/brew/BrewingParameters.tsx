@@ -94,7 +94,7 @@ export const BrewingParameters: React.FC<BrewingParametersProps> = ({
         grinderId={formData.grinder_id > 0 ? formData.grinder_id.toString() : undefined}
       />
 
-      {/* Start Brewing Button */}
+      {/* Log This Brew Button */}
       <Box sx={{ pt: 2 }}>
         <Button
           variant="contained"
@@ -108,7 +108,7 @@ export const BrewingParameters: React.FC<BrewingParametersProps> = ({
             fontWeight: 600,
           }}
         >
-          Start Brewing
+          Log This Brew
         </Button>
       </Box>
     </Stack>
