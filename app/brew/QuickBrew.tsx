@@ -17,7 +17,7 @@ import type { FormData } from './types'
 
 interface QuickBrewProps {
   configs: QuickBrewConfig[]
-  onSelect: (config: FormData) => void
+  onSelect: (_config: FormData) => void
 }
 
 function timeAgo(dateString: string): string {
