@@ -24,6 +24,7 @@ import {
   DialogContent,
   DialogActions,
   Button,
+  Alert,
 } from '@mui/material'
 import DeleteIcon from '@mui/icons-material/Delete'
 import { useEffect, useState } from 'react'
@@ -116,6 +117,7 @@ function BrewCard({
 const StatsTable = () => {
   const [items, setItems] = useState<BrewResult[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [brewToDelete, setBrewToDelete] = useState<number | null>(null)
   const theme = useTheme()
@@ -123,9 +125,14 @@ const StatsTable = () => {
 
   useEffect(() => {
     const fetchItems = async () => {
-      const brews = await getBrews()
-      setItems(brews)
-      setLoading(false)
+      try {
+        const brews = await getBrews()
+        setItems(brews)
+        setLoading(false)
+      } catch {
+        setError('Failed to load brew history')
+        setLoading(false)
+      }
     }
     fetchItems()
   }, [])
@@ -154,6 +161,10 @@ const StatsTable = () => {
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
           <CircularProgress sx={{ color: '#8B4513' }} />
         </Box>
+      ) : error ? (
+        <Alert severity="error" sx={{ my: 2 }}>
+          {error}
+        </Alert>
       ) : items.length === 0 ? (
         <Typography variant="body1" sx={{ color: '#654321', textAlign: 'center', py: 4 }}>
           No brews logged yet. Start brewing to see your stats here!
