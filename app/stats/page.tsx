@@ -19,6 +19,11 @@ import {
   CircularProgress,
   useMediaQuery,
   useTheme,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
 } from '@mui/material'
 import DeleteIcon from '@mui/icons-material/Delete'
 import { useEffect, useState } from 'react'
@@ -111,6 +116,8 @@ function BrewCard({
 const StatsTable = () => {
   const [items, setItems] = useState<BrewResult[]>([])
   const [loading, setLoading] = useState(true)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [brewToDelete, setBrewToDelete] = useState<number | null>(null)
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('md'), { noSsr: true })
 
@@ -123,10 +130,18 @@ const StatsTable = () => {
     fetchItems()
   }, [])
 
-  const handleDelete = async (id: number) => {
-    await deleteBrew(id)
+  const handleDelete = (id: number) => {
+    setBrewToDelete(id)
+    setDeleteDialogOpen(true)
+  }
+
+  const confirmDelete = async () => {
+    if (brewToDelete === null) return
+    await deleteBrew(brewToDelete)
     const brews = await getBrews()
     setItems(brews)
+    setDeleteDialogOpen(false)
+    setBrewToDelete(null)
   }
 
   return (
@@ -237,6 +252,35 @@ const StatsTable = () => {
           </Table>
         </TableContainer>
       )}
+
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+      >
+        <DialogTitle sx={{ color: '#8B4513' }}>
+          Delete Brew
+        </DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to delete this brew? This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => setDeleteDialogOpen(false)}
+            sx={{ color: '#666' }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={confirmDelete}
+            variant="contained"
+            sx={{ bgcolor: '#DC143C', '&:hover': { bgcolor: '#B91C3C' } }}
+          >
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   )
 }
