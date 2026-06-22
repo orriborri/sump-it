@@ -1,0 +1,52 @@
+{
+  "id": "FEAT-003",
+  "type": "docs",
+  "description": "Add JSDoc documentation comments to all functions and components in app/brew/ directory (actions, components, hooks, types, business logic, equipment, feedback, parameters, onboarding, quick brew)",
+  "status": "pending",
+  "steps": [
+    "Add JSDoc to app/brew/actions.ts - document setTestDatabase, getDatabase, getModels, getPreviousBrews, saveBrew",
+    "Add JSDoc to app/brew/enhanced-actions.ts - document all exported functions",
+    "Add JSDoc to app/brew/quickBrewActions.ts - document all exported functions",
+    "Add JSDoc to app/brew/constants.ts - document exported constants if any functions",
+    "Add JSDoc to app/brew/types.ts - document interfaces/types with function signatures",
+    "Add JSDoc to app/brew/useForm.ts - document the custom hook",
+    "Add JSDoc to app/brew/usePreviousBrews.ts - document the custom hook",
+    "Add JSDoc to app/brew/useStepNavigation.ts - document the custom hook",
+    "Add JSDoc to app/brew/BeanSelector.tsx - document the component",
+    "Add JSDoc to app/brew/BrewingParameters.tsx - document the component",
+    "Add JSDoc to app/brew/BrewingWorkflow.tsx - document the component",
+    "Add JSDoc to app/brew/FormWrapper.tsx - document the component",
+    "Add JSDoc to app/brew/IntegratedVerticalStepper.tsx - document the component",
+    "Add JSDoc to app/brew/QuickBrew.tsx - document the component",
+    "Add JSDoc to app/brew/Step.tsx - document the component",
+    "Add JSDoc to app/brew/page.tsx - document the page component",
+    "Add JSDoc to app/brew/equipment/actions.ts - document all functions",
+    "Add JSDoc to app/brew/equipment/grinderActions.ts - document all functions",
+    "Add JSDoc to app/brew/equipment/useGrinderSettings.ts - document the hook",
+    "Add JSDoc to app/brew/feedback/BrewRating.tsx - document the component",
+    "Add JSDoc to app/brew/feedback/BrewSuggestions.ts - document generateBrewSuggestions function",
+    "Add JSDoc to app/brew/feedback/ShareableBrew.tsx - document the component",
+    "Add JSDoc to app/brew/feedback/actions.ts - document all functions",
+    "Add JSDoc to app/brew/feedback/types.ts - document types/interfaces if containing functions",
+    "Add JSDoc to app/brew/parameters/GrindSettingInput.tsx - document the component",
+    "Add JSDoc to app/brew/parameters/Recipe.tsx - document the component",
+    "Add JSDoc to app/brew/parameters/types.ts - document types",
+    "Add JSDoc to app/brew/onboarding/OnboardingWizard.tsx - document the component and its handler functions",
+    "Add JSDoc to app/brew/[id]/actions.ts - document all server actions",
+    "Add JSDoc to app/brew/[id]/page.tsx - document the page component",
+    "Add JSDoc to app/brew/[id]/SharedBrewFeedback.tsx - document the component",
+    "Add JSDoc to app/brew/[id]/types.ts - document types",
+    "Add JSDoc to app/brew/[id]/rate/page.tsx - document the page component",
+    "Add JSDoc to app/brew/[id]/timer/page.tsx - document the page component"
+  ],
+  "acceptance_criteria": [
+    "Every exported function, component, hook, and class in app/brew/ has a JSDoc comment",
+    "JSDoc comments describe purpose, parameters where relevant, and return values",
+    "pnpm type-check still passes after changes"
+  ],
+  "verification": [
+    "pnpm type-check"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

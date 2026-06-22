@@ -1,0 +1,7 @@
+{
+  "task_id": "task-add-jsdoc-documentation",
+  "task_description": "Add JSDoc documentation comments to all undocumented functions and classes across the repository to resolve DeepSource JS-D1001 (168 occurrences)",
+  "status": "in_progress",
+  "feature_order": ["FEAT-001", "FEAT-002", "FEAT-003", "FEAT-004"],
+  "blocked_reason": null
+}
