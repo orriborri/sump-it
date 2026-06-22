@@ -32,7 +32,9 @@ describe('Delete Bean Integration Tests', () => {
     render(<DeleteButton beanId={bean!.id} beanName="Test Bean to Delete" />)
 
     // Click delete button to open modal
-    const deleteButton = screen.getByRole('button', { name: /delete test bean to delete/i })
+    const deleteButton = screen.getByRole('button', {
+      name: /delete test bean to delete/i,
+    })
     fireEvent.click(deleteButton)
 
     // Verify modal is open
@@ -60,7 +62,9 @@ describe('Delete Bean Integration Tests', () => {
     render(<DeleteButton beanId={bean!.id} beanName="Test Bean to Keep" />)
 
     // Click delete button to open modal
-    const deleteButton = screen.getByRole('button', { name: /delete test bean to keep/i })
+    const deleteButton = screen.getByRole('button', {
+      name: /delete test bean to keep/i,
+    })
     fireEvent.click(deleteButton)
 
     // Click cancel
