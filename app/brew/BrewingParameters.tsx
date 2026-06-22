@@ -61,7 +61,6 @@ export const BrewingParameters: React.FC<BrewingParametersProps> = ({
       grinder.min_setting &&
       grinder.step_size
     ) {
-
       const stepNumber =
         Math.round((grindValue - grinder.min_setting) / grinder.step_size) + 1
       return stepNumber.toString()
