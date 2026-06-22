@@ -5,13 +5,9 @@
 
 language: "en-US"
 tone_instructions: >
-  Be extremely strict and thorough. Flag every issue no matter how minor.
-  Prioritize correctness, type safety, security, and performance.
-  Do not hesitate to request changes for code style violations, missing error handling,
-  or architectural concerns. Be direct and uncompromising in your feedback.
+  Be strict and thorough. Flag every issue. Prioritize correctness, type safety, security, and performance. Request changes for style violations, missing error handling, or architectural concerns.
 early_access: true
 enable_free_tier: true
-focus: "casual"
 
 reviews:
   profile: "assertive"
