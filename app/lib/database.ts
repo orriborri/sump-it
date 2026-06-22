@@ -35,10 +35,13 @@ const dialect = new PostgresDialect({
       }),
 })
 
-// Database interface is passed to Kysely's constructor, and from now on, Kysely
-// knows your database structure.
-// Dialect is passed to Kysely's constructor, and from now on, Kysely knows how
-// to communicate with your database.
+/**
+ * Primary Kysely database instance configured with the PostgreSQL dialect.
+ * Uses DATABASE_URL environment variable if available, otherwise falls back
+ * to individual connection parameters (POSTGRES_HOST, POSTGRES_DATABASE, etc.).
+ * The connection pool is configured with a max of 20 clients, 30s idle timeout,
+ * and 2s connection timeout.
+ */
 export const db = new Kysely<DB>({
   dialect,
 })

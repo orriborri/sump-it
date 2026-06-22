@@ -9,10 +9,16 @@ export type BrewsUpdate = Updateable<DB['brews']>;
  * Brews Model - Provides CRUD operations for the brews table
  */
 export class BrewsModel {
+  /**
+   * Creates a new BrewsModel instance for querying the brews table.
+   * @param _db - The Kysely database instance to use for queries
+   */
   constructor(private _db: Kysely<DB>) {}
 
   /**
    * Create a new brew record
+   * @param data - The brew data to insert (excludes auto-generated id and created_at)
+   * @returns The newly created brew record, or undefined if the insert failed
    */
   async create(data: Omit<BrewsInsert, 'id' | 'created_at'>): Promise<BrewsSelect | undefined> {
     return await this._db
@@ -24,6 +30,8 @@ export class BrewsModel {
 
   /**
    * Get a brew by id
+   * @param id - The primary key of the brew to find
+   * @returns The matching brew record, or undefined if not found
    */
   async findById(id: number): Promise<BrewsSelect | undefined> {
     return await this._db
@@ -35,6 +43,7 @@ export class BrewsModel {
 
   /**
    * Get all brews records
+   * @returns An array of all brew records in the table
    */
   async findAll(): Promise<BrewsSelect[]> {
     return await this._db
@@ -45,6 +54,9 @@ export class BrewsModel {
 
   /**
    * Update a brew by id
+   * @param id - The primary key of the brew to update
+   * @param data - The fields to update on the brew record
+   * @returns The updated brew record, or undefined if not found
    */
   async updateById(
     id: number, 
@@ -60,6 +72,7 @@ export class BrewsModel {
 
   /**
    * Delete a brew by id
+   * @param id - The primary key of the brew to delete
    */
   async deleteById(id: number): Promise<void> {
     await this._db
@@ -70,6 +83,7 @@ export class BrewsModel {
 
   /**
    * Count total brews records
+   * @returns The total number of brew records
    */
   async count(): Promise<number> {
     const result = await this._db
@@ -82,6 +96,8 @@ export class BrewsModel {
 
   /**
    * Check if a brew exists by id
+   * @param id - The primary key to check
+   * @returns True if a brew with the given id exists
    */
   async exists(id: number): Promise<boolean> {
     const result = await this._db
@@ -95,6 +111,9 @@ export class BrewsModel {
 
   /**
    * Find brews with pagination
+   * @param limit - Maximum number of records to return (default: 10)
+   * @param offset - Number of records to skip (default: 0)
+   * @returns An array of brew records within the specified page
    */
   async findWithPagination(
     limit: number = 10, 
@@ -110,6 +129,8 @@ export class BrewsModel {
 
   /**
    * Create multiple brews records
+   * @param data - Array of brew data to insert (excludes auto-generated id and created_at)
+   * @returns An array of the newly created brew records
    */
   async createMany(data: Omit<BrewsInsert, 'id' | 'created_at'>[]): Promise<BrewsSelect[]> {
     return await this._db

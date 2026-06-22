@@ -3,7 +3,11 @@ import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentation
 import { PrometheusExporter } from '@opentelemetry/exporter-prometheus'
 import { logger } from './logger'
 
-// Initialize OpenTelemetry
+/**
+ * Initializes the OpenTelemetry SDK with Prometheus metrics exporter and
+ * auto-instrumentation for HTTP and PostgreSQL. Disables noisy filesystem
+ * and DNS instrumentation. Registers a SIGTERM handler for graceful shutdown.
+ */
 const init = () => {
   // Prometheus metrics exporter
   const prometheusExporter = new PrometheusExporter({

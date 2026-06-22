@@ -2,6 +2,10 @@ import { Kysely } from 'kysely';
 import { DB } from '../db.d';
 import { BrewsSelect } from './Brews';
 
+/**
+ * Extended brew type that includes joined bean, method, and grinder names
+ * from their respective related tables.
+ */
 export interface BrewsWithJoins extends BrewsSelect {
   bean_name?: string | null;
   method_name?: string | null;
@@ -12,10 +16,18 @@ export interface BrewsWithJoins extends BrewsSelect {
  * Brews Joined Queries - Provides queries with joined data
  */
 export class BrewsJoinedQueries {
+  /**
+   * Creates a new BrewsJoinedQueries instance for executing joined brew queries.
+   * @param _db - The Kysely database instance to use for queries
+   */
   constructor(private _db: Kysely<DB>) {}
 
   /**
    * Find brews with all joined data by parameters
+   * @param beanId - The bean ID to filter by
+   * @param methodId - The brewing method ID to filter by
+   * @param grinderId - The grinder ID to filter by
+   * @returns Array of brew records with joined bean, method, grinder names and feedback
    */
   async findByParameters(
     beanId: number,
@@ -57,6 +69,8 @@ export class BrewsJoinedQueries {
 
   /**
    * Find brews with all joined data by id
+   * @param id - The brew ID to look up
+   * @returns The brew record with joined names and feedback, or undefined if not found
    */
   async findByIdWithJoins(id: number): Promise<BrewsWithJoins | undefined> {
     return await this._db
@@ -91,6 +105,8 @@ export class BrewsJoinedQueries {
 
   /**
    * Find top rated brews with all joined data
+   * @param limit - Maximum number of results to return (default: 10)
+   * @returns Array of top-rated brews (rating >= 4) ordered by rating descending
    */
   async findTopRated(limit: number = 10): Promise<BrewsWithJoins[]> {
     return await this._db

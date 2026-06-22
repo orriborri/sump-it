@@ -2,7 +2,7 @@
   "id": "FEAT-002",
   "type": "docs",
   "description": "Add JSDoc documentation comments to all functions, classes, and exported declarations in the app/lib/ directory (database, logger, metrics, telemetry, repositories, generated models, utility modules)",
-  "status": "pending",
+  "status": "in_progress",
   "steps": [
     "Add JSDoc to app/lib/database.ts - document the db export and connection setup",
     "Add JSDoc to app/lib/date.ts - document all date utility functions",
