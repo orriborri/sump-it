@@ -1,6 +1,6 @@
 'use client'
 import React, { useState } from 'react'
-import { Stack, TextField, Typography, Box, IconButton } from '@mui/material'
+import { Stack, TextField, Typography, Box, IconButton, Tooltip } from '@mui/material'
 import { Lock, LockOpen } from '@mui/icons-material'
 import { FormData } from '../types'
 
@@ -84,13 +84,15 @@ export const Recipe: React.FC<RecipeProps> = ({ formData, updateFormData }) => {
             disabled={ratioLocked}
             sx={{ minWidth: 120 }}
           />
-          <IconButton 
-            onClick={() => setRatioLocked(!ratioLocked)}
-            color={ratioLocked ? 'primary' : 'default'}
-            size="small"
-          >
-            {ratioLocked ? <Lock /> : <LockOpen />}
-          </IconButton>
+          <Tooltip title={ratioLocked ? 'Unlock ratio to edit manually' : 'Lock ratio to scale recipe proportionally'}>
+            <IconButton 
+              onClick={() => setRatioLocked(!ratioLocked)}
+              color={ratioLocked ? 'primary' : 'default'}
+              size="small"
+            >
+              {ratioLocked ? <Lock /> : <LockOpen />}
+            </IconButton>
+          </Tooltip>
         </Box>
       </Box>
     </Stack>

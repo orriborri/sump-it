@@ -46,8 +46,8 @@ export const IntegratedVerticalStepper: React.FC<IntegratedVerticalStepperProps>
                     ? 'success.main'
                     : isActive
                       ? 'primary.main'
-                      : 'grey.300',
-                  color: isCompleted || isActive ? 'white' : 'grey.600',
+                      : 'grey.500',
+                  color: 'white',
                   transition: 'all 0.3s ease',
                   flexShrink: 0,
                   mt: 1,
