@@ -15,9 +15,11 @@ export function AddMethodForm({ onSuccess }: AddMethodFormProps = {}) {
   const { control, handleSubmit, reset } = useForm<MethodFormData>()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const onSubmit = async (data: MethodFormData) => {
     setIsSubmitting(true)
+    setError(null)
     try {
       await addMethod(data)
       reset()
@@ -25,6 +27,7 @@ export function AddMethodForm({ onSuccess }: AddMethodFormProps = {}) {
       setTimeout(() => setSuccess(false), 3000)
       onSuccess?.()
     } catch {
+      setError('Failed to add method')
     } finally {
       setIsSubmitting(false)
     }
@@ -35,6 +38,11 @@ export function AddMethodForm({ onSuccess }: AddMethodFormProps = {}) {
       {success && (
         <Alert severity="success" sx={{ mb: 2 }}>
           ✅ Method added successfully!
+        </Alert>
+      )}
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
         </Alert>
       )}
       
