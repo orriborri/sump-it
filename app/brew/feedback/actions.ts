@@ -3,7 +3,7 @@
 import { db } from '../../lib/database'
 import { BrewFeedbackModel } from '../../lib/generated-models/BrewFeedback'
 import type { Kysely } from 'kysely'
-import type { Database } from '../../lib/db'
+import type { DB } from '../../lib/db.d'
 
 // Interface for feedback input data
 interface BrewFeedbackInput {
@@ -16,9 +16,9 @@ interface BrewFeedbackInput {
 }
 
 // Allow dependency injection for testing
-let testDb: Kysely<Database> | null = null
+let testDb: Kysely<DB> | null = null
 
-export async function setTestDatabase(database: Kysely<Database> | null) {
+export async function setTestDatabase(database: Kysely<DB> | null) {
   testDb = database
 }
 
@@ -29,7 +29,7 @@ function getDatabase() {
 export async function saveBrewFeedback(brewId: number, feedback: BrewFeedbackInput) {
   try {
     const currentDb = getDatabase()
-    const feedbackModel = new BrewFeedbackModel(currentDb as any)
+    const feedbackModel = new BrewFeedbackModel(currentDb)
     
     const savedFeedback = await feedbackModel.create({
       brew_id: brewId,

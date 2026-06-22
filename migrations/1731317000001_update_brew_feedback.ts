@@ -1,6 +1,7 @@
 import { Kysely, sql } from "kysely";
+import { DB } from "./db-types";
 
-export async function up(db: Kysely<any>): Promise<void> {
+export async function up(db: Kysely<DB>): Promise<void> {
   // Drop the old columns
   await db.schema
     .alterTable("brew_feedback")
@@ -18,7 +19,7 @@ export async function up(db: Kysely<any>): Promise<void> {
     .execute();
 }
 
-export async function down(db: Kysely<any>): Promise<void> {
+export async function down(db: Kysely<DB>): Promise<void> {
   // Remove the new columns
   await db.schema
     .alterTable("brew_feedback")

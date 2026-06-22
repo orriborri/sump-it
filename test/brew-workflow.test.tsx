@@ -18,7 +18,7 @@ vi.mock('../app/lib/database', () => ({
 
 // Mock the Form component
 vi.mock('../app/brew/Form', () => ({
-  Form: ({ onSubmit, beans, methods, grinders }: any) => (
+  Form: ({ onSubmit }: { onSubmit: (data: Record<string, unknown>) => void; beans: unknown[]; methods: unknown[]; grinders: unknown[] }) => (
     <div data-testid="brew-form">
       <button
         onClick={() =>
@@ -41,7 +41,7 @@ vi.mock('../app/brew/Form', () => ({
 
 // Mock the EnhancedBrewFeedback component
 vi.mock('../app/brew/feedback/EnhancedBrewFeedback', () => ({
-  EnhancedBrewFeedback: ({ onSaveFeedback }: any) => (
+  EnhancedBrewFeedback: ({ onSaveFeedback }: { onSaveFeedback: (data: Record<string, unknown>) => void }) => (
     <div data-testid="brew-feedback">
       <button onClick={() => onSaveFeedback({ rating: 5, notes: 'Great!' })}>
         Save Feedback

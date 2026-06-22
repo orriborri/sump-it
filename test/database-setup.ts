@@ -1,12 +1,22 @@
 import { Kysely, SqliteDialect } from 'kysely'
 import Database from 'better-sqlite3'
-import { Database as DatabaseType } from '../app/lib/db'
+import type { DB } from '../app/lib/db.d'
+
+// Extended test DB interface that includes extra test columns
+export interface TestDB extends DB {
+  beans: DB['beans'] & {
+    roast_level: string | null
+  }
+  methods: DB['methods'] & {
+    description: string | null
+  }
+}
 
 // Create in-memory SQLite database for testing
-export function createTestDatabase(): Kysely<DatabaseType> {
+export function createTestDatabase(): Kysely<TestDB> {
   const db = new Database(':memory:')
   
-  return new Kysely<DatabaseType>({
+  return new Kysely<TestDB>({
     dialect: new SqliteDialect({
       database: db,
     }),
@@ -14,7 +24,7 @@ export function createTestDatabase(): Kysely<DatabaseType> {
 }
 
 // Setup test database with schema
-export async function setupTestDatabase(db: Kysely<DatabaseType>) {
+export async function setupTestDatabase(db: Kysely<TestDB>) {
   // Create tables (you'd run your actual migration scripts here)
   await db.schema
     .createTable('beans')
@@ -55,22 +65,22 @@ export async function setupTestDatabase(db: Kysely<DatabaseType>) {
     .execute()
 
   // Insert test data
-  await db.insertInto('beans' as any).values([
+  await db.insertInto('beans').values([
     { id: 1, name: 'Ethiopian Sidamo', roster: 'Ethiopia', rostery: 'Medium', roast_level: 'Medium' },
     { id: 2, name: 'Colombian Supremo', roster: 'Colombia', rostery: 'Medium-Dark', roast_level: 'Medium-Dark' },
   ]).execute()
 
-  await db.insertInto('methods' as any).values([
+  await db.insertInto('methods').values([
     { id: 1, name: 'Pour Over V60', description: 'Japanese pour over method' },
     { id: 2, name: 'French Press', description: 'Immersion brewing method' },
   ]).execute()
 
-  await db.insertInto('grinders' as any).values([
+  await db.insertInto('grinders').values([
     { id: 1, name: 'Baratza Encore', min_setting: 1, max_setting: 40 },
     { id: 2, name: 'Hario Mini Mill', min_setting: 1, max_setting: 20 },
   ]).execute()
 }
 
-export async function cleanupTestDatabase(db: Kysely<DatabaseType>) {
+export async function cleanupTestDatabase(db: Kysely<TestDB>) {
   await db.destroy()
 }

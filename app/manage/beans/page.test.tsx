@@ -29,14 +29,14 @@ const mockBeans = [
 ]
 
 describe('BeansPage', () => {
-  let mockFindAll: any
+  let mockFindAll: ReturnType<typeof vi.fn>
 
   beforeEach(() => {
     vi.clearAllMocks()
     mockFindAll = vi.fn()
     vi.mocked(BeansModel).mockImplementation(() => ({
       findAll: mockFindAll,
-    }) as any)
+    }) as unknown as InstanceType<typeof BeansModel>)
   })
 
   it('fetches and displays beans from database', async () => {
