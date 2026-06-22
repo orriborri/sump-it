@@ -1,7 +1,7 @@
 'use client'
 import React, { useState } from 'react'
 import { Box, Typography, Button, Rating, Stack, Card, CardContent, TextField, Chip, Alert } from '@mui/material'
-import { Share, Coffee, Scale, Water, Settings, Replay, Home, BarChart } from '@mui/icons-material'
+import { Share, Coffee, Scale, Water, Settings, Replay, Home, BarChart, AccessTime } from '@mui/icons-material'
 import Link from 'next/link'
 import { generateBrewSuggestions } from './BrewSuggestions'
 import { saveBrewFeedback } from './actions'
@@ -19,9 +19,10 @@ interface BrewData {
 
 interface ShareableBrewProps {
   brewData: BrewData
+  brewTime?: number
 }
 
-export const ShareableBrew: React.FC<ShareableBrewProps> = ({ brewData }) => {
+export const ShareableBrew: React.FC<ShareableBrewProps> = ({ brewData, brewTime }) => {
   const [feedback, setFeedback] = useState({
     too_weak: false,
     too_strong: false,
@@ -222,6 +223,14 @@ export const ShareableBrew: React.FC<ShareableBrewProps> = ({ brewData }) => {
                 Grind {brewData.grind}
               </Typography>
             </Box>
+            {brewTime !== undefined && brewTime > 0 && (
+              <Box display="flex" alignItems="center" gap={0.5}>
+                <AccessTime fontSize="small" sx={{ color: '#8B4513' }} />
+                <Typography variant="body2" sx={{ fontWeight: 500, color: '#654321' }}>
+                  {String(Math.floor(brewTime / 60)).padStart(2, '0')}:{String(brewTime % 60).padStart(2, '0')}
+                </Typography>
+              </Box>
+            )}
           </Stack>
         </CardContent>
       </Card>

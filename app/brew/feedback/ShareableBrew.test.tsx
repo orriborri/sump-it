@@ -23,7 +23,9 @@ describe('ShareableBrew Component', () => {
   it('renders brew details', () => {
     render(<ShareableBrew brewData={mockBrewData} />)
 
-    expect(screen.getByText(/Ethiopian Yirgacheffe/)).toBeInTheDocument()
+    expect(
+      screen.getByRole('heading', { level: 5, name: /Ethiopian Yirgacheffe/ })
+    ).toBeInTheDocument()
     expect(screen.getByText('V60')).toBeInTheDocument()
     expect(screen.getByText('15g')).toBeInTheDocument()
     expect(screen.getByText('250ml')).toBeInTheDocument()

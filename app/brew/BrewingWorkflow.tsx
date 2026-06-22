@@ -30,7 +30,7 @@ export const BrewingWorkflow: React.FC<BrewingWorkflowProps> = ({
     const result = await saveBrew(form.formData)
     
     if (result.success && result.brew) {
-      router.push(`/brew/${result.brew.id}/rate`)
+      router.push(`/brew/${result.brew.id}/timer`)
     }
     // Error handling could be added here
   }

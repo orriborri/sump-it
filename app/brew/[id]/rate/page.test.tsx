@@ -26,7 +26,9 @@ describe('Rate Page', () => {
     const page = await RatePage({ params: Promise.resolve({ id: '1' }) })
     render(page)
 
-    expect(screen.getByText(/Ethiopian Yirgacheffe/)).toBeInTheDocument()
+    expect(
+      screen.getByRole('heading', { level: 5, name: /Ethiopian Yirgacheffe/ })
+    ).toBeInTheDocument()
   })
 
   it('shows feedback form with rating', async () => {

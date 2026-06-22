@@ -1,7 +1,7 @@
 'use client'
-import React from 'react'
+import React, { useEffect, useRef } from 'react'
 import { Stack, Alert, Typography, Button, Box } from '@mui/material'
-import { Coffee } from '@mui/icons-material'
+import { Coffee, TrendingUp } from '@mui/icons-material'
 import { FormData } from './types'
 import { Recipe } from './parameters/Recipe'
 import { GrindSettingInput } from './parameters/GrindSettingInput'
@@ -30,8 +30,24 @@ export const BrewingParameters: React.FC<BrewingParametersProps> = ({
 
   const lastBrew = previousBrews[0]
   const currentGrinder = grinders?.find(g => g.id === formData.grinder_id)
+  const prefilled = useRef(false)
 
-  // Previous brews loaded for this combination
+  // Auto-fill form with last brew's parameters when previous brews load
+  useEffect(() => {
+    if (lastBrew && !prefilled.current) {
+      prefilled.current = true
+      const updates: Partial<FormData> = {}
+
+      if (lastBrew.dose && lastBrew.dose > 0) updates.dose = lastBrew.dose
+      if (lastBrew.water && lastBrew.water > 0) updates.water = lastBrew.water
+      if (lastBrew.grind && lastBrew.grind > 0) updates.grind = lastBrew.grind
+      if (lastBrew.ratio) updates.ratio = parseFloat(String(lastBrew.ratio))
+
+      if (Object.keys(updates).length > 0) {
+        updateFormData(updates)
+      }
+    }
+  }, [lastBrew, updateFormData])
 
   // Convert numeric grind setting to display format based on grinder
   const formatGrindSetting = (
@@ -45,7 +61,7 @@ export const BrewingParameters: React.FC<BrewingParametersProps> = ({
       grinder.min_setting &&
       grinder.step_size
     ) {
-      // Convert to step number: (grindValue - min_setting) / step_size + 1
+
       const stepNumber =
         Math.round((grindValue - grinder.min_setting) / grinder.step_size) + 1
       return stepNumber.toString()
@@ -58,13 +74,16 @@ export const BrewingParameters: React.FC<BrewingParametersProps> = ({
     <Stack spacing={3}>
       {/* Previous Brew Feedback */}
       {lastBrew && (
-        <Alert severity="info">
-          <Typography variant="subtitle2">
-            Last brew with this combination:
+        <Alert severity="info" icon={<TrendingUp />}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+            Pre-filled from your last brew
           </Typography>
           <Typography variant="body2">
             Grind: {formatGrindSetting(lastBrew.grind ?? 0, currentGrinder)},
             Dose: {lastBrew.dose}g, Ratio: 1:{lastBrew.ratio}
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            Adjust as needed before brewing.
           </Typography>
         </Alert>
       )}
@@ -81,7 +100,7 @@ export const BrewingParameters: React.FC<BrewingParametersProps> = ({
         }
       />
 
-      {/* Start Brewing Button */}
+      {/* Log This Brew Button */}
       <Box sx={{ pt: 2 }}>
         <Button
           variant="contained"
@@ -95,7 +114,7 @@ export const BrewingParameters: React.FC<BrewingParametersProps> = ({
             fontWeight: 600,
           }}
         >
-          Start Brewing
+          Log This Brew
         </Button>
       </Box>
     </Stack>
