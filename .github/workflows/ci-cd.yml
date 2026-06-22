@@ -65,8 +65,15 @@ jobs:
 
       - name: Report coverage to DeepSource
         continue-on-error: true
+        env:
+          DEEPSOURCE_CLI_VERSION: "0.10.1"
+          DEEPSOURCE_CLI_CHECKSUM: "e415a6a53257457ef1dad900fdb39aeb991dd01c35c4be9cafa88a41f9e50b3b"
         run: |
-          curl -fsSL https://cli.deepsource.com/install | BINDIR=./bin sh
+          mkdir -p ./bin
+          curl -fsSL "https://github.com/DeepSourceCorp/cli/releases/download/v${DEEPSOURCE_CLI_VERSION}/deepsource_${DEEPSOURCE_CLI_VERSION}_linux_amd64.tar.gz" -o deepsource.tar.gz
+          echo "${DEEPSOURCE_CLI_CHECKSUM}  deepsource.tar.gz" | sha256sum -c
+          tar -xzf deepsource.tar.gz -C ./bin deepsource
+          chmod +x ./bin/deepsource
           ./bin/deepsource report --analyzer test-coverage --key javascript --value-file ./coverage/lcov.info --use-oidc --host https://app.deepsource.com
 
       - name: Build application
