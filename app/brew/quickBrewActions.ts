@@ -3,6 +3,10 @@
 import { db } from '@/app/lib/database'
 import { logger } from '@/app/lib/logger'
 
+/**
+ * Represents a recent brew configuration used for the Quick Brew feature
+ * Contains equipment IDs, parameter values, and metadata about the brew history
+ */
 export interface QuickBrewConfig {
   id: number
   bean_id: number

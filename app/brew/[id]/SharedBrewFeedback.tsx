@@ -36,6 +36,11 @@ interface SharedBrewFeedbackProps {
   brewDetails: BrewDetails
 }
 
+/**
+ * Displays a shared brew feedback form allowing someone to rate and review a brew
+ * Collects overall rating, taste characteristics, coffee output, and additional notes
+ * Shows a success confirmation with brew summary after submission
+ */
 export const SharedBrewFeedback: React.FC<SharedBrewFeedbackProps> = ({
   brewDetails,
 }) => {
@@ -53,6 +58,11 @@ export const SharedBrewFeedback: React.FC<SharedBrewFeedbackProps> = ({
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  /**
+   * Updates a single feedback field by key
+   * @param field - The feedback field name to update
+   * @param value - The new value for the field
+   */
   const handleFeedbackChange = (
     field: string,
     value: string | number | boolean
@@ -63,6 +73,10 @@ export const SharedBrewFeedback: React.FC<SharedBrewFeedbackProps> = ({
     }))
   }
 
+  /**
+   * Validates and submits the feedback form data to the server
+   * Requires at least an overall rating before allowing submission
+   */
   const handleSubmit = async () => {
     if (feedback.overall_rating === 0) {
       setError('Please provide an overall rating')

@@ -20,6 +20,11 @@ interface QuickBrewProps {
   onSelect: (_config: FormData) => void
 }
 
+/**
+ * Converts a timestamp string into a human-readable relative time description
+ * @param dateString - ISO date string to convert
+ * @returns Relative time string like "5m ago", "2h ago", "3d ago", or a formatted date
+ */
 function timeAgo(dateString: string): string {
   const date = new Date(dateString)
   const now = new Date()
@@ -34,9 +39,18 @@ function timeAgo(dateString: string): string {
   return date.toLocaleDateString()
 }
 
+/**
+ * Displays a list of recent brew configurations as tappable cards
+ * Allows users to quickly repeat a previous brew by pre-filling the form
+ * Shows bean name, method, grinder, parameters, ratings, and feedback-based suggestions
+ */
 export const QuickBrew: React.FC<QuickBrewProps> = ({ configs, onSelect }) => {
   if (configs.length === 0) return null
 
+  /**
+   * Transforms a QuickBrewConfig into FormData and passes it to the onSelect callback
+   * @param config - The selected quick brew configuration to convert and apply
+   */
   const handleSelect = (config: QuickBrewConfig) => {
     const formData: FormData = {
       bean_id: config.bean_id,

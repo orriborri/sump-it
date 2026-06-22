@@ -9,6 +9,9 @@ import { FormData, BrewFeedbackInput } from './types'
 const brewsModel = new BrewsModel(db)
 const feedbackModel = new BrewFeedbackModel(db)
 
+/**
+ * Represents a brew record combined with its optional taste feedback data
+ */
 export interface BrewWithFeedback {
   id: number
   bean_id: number | null
@@ -29,6 +32,10 @@ export interface BrewWithFeedback {
   }
 }
 
+/**
+ * Represents suggested brewing parameters with a confidence level
+ * Generated from historical brew data and user feedback
+ */
 export interface ParameterSuggestion {
   water: number
   dose: number
@@ -38,6 +45,14 @@ export interface ParameterSuggestion {
   reasoning: string
 }
 
+/**
+ * Fetches all brews for a specific equipment combination along with their feedback data
+ * Joins brew records with feedback to provide a complete history of results
+ * @param bean_id - The coffee bean ID as a string
+ * @param method_id - The brewing method ID as a string
+ * @param grinder_id - The grinder ID as a string
+ * @returns Array of brews with their associated feedback, ordered by most recent first
+ */
 export async function getBrewsWithFeedback(
   bean_id: string,
   method_id: string,
@@ -101,6 +116,14 @@ export async function getBrewsWithFeedback(
   }
 }
 
+/**
+ * Analyzes historical brew data and feedback to suggest optimal brewing parameters
+ * Prioritizes highly-rated brews, falls back to feedback-based adjustments, then defaults
+ * @param bean_id - The coffee bean ID as a string
+ * @param method_id - The brewing method ID as a string
+ * @param grinder_id - The grinder ID as a string
+ * @returns Suggested parameters with confidence level, or null if no data available
+ */
 export async function suggestOptimalParameters(
   bean_id: string,
   method_id: string,
@@ -170,6 +193,12 @@ export async function suggestOptimalParameters(
   return null
 }
 
+/**
+ * Analyzes feedback patterns from recent brews and suggests parameter adjustments
+ * Adjusts grind and ratio based on taste issues like strength, sourness, and bitterness
+ * @param brews - Array of brews with feedback data to analyze
+ * @returns Suggested parameter adjustments with reasoning
+ */
 function analyzeAndSuggestImprovements(
   brews: BrewWithFeedback[]
 ): ParameterSuggestion {
@@ -232,6 +261,12 @@ function analyzeAndSuggestImprovements(
   }
 }
 
+/**
+ * Provides sensible default brewing parameters based on the brewing method type
+ * Looks up the method name and returns appropriate defaults for espresso, pour over, etc.
+ * @param method_id - The brewing method ID as a string
+ * @returns Default parameter suggestion tailored to the method type
+ */
 async function getDefaultParameters(
   method_id: string
 ): Promise<ParameterSuggestion> {
@@ -275,7 +310,14 @@ async function getDefaultParameters(
   }
 }
 
-// Keep existing functions
+/**
+ * Retrieves brews with feedback for a given equipment combination
+ * Delegates to getBrewsWithFeedback for the actual data fetching
+ * @param bean_id - The coffee bean ID as a string
+ * @param method_id - The brewing method ID as a string
+ * @param grinder_id - The grinder ID as a string
+ * @returns Array of brews with their associated feedback
+ */
 export async function getPreviousBrews(
   bean_id: string,
   method_id: string,
@@ -284,6 +326,12 @@ export async function getPreviousBrews(
   return getBrewsWithFeedback(bean_id, method_id, grinder_id)
 }
 
+/**
+ * Validates and saves a new brew record to the database
+ * Checks that all required equipment selections are made before persisting
+ * @param data - The brew form data containing equipment IDs and brewing parameters
+ * @returns Object with success status and either the saved brew or an error message
+ */
 export async function saveBrew(data: FormData) {
   try {
     // Validate required fields
@@ -313,6 +361,12 @@ export async function saveBrew(data: FormData) {
   }
 }
 
+/**
+ * Saves taste feedback for a specific brew to enable future parameter suggestions
+ * @param brewId - The ID of the brew to attach feedback to
+ * @param feedback - The feedback data including taste characteristics and rating
+ * @returns Object with success status and either the saved feedback or an error message
+ */
 export async function saveBrewFeedback(
   brewId: number,
   feedback: BrewFeedbackInput

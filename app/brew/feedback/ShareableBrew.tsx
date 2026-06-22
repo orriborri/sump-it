@@ -22,6 +22,11 @@ interface ShareableBrewProps {
   brewTime?: number
 }
 
+/**
+ * Renders a comprehensive post-brew feedback form with shareable brew details
+ * Shows brew parameters, collects taste feedback, generates improvement suggestions,
+ * and provides navigation options after feedback is saved
+ */
 export const ShareableBrew: React.FC<ShareableBrewProps> = ({ brewData, brewTime }) => {
   const [feedback, setFeedback] = useState({
     too_weak: false,
@@ -50,6 +55,10 @@ export const ShareableBrew: React.FC<ShareableBrewProps> = ({ brewData, brewTime
 
   const [error, setError] = useState<string | null>(null)
 
+  /**
+   * Persists the collected feedback and grind suggestions to the database
+   * Includes the computed grind adjustment and formatted notes for next brew
+   */
   const handleSaveFeedback = async () => {
     setSaving(true)
     setError(null)

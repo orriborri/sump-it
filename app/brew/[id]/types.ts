@@ -14,11 +14,19 @@ const feedbackQuery = db
     'overall_rating',
   ])
 
+/**
+ * Feedback form data type derived from the brew_feedback database table
+ * Excludes auto-generated fields (id, created_at, brew_id)
+ */
 export type FeedbackFormData = Omit<
   FeedbackQueryResult,
   'id' | 'created_at' | 'brew_id'
 >
 
+/**
+ * Represents a recent brew feedback entry with associated brew parameters
+ * Used for displaying feedback history and computing suggestions
+ */
 export interface RecentBrewFeedback {
   feedback_id: number
   brew_id: number

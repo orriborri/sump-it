@@ -2,7 +2,7 @@
   "id": "FEAT-003",
   "type": "docs",
   "description": "Add JSDoc documentation comments to all functions and components in app/brew/ directory (actions, components, hooks, types, business logic, equipment, feedback, parameters, onboarding, quick brew)",
-  "status": "pending",
+  "status": "in_progress",
   "steps": [
     "Add JSDoc to app/brew/actions.ts - document setTestDatabase, getDatabase, getModels, getPreviousBrews, saveBrew",
     "Add JSDoc to app/brew/enhanced-actions.ts - document all exported functions",

@@ -9,6 +9,10 @@ interface BrewRatingProps {
   onSubmit?: () => void
 }
 
+/**
+ * Displays a brew rating form with star rating, taste checkboxes, and grind notes
+ * Allows users to provide quick feedback on strength and grind quality
+ */
 export const BrewRating: React.FC<BrewRatingProps> = ({
   formData,
   updateFormData,

@@ -8,6 +8,10 @@ const INITIAL_DOSE = 15
 const INITIAL_RATIO = 16.67
 const INITIAL_GRIND = 20
 
+/**
+ * Return type interface for the useForm hook
+ * Defines the shape of form state and control methods available to consumers
+ */
 export interface UseFormReturn {
   formData: FormData
   currentStep: number
@@ -17,6 +21,11 @@ export interface UseFormReturn {
   prefillForm: (_data: FormData, _options?: { skipToStep?: number }) => void
 }
 
+/**
+ * Custom hook that manages the multi-step brew form state and navigation
+ * Provides form data, step control, and methods to update or prefill the form
+ * @returns Object containing form data, current step, and form manipulation methods
+ */
 export const useForm = (): UseFormReturn => {
   const [currentStep, setCurrentStep] = useState(0)
   const [formData, setFormData] = useState<FormData>({
@@ -29,14 +38,24 @@ export const useForm = (): UseFormReturn => {
     grind: INITIAL_GRIND,
   })
 
+  /**
+   * Advances the form to the next step in the workflow
+   */
   const nextStep = () => {
     setCurrentStep(prev => prev + 1)
   }
 
+  /**
+   * Returns the form to the previous step in the workflow
+   */
   const prevStep = () => {
     setCurrentStep(prev => prev - 1)
   }
 
+  /**
+   * Merges partial form data updates into the current form state
+   * @param _data - Partial form data to merge with existing values
+   */
   const updateFormData = useCallback((_data: Partial<FormData>) => {
     setFormData(prevData => ({
       ...prevData,

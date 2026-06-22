@@ -18,6 +18,13 @@ interface Suggestions {
   reason: string
 }
 
+/**
+ * Generates brewing parameter suggestions based on user feedback from their last brew
+ * Adjusts grind and ratio values to address reported taste issues
+ * @param feedback - Object containing boolean flags for taste problems (too weak, too strong, etc.)
+ * @param current - The current brew parameters (grind and ratio) to adjust from
+ * @returns Suggested grind and ratio values with a human-readable reason string
+ */
 export function generateBrewSuggestions(feedback: Feedback, current: CurrentBrew): Suggestions {
   let grindAdjustment = 0
   let ratioAdjustment = 0

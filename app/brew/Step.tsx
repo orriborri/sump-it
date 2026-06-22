@@ -18,6 +18,10 @@ interface StepProps {
   grinders?: RuntimeType<Grinders>[]
 }
 
+/**
+ * Renders the multi-step brew creation form with vertical stepper and navigation controls
+ * Configures step content (equipment selection, brewing parameters) and handles step transitions
+ */
 export const Step: React.FC<StepProps> = ({
   form,
   onSubmit,

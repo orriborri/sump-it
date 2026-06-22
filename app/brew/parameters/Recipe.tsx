@@ -9,8 +9,19 @@ interface RecipeProps {
   updateFormData: (_updates: Partial<FormData>) => void
 }
 
+/**
+ * Renders coffee dose, water amount, and ratio inputs with linked calculations
+ * When the ratio is locked, changing one value automatically adjusts another to maintain proportions
+ * When unlocked, changing dose or water recalculates the ratio
+ */
 export const Recipe: React.FC<RecipeProps> = ({ formData, updateFormData }) => {
   const [ratioLocked, setRatioLocked] = useState(true)
+
+  /**
+   * Handles changes to the coffee dose amount
+   * Adjusts water (if ratio locked) or recalculates ratio (if unlocked)
+   * @param value - New coffee dose in grams
+   */
   const handleCoffeeChange = (value: number) => {
     if (ratioLocked && value > 0) {
       // Keep ratio constant, adjust water
@@ -26,6 +37,11 @@ export const Recipe: React.FC<RecipeProps> = ({ formData, updateFormData }) => {
     }
   }
 
+  /**
+   * Handles changes to the water amount
+   * Adjusts coffee dose (if ratio locked) or recalculates ratio (if unlocked)
+   * @param value - New water amount in milliliters
+   */
   const handleWaterChange = (value: number) => {
     if (ratioLocked && value > 0) {
       // Keep ratio constant, adjust coffee
@@ -41,6 +57,10 @@ export const Recipe: React.FC<RecipeProps> = ({ formData, updateFormData }) => {
     }
   }
 
+  /**
+   * Handles direct ratio changes by keeping coffee constant and adjusting water
+   * @param value - New ratio value (the x in 1:x)
+   */
   const handleRatioChange = (value: number) => {
     if (value > 0) {
       // Keep coffee constant, adjust water

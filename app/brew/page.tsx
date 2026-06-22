@@ -10,6 +10,11 @@ import { getRecentBrewConfigs } from './quickBrewActions'
 // Force dynamic rendering since we need database access
 export const dynamic = 'force-dynamic'
 
+/**
+ * Server component that renders the main coffee brewing page
+ * Fetches equipment data from the database and shows either the onboarding wizard
+ * (when no equipment is set up) or the full brewing workflow
+ */
 const Page = async () => {
   // Initialize models with database connection
   const beansModel = new BeansModel(db)

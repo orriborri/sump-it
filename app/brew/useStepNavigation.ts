@@ -7,7 +7,17 @@ interface UseStepNavigationProps {
   totalSteps: number
 }
 
+/**
+ * Custom hook that computes navigation state for the multi-step brew form
+ * Determines which navigation actions are available based on current step and form validity
+ * @param props - Object containing currentStep, formData, and totalSteps
+ * @returns Navigation state flags including canGoBack, canGoForward, canSubmit, and validation errors
+ */
 export const useStepNavigation = ({ currentStep, formData, totalSteps }: UseStepNavigationProps) => {
+  /**
+   * Validates the form fields for all completed and current steps
+   * @returns Array of human-readable validation error messages
+   */
   const getValidationErrors = () => {
     const errors = []
     

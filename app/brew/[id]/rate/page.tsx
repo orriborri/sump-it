@@ -7,6 +7,10 @@ interface RatePageProps {
   searchParams?: Promise<{ [key: string]: string | string[] | undefined }>
 }
 
+/**
+ * Server component that renders the brew rating page with the ShareableBrew feedback form
+ * Extracts brew time from search params if navigating from the timer page
+ */
 export default async function RatePage({ params, searchParams }: RatePageProps) {
   const { id } = await params
   const searchParamsResolved = searchParams ? await searchParams : {}

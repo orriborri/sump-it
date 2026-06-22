@@ -7,6 +7,10 @@ import PauseIcon from '@mui/icons-material/Pause'
 import SkipNextIcon from '@mui/icons-material/SkipNext'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 
+/**
+ * Client-side brew timer page that counts elapsed brew time
+ * Provides play/pause controls and navigates to the rating page with timing data when done
+ */
 export default function TimerPage() {
   const router = useRouter()
   const params = useParams()
@@ -30,14 +34,23 @@ export default function TimerPage() {
     }
   }, [isRunning])
 
+  /**
+   * Toggles the timer between running and paused states
+   */
   const togglePause = () => {
     setIsRunning((prev) => !prev)
   }
 
+  /**
+   * Navigates to the rating page with the current brew time as a query parameter
+   */
   const handleDone = () => {
     router.push(`/brew/${id}/rate?brew_time=${elapsedSeconds}`)
   }
 
+  /**
+   * Skips the timer and navigates directly to the rating page without timing data
+   */
   const handleSkip = () => {
     router.push(`/brew/${id}/rate`)
   }

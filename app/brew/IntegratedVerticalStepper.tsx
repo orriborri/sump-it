@@ -17,6 +17,11 @@ interface IntegratedVerticalStepperProps {
   getStepContent: (_stepIndex: number) => React.ReactNode
 }
 
+/**
+ * Renders a vertical stepper with integrated form content for each step
+ * Displays step numbers/checkmarks, instructions, and collapsible form sections
+ * Active steps show their content expanded while completed steps show a summary
+ */
 export const IntegratedVerticalStepper: React.FC<IntegratedVerticalStepperProps> = ({
   steps,
   activeStep,

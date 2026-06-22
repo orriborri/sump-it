@@ -22,6 +22,11 @@ const steps = ['Welcome', 'Add Grinder', 'Add Beans', 'Add Method', 'Done']
 
 const COMMON_METHODS = ['V60', 'AeroPress', 'French Press', 'Chemex', 'Kalita Wave']
 
+/**
+ * Multi-step onboarding wizard that guides new users through initial equipment setup
+ * Walks users through adding their first grinder, coffee beans, and brewing method
+ * Displayed when the database has no equipment configured
+ */
 export const OnboardingWizard: React.FC = () => {
   const router = useRouter()
   const [activeStep, setActiveStep] = useState(0)
@@ -34,11 +39,17 @@ export const OnboardingWizard: React.FC = () => {
   const [loading, setLoading] = useState(false)
   const [completedItems, setCompletedItems] = useState<Record<number, boolean>>({})
 
+  /**
+   * Advances the wizard to the next step and clears any error state
+   */
   const handleNext = () => {
     setActiveStep((prev) => prev + 1)
     setError(null)
   }
 
+  /**
+   * Validates and persists the grinder name to the database, then advances to the next step
+   */
   const handleAddGrinder = async () => {
     if (!grinderName.trim()) {
       setError('Grinder name is required')
@@ -57,6 +68,9 @@ export const OnboardingWizard: React.FC = () => {
     }
   }
 
+  /**
+   * Validates and persists the coffee bean (with optional roastery) to the database
+   */
   const handleAddBean = async () => {
     if (!beanName.trim()) {
       setError('Bean name is required')
@@ -78,6 +92,10 @@ export const OnboardingWizard: React.FC = () => {
     }
   }
 
+  /**
+   * Validates and persists a brewing method name (from quick-pick or custom input)
+   * @param name - Optional method name from quick-pick chips; falls back to methodName state
+   */
   const handleAddMethod = async (name?: string) => {
     const finalName = name || methodName.trim()
     if (!finalName) {
@@ -97,10 +115,17 @@ export const OnboardingWizard: React.FC = () => {
     }
   }
 
+  /**
+   * Completes onboarding by refreshing the page to load the full brewing workflow
+   */
   const handleFinish = () => {
     router.refresh()
   }
 
+  /**
+   * Renders the appropriate content for the current step in the onboarding flow
+   * @returns React element for the active step (welcome, grinder, beans, method, or done)
+   */
   const renderStepContent = () => {
     switch (activeStep) {
       case 0:
