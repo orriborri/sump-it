@@ -22,6 +22,7 @@ export function DeleteButton({ beanId, beanName }: DeleteButtonProps) {
     <>
       <IconButton 
         size="small" 
+        aria-label={`Delete ${beanName}`}
         onClick={() => setOpen(true)}
         sx={{ color: '#DC143C' }}
       >
