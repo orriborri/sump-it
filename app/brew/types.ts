@@ -1,3 +1,12 @@
+export interface BrewFeedbackInput {
+  coffee_amount_ml?: number | null
+  too_strong?: boolean
+  too_weak?: boolean
+  is_sour?: boolean
+  is_bitter?: boolean
+  overall_rating?: number | null
+}
+
 export interface FormData {
   bean_id: number
   method_id: number

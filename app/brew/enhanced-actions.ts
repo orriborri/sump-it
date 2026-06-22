@@ -3,7 +3,7 @@
 import { db } from '../lib/database'
 import { BrewsModel } from '../lib/generated-models/Brews'
 import { BrewFeedbackModel } from '../lib/generated-models/BrewFeedback'
-import { FormData } from './types'
+import { FormData, BrewFeedbackInput } from './types'
 
 // Initialize models
 const brewsModel = new BrewsModel(db)
@@ -313,7 +313,10 @@ export async function saveBrew(data: FormData) {
   }
 }
 
-export async function saveBrewFeedback(brewId: number, feedback: any) {
+export async function saveBrewFeedback(
+  brewId: number,
+  feedback: BrewFeedbackInput
+) {
   try {
     const savedFeedback = await feedbackModel.create({
       brew_id: brewId,
