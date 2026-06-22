@@ -22,18 +22,29 @@ import { DeleteGrinderButton } from './DeleteGrinderButton'
 // Force dynamic rendering since we need database access
 export const dynamic = 'force-dynamic'
 
+/**
+ * Fetches all grinder records from the database for the grinders listing page
+ * @returns Array of all grinder records
+ */
 async function getGrinders() {
   const grindersModel = new GrindersModel(db)
   return await grindersModel.findAll()
 }
 
+/**
+ * Server-side page component for the grinders management section.
+ * Displays a table of all grinders with their settings, range, and action buttons.
+ */
 export default async function GrindersPage() {
   const grinders = await getGrinders()
 
   return (
     <Box sx={{ p: 3, maxWidth: 1200, mx: 'auto' }}>
       <Box display="flex" alignItems="center" gap={2} mb={3}>
-        <Typography variant="h4" sx={{ color: '#8B4513', fontWeight: 600, flex: 1 }}>
+        <Typography
+          variant="h4"
+          sx={{ color: '#8B4513', fontWeight: 600, flex: 1 }}
+        >
           ⚙️ Your Grinders
         </Typography>
         <Button
@@ -46,32 +57,45 @@ export default async function GrindersPage() {
         </Button>
       </Box>
 
-      <TableContainer 
-        component={Paper} 
-        sx={{ 
-          bgcolor: '#F5F5DC', 
+      <TableContainer
+        component={Paper}
+        sx={{
+          bgcolor: '#F5F5DC',
           border: '2px solid #A0522D',
-          borderRadius: 2
+          borderRadius: 2,
         }}
       >
         <Table>
           <TableHead sx={{ bgcolor: '#A0522D' }}>
             <TableRow>
-              <TableCell sx={{ color: 'white', fontWeight: 600 }}>Grinder Name</TableCell>
-              <TableCell sx={{ color: 'white', fontWeight: 600 }}>Range</TableCell>
-              <TableCell sx={{ color: 'white', fontWeight: 600 }}>Step Size</TableCell>
-              <TableCell sx={{ color: 'white', fontWeight: 600 }}>Type</TableCell>
-              <TableCell sx={{ color: 'white', fontWeight: 600 }}>Actions</TableCell>
+              <TableCell sx={{ color: 'white', fontWeight: 600 }}>
+                Grinder Name
+              </TableCell>
+              <TableCell sx={{ color: 'white', fontWeight: 600 }}>
+                Range
+              </TableCell>
+              <TableCell sx={{ color: 'white', fontWeight: 600 }}>
+                Step Size
+              </TableCell>
+              <TableCell sx={{ color: 'white', fontWeight: 600 }}>
+                Type
+              </TableCell>
+              <TableCell sx={{ color: 'white', fontWeight: 600 }}>
+                Actions
+              </TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {grinders.map((grinder) => (
-              <TableRow 
+            {grinders.map(grinder => (
+              <TableRow
                 key={grinder.id}
                 sx={{ '&:hover': { bgcolor: 'rgba(160, 82, 45, 0.1)' } }}
               >
                 <TableCell>
-                  <Typography variant="subtitle1" sx={{ color: '#8B4513', fontWeight: 600 }}>
+                  <Typography
+                    variant="subtitle1"
+                    sx={{ color: '#8B4513', fontWeight: 600 }}
+                  >
                     {grinder.name}
                   </Typography>
                 </TableCell>
@@ -99,9 +123,9 @@ export default async function GrindersPage() {
                 </TableCell>
                 <TableCell>
                   <Box display="flex" gap={1}>
-                    <IconButton 
-                      size="small" 
-                      component={Link} 
+                    <IconButton
+                      size="small"
+                      component={Link}
                       href={`/manage/grinders/${grinder.id}/edit`}
                       sx={{ color: '#A0522D' }}
                     >

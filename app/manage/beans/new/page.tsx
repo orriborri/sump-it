@@ -4,6 +4,10 @@ import { AddBeanForm } from '../../../manage/AddBeanForm'
 import Link from 'next/link'
 import { ArrowBack } from '@mui/icons-material'
 
+/**
+ * Page component for adding a new coffee bean.
+ * Renders the AddBeanForm within a styled container with a back navigation link.
+ */
 export default function NewBeanPage() {
   return (
     <Box sx={{ p: 3, maxWidth: 600, mx: 'auto' }}>

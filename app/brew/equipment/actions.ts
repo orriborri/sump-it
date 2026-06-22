@@ -3,6 +3,10 @@
 import { GrindersModel } from '@/app/lib/generated-models/Grinders'
 import { db } from '@/app/lib/database'
 
+/**
+ * Represents the configurable settings for a coffee grinder
+ * Includes range limits, step size, and whether settings are numeric or stepped
+ */
 export interface GrinderSettings {
   id: number
   name: string
@@ -12,7 +16,14 @@ export interface GrinderSettings {
   setting_type: string
 }
 
-export async function getGrinderSettings(grinderId: string): Promise<GrinderSettings | null> {
+/**
+ * Fetches grinder configuration settings (range, step size, type) from the database
+ * @param grinderId - The grinder ID as a string to look up
+ * @returns Grinder settings object with min/max/step values, or null if not found
+ */
+export async function getGrinderSettings(
+  grinderId: string
+): Promise<GrinderSettings | null> {
   try {
     const grindersModel = new GrindersModel(db)
     const numericId = parseInt(grinderId, 10)

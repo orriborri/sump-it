@@ -1,0 +1,21 @@
+{
+  "project_type": "Next.js 15 TypeScript application (coffee brewing tracker)",
+  "language": "TypeScript/TSX",
+  "build_system": "pnpm with Next.js build, npm-run-all2 for scripts",
+  "test_framework": "Vitest with jsdom, @testing-library/react, better-sqlite3 for test DB",
+  "build_command": "pnpm build",
+  "test_command": "pnpm test",
+  "verification_instructions": "Run pnpm type-check to verify TypeScript compiles, pnpm lint to check ESLint, pnpm test for unit tests",
+  "snapshot_or_generated_files": "app/lib/generated-models/ contains generated model files - these still need JSDoc but are part of the codebase",
+  "setup_instructions": "pnpm install",
+  "environment_constraints": "OPEN_INTERNET - full network access. Database tests require better-sqlite3 (in-memory). No running Postgres needed for type-check/lint.",
+  "contribution_requirements": "Follow existing code style with Prettier formatting. CI runs: lint (strict), type-check, test:coverage, build.",
+  "key_patterns": "Files use 'use server' directive for server actions. React components are function components. Kysely for DB queries. Zod for validation schemas. Some files already have JSDoc (e.g. app/brew/schemas.ts). The project uses pnpm not npm.",
+  "relevant_files": [
+    "All .ts and .tsx files in app/, root-level .ts files, migrations/, seeds/, test/",
+    "app/brew/schemas.ts (example of existing JSDoc style)",
+    "app/lib/repositories/BaseRepository.ts (class that needs JSDoc)",
+    "app/lib/logger.ts (class with multiple methods needing JSDoc)"
+  ],
+  "directory_structure": "app/ - Next.js app directory (api/, brew/, common/, lib/, manage/, navigation/, stats/, providers/); migrations/ - DB migrations; seeds/ - DB seeds; test/ - test setup and integration tests; root .ts files - config/instrumentation/middleware"
+}

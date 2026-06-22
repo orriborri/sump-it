@@ -9,14 +9,28 @@ import type { BrewFeedbackInput } from '../types'
 // Allow dependency injection for testing
 let testDb: Kysely<DB> | null = null
 
+/**
+ * Sets a test database instance for dependency injection during testing
+ * @param database - The Kysely database instance to use, or null to reset
+ */
 export async function setTestDatabase(database: Kysely<DB> | null) {
   testDb = database
 }
 
+/**
+ * Returns the active database connection, preferring the test database if set
+ * @returns The current Kysely database instance
+ */
 function getDatabase() {
   return testDb || db
 }
 
+/**
+ * Persists brew feedback including taste characteristics and overall rating
+ * @param brewId - The ID of the brew to attach feedback to
+ * @param feedback - The feedback data containing taste flags and rating
+ * @returns Object with success status and either the saved feedback data or an error message
+ */
 export async function saveBrewFeedback(
   brewId: number,
   feedback: BrewFeedbackInput

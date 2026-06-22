@@ -9,6 +9,11 @@ import { EditGrinderClient } from './EditGrinderClient'
 // Force dynamic rendering since we need database access
 export const dynamic = 'force-dynamic'
 
+/**
+ * Fetches a single grinder by its ID for the edit page
+ * @param id - The grinder ID as a string (from URL params)
+ * @returns The grinder record or null if not found
+ */
 async function getGrinder(id: string) {
   try {
     const grindersModel = new GrindersModel(db)
@@ -25,6 +30,11 @@ interface PageProps {
   }>
 }
 
+/**
+ * Server-side page component for editing an existing grinder.
+ * Fetches the grinder data by ID from URL params and renders the edit form.
+ * Triggers a 404 not-found page if the grinder does not exist.
+ */
 export default async function EditGrinderPage({ params }: PageProps) {
   const { id } = await params
   const grinder = await getGrinder(id)

@@ -11,6 +11,11 @@ interface AddMethodFormProps {
   onSuccess?: () => void
 }
 
+/**
+ * Form component for adding a new brew method.
+ * Provides a simple text input with validation and success/error feedback.
+ * Optionally calls onSuccess callback after a successful submission.
+ */
 export function AddMethodForm({ onSuccess }: AddMethodFormProps = {}) {
   const { control, handleSubmit, reset } = useForm<MethodFormData>()
   const [isSubmitting, setIsSubmitting] = useState(false)

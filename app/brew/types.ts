@@ -1,3 +1,7 @@
+/**
+ * Input data for submitting taste feedback on a brew
+ * All fields are optional to allow partial feedback submission
+ */
 export interface BrewFeedbackInput {
   coffee_amount_ml?: number | null
   too_strong?: boolean
@@ -7,6 +11,10 @@ export interface BrewFeedbackInput {
   overall_rating?: number | null
 }
 
+/**
+ * Core form data structure for the brew creation workflow
+ * Contains equipment selections, brewing parameters, and optional feedback fields
+ */
 export interface FormData {
   bean_id: number
   method_id: number
@@ -24,7 +32,7 @@ export interface FormData {
   grind_notes?: string
 }
 
-// Alias for FormData to be used in brewing components
+/** Alias for FormData to be used in brewing components */
 export type BrewFormData = FormData
 
 import type { Beans, Methods, Grinders } from '@/app/lib/db.d'

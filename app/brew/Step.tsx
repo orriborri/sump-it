@@ -18,6 +18,10 @@ interface StepProps {
   grinders?: RuntimeType<Grinders>[]
 }
 
+/**
+ * Renders the multi-step brew creation form with vertical stepper and navigation controls
+ * Configures step content (equipment selection, brewing parameters) and handles step transitions
+ */
 export const Step: React.FC<StepProps> = ({
   form,
   onSubmit,
@@ -28,8 +32,9 @@ export const Step: React.FC<StepProps> = ({
   const stepConfig = [
     {
       label: 'Equipment Selection',
-      title: "Select your coffee and brewing equipment",
-      description: "Choose the coffee beans, brewing method, and grinder for your brew.",
+      title: 'Select your coffee and brewing equipment',
+      description:
+        'Choose the coffee beans, brewing method, and grinder for your brew.',
       content: (
         <BeanSelector
           form={form}
@@ -37,12 +42,13 @@ export const Step: React.FC<StepProps> = ({
           methods={methods}
           grinders={grinders}
         />
-      )
+      ),
     },
     {
       label: 'Brewing Parameters',
-      title: "Configure your brewing parameters and start brewing",
-      description: "Set coffee amount, grind setting, and ratio based on previous brew feedback.",
+      title: 'Configure your brewing parameters and start brewing',
+      description:
+        'Set coffee amount, grind setting, and ratio based on previous brew feedback.',
       content: (
         <BrewingParameters
           formData={form.formData}
@@ -50,13 +56,15 @@ export const Step: React.FC<StepProps> = ({
           onSubmit={onSubmit}
           grinders={grinders}
         />
-      )
-    }
+      ),
+    },
   ]
 
   const steps = stepConfig.map(step => step.label)
-  const getStepInstructions = (stepIndex: number) => stepConfig[stepIndex] || stepConfig[0]
-  const getStepContent = (stepIndex: number) => stepConfig[stepIndex]?.content || null
+  const getStepInstructions = (stepIndex: number) =>
+    stepConfig[stepIndex] || stepConfig[0]
+  const getStepContent = (stepIndex: number) =>
+    stepConfig[stepIndex]?.content || null
 
   const navigation = useStepNavigation({
     currentStep: form.currentStep,
@@ -72,7 +80,6 @@ export const Step: React.FC<StepProps> = ({
     updateFormData: _updateFormData,
   } = form
 
-
   return (
     <Box sx={{ width: '100%', maxWidth: 800, mx: 'auto' }}>
       <Paper
@@ -83,7 +90,11 @@ export const Step: React.FC<StepProps> = ({
           minHeight: '70vh',
         }}
       >
-        <Typography variant="h6" gutterBottom sx={{ mb: 4, color: 'primary.main', fontWeight: 600 }}>
+        <Typography
+          variant="h6"
+          gutterBottom
+          sx={{ mb: 4, color: 'primary.main', fontWeight: 600 }}
+        >
           Brewing Steps
         </Typography>
 
@@ -99,7 +110,8 @@ export const Step: React.FC<StepProps> = ({
         <Box sx={{ mt: 6, pt: 3, borderTop: 1, borderColor: 'divider' }}>
           {!navigation.canGoBack && (
             <Alert severity="info" sx={{ mb: 2 }}>
-              Please complete all selections before proceeding to brewing parameters.
+              Please complete all selections before proceeding to brewing
+              parameters.
             </Alert>
           )}
           <Stack
@@ -115,17 +127,19 @@ export const Step: React.FC<StepProps> = ({
               size="large"
               sx={{
                 minWidth: { xs: '100%', sm: 120 },
-                order: { xs: 2, sm: 1 }
+                order: { xs: 2, sm: 1 },
               }}
             >
               Back
             </Button>
 
-            <Box sx={{
-              display: { xs: 'block', sm: 'none' },
-              textAlign: 'center',
-              order: 1
-            }}>
+            <Box
+              sx={{
+                display: { xs: 'block', sm: 'none' },
+                textAlign: 'center',
+                order: 1,
+              }}
+            >
               <Typography variant="body2" color="text.secondary">
                 {steps[currentStep]}
               </Typography>
@@ -141,7 +155,7 @@ export const Step: React.FC<StepProps> = ({
                 disabled={!navigation.canGoForward}
                 sx={{
                   minWidth: { xs: '100%', sm: 120 },
-                  order: { xs: 1, sm: 2 }
+                  order: { xs: 1, sm: 2 },
                 }}
               >
                 Next

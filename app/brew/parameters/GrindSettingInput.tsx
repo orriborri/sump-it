@@ -1,6 +1,13 @@
 'use client'
 import React, { useEffect } from 'react'
-import { Box, TextField, Typography, Stack, Alert, IconButton } from '@mui/material'
+import {
+  Box,
+  TextField,
+  Typography,
+  Stack,
+  Alert,
+  IconButton,
+} from '@mui/material'
 import { Add, Remove } from '@mui/icons-material'
 import { FormInputProps } from './types'
 import { useGrinderSettings } from '../equipment/useGrinderSettings'
@@ -9,6 +16,11 @@ interface GrindSettingInputProps extends FormInputProps {
   grinderId?: string
 }
 
+/**
+ * Renders a grind setting input with increment/decrement buttons
+ * Fetches grinder-specific settings (min, max, step size) and provides appropriate controls
+ * Initializes with a sensible default when grinder settings are loaded
+ */
 export const GrindSettingInput: React.FC<GrindSettingInputProps> = ({
   formData,
   updateFormData,
@@ -31,6 +43,10 @@ export const GrindSettingInput: React.FC<GrindSettingInputProps> = ({
 
   const currentGrind = formData.grind ?? minSetting
 
+  /**
+   * Handles direct text input changes for the grind setting value
+   * @param event - The input change event containing the new value
+   */
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseFloat(event.target.value)
     if (!isNaN(value)) {
@@ -38,11 +54,17 @@ export const GrindSettingInput: React.FC<GrindSettingInputProps> = ({
     }
   }
 
+  /**
+   * Increases the grind setting by one step, clamped to the maximum
+   */
   const handleIncrement = () => {
     const newValue = Math.min(currentGrind + stepSize, maxSetting)
     updateFormData({ grind: newValue })
   }
 
+  /**
+   * Decreases the grind setting by one step, clamped to the minimum
+   */
   const handleDecrement = () => {
     const newValue = Math.max(currentGrind - stepSize, minSetting)
     updateFormData({ grind: newValue })
@@ -62,9 +84,7 @@ export const GrindSettingInput: React.FC<GrindSettingInputProps> = ({
 
   return (
     <Stack spacing={2}>
-      <Typography variant="subtitle2">
-        Grind Setting
-      </Typography>
+      <Typography variant="subtitle2">Grind Setting</Typography>
 
       {/* Grind Setting Input */}
       <Box display="flex" alignItems="center" gap={1} maxWidth={280}>
@@ -85,7 +105,7 @@ export const GrindSettingInput: React.FC<GrindSettingInputProps> = ({
             min: minSetting,
             max: maxSetting,
             step: stepSize,
-            style: { textAlign: 'center' }
+            style: { textAlign: 'center' },
           }}
           size="small"
           sx={{ flex: 1 }}

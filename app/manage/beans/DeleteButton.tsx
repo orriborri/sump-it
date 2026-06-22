@@ -18,6 +18,10 @@ interface DeleteButtonProps {
   beanName: string
 }
 
+/**
+ * Delete button with confirmation dialog for removing a coffee bean.
+ * Shows a modal confirmation before executing the delete action.
+ */
 export function DeleteButton({ beanId, beanName }: DeleteButtonProps) {
   const [open, setOpen] = useState(false)
 

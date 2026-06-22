@@ -1,6 +1,15 @@
 'use client'
 import React from 'react'
-import { Box, Typography, Rating, Button, Stack, FormControlLabel, Checkbox, TextField } from '@mui/material'
+import {
+  Box,
+  Typography,
+  Rating,
+  Button,
+  Stack,
+  FormControlLabel,
+  Checkbox,
+  TextField,
+} from '@mui/material'
 import { FormData } from '../types'
 
 interface BrewRatingProps {
@@ -9,6 +18,10 @@ interface BrewRatingProps {
   onSubmit?: () => void
 }
 
+/**
+ * Displays a brew rating form with star rating, taste checkboxes, and grind notes
+ * Allows users to provide quick feedback on strength and grind quality
+ */
 export const BrewRating: React.FC<BrewRatingProps> = ({
   formData,
   updateFormData,
@@ -21,7 +34,9 @@ export const BrewRating: React.FC<BrewRatingProps> = ({
         <Typography component="legend">Overall Rating</Typography>
         <Rating
           value={formData.overall_rating || 0}
-          onChange={(_, value) => updateFormData({ overall_rating: value || undefined })}
+          onChange={(_, value) =>
+            updateFormData({ overall_rating: value || undefined })
+          }
           size="large"
         />
       </Box>
@@ -32,7 +47,7 @@ export const BrewRating: React.FC<BrewRatingProps> = ({
           control={
             <Checkbox
               checked={formData.too_weak || false}
-              onChange={(e) => updateFormData({ too_weak: e.target.checked })}
+              onChange={e => updateFormData({ too_weak: e.target.checked })}
             />
           }
           label="Too Weak"
@@ -41,7 +56,7 @@ export const BrewRating: React.FC<BrewRatingProps> = ({
           control={
             <Checkbox
               checked={formData.too_strong || false}
-              onChange={(e) => updateFormData({ too_strong: e.target.checked })}
+              onChange={e => updateFormData({ too_strong: e.target.checked })}
             />
           }
           label="Too Strong"
@@ -54,7 +69,9 @@ export const BrewRating: React.FC<BrewRatingProps> = ({
           control={
             <Checkbox
               checked={formData.grind_too_fine || false}
-              onChange={(e) => updateFormData({ grind_too_fine: e.target.checked })}
+              onChange={e =>
+                updateFormData({ grind_too_fine: e.target.checked })
+              }
             />
           }
           label="Grind Too Fine"
@@ -63,7 +80,9 @@ export const BrewRating: React.FC<BrewRatingProps> = ({
           control={
             <Checkbox
               checked={formData.grind_too_coarse || false}
-              onChange={(e) => updateFormData({ grind_too_coarse: e.target.checked })}
+              onChange={e =>
+                updateFormData({ grind_too_coarse: e.target.checked })
+              }
             />
           }
           label="Grind Too Coarse"
@@ -76,7 +95,7 @@ export const BrewRating: React.FC<BrewRatingProps> = ({
         multiline
         rows={3}
         value={formData.grind_notes || ''}
-        onChange={(e) => updateFormData({ grind_notes: e.target.value })}
+        onChange={e => updateFormData({ grind_notes: e.target.value })}
         placeholder="What would you change for the next brew?"
       />
 

@@ -12,6 +12,11 @@ interface AddBeanFormProps {
   onSuccess?: () => void
 }
 
+/**
+ * Form component for adding a new coffee bean to the collection.
+ * Provides input fields for bean name, roster, roastery, and roast level.
+ * Displays success/error feedback after submission.
+ */
 export const AddBeanForm = ({ onSuccess }: AddBeanFormProps = {}) => {
   const { control, handleSubmit, reset } = useForm<BeanFormData>()
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -39,7 +44,7 @@ export const AddBeanForm = ({ onSuccess }: AddBeanFormProps = {}) => {
           ✅ Coffee bean added successfully!
         </Alert>
       )}
-      
+
       <Stack spacing={2}>
         <Input
           control={control}
@@ -47,32 +52,20 @@ export const AddBeanForm = ({ onSuccess }: AddBeanFormProps = {}) => {
           label="Bean Name"
           rules={{ required: 'Bean name is required' }}
         />
-        <Input
-          control={control}
-          name="roster"
-          label="Roster"
-        />
-        <Input
-          control={control}
-          name="rostery"
-          label="Roastery"
-        />
-        <Input
-          control={control}
-          name="roast_level"
-          label="Roast Level"
-        />
-        
+        <Input control={control} name="roster" label="Roster" />
+        <Input control={control} name="rostery" label="Roastery" />
+        <Input control={control} name="roast_level" label="Roast Level" />
+
         <Button
           type="submit"
           variant="contained"
           startIcon={<Coffee />}
           disabled={isSubmitting}
           fullWidth
-          sx={{ 
+          sx={{
             mt: 2,
-            bgcolor: '#8B4513', 
-            '&:hover': { bgcolor: '#6B3410' }
+            bgcolor: '#8B4513',
+            '&:hover': { bgcolor: '#6B3410' },
           }}
         >
           {isSubmitting ? 'Adding Bean...' : 'Add Coffee Bean'}

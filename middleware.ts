@@ -1,6 +1,13 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
+/**
+ * Next.js middleware that adds security headers to all responses.
+ * Sets X-Frame-Options, X-Content-Type-Options, Referrer-Policy,
+ * X-XSS-Protection, and Content-Security-Policy headers.
+ * @param request - The incoming Next.js request object
+ * @returns The response with security headers applied
+ */
 export function middleware(request: NextRequest) {
   const response = NextResponse.next()
 
@@ -9,7 +16,7 @@ export function middleware(request: NextRequest) {
   response.headers.set('X-Content-Type-Options', 'nosniff')
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
   response.headers.set('X-XSS-Protection', '1; mode=block')
-  
+
   // CSP for better security (adjust as needed)
   response.headers.set(
     'Content-Security-Policy',
@@ -19,6 +26,7 @@ export function middleware(request: NextRequest) {
   return response
 }
 
+/** Middleware configuration defining which routes should have security headers applied */
 export const config = {
   matcher: [
     /*

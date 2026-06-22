@@ -16,16 +16,25 @@ const { Pool } = pg
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
+/** Configuration options for the migration runner */
 interface MigrationOptions {
   silent?: boolean
   exitOnError?: boolean
 }
 
+/** Result of a migration run indicating success or failure */
 interface MigrationResult {
   success: boolean
   error?: string
 }
 
+/**
+ * Runs all pending database migrations to bring the schema up to the latest version.
+ * Connects to PostgreSQL using DATABASE_URL or individual environment variables,
+ * executes migrations from the migrations/ folder, and logs results.
+ * @param options - Configuration for logging and error handling behavior
+ * @returns Object indicating migration success or failure with optional error detail
+ */
 async function migrateToLatest(
   options: MigrationOptions = {}
 ): Promise<MigrationResult> {

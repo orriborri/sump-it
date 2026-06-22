@@ -2,7 +2,11 @@
 
 import { createTheme as createMuiTheme } from '@mui/material/styles'
 
-// Coffee-themed MUI theme for Sump It
+/**
+ * Coffee-themed Material UI theme configuration for the Sump It application.
+ * Defines custom color palette (coffee browns, earth tones), typography,
+ * and component style overrides for a cohesive coffee shop aesthetic.
+ */
 export const theme = createMuiTheme({
   palette: {
     primary: {

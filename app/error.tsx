@@ -9,6 +9,11 @@ interface ErrorProps {
   reset: () => void
 }
 
+/**
+ * Error boundary component for route-level errors.
+ * Displays a user-friendly error message with the error details,
+ * a retry button, and a link to navigate home.
+ */
 export default function Error({ error, reset }: ErrorProps) {
   React.useEffect(() => {
     // Log the error to an error reporting service
@@ -37,7 +42,7 @@ export default function Error({ error, reset }: ErrorProps) {
         <Typography variant="h4" gutterBottom color="error">
           Something went wrong!
         </Typography>
-        
+
         <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
           We encountered an unexpected error in your coffee brewing app.
         </Typography>
@@ -62,12 +67,8 @@ export default function Error({ error, reset }: ErrorProps) {
           >
             Try Again
           </Button>
-          
-          <Button
-            variant="outlined"
-            startIcon={<Home />}
-            href="/"
-          >
+
+          <Button variant="outlined" startIcon={<Home />} href="/">
             Go Home
           </Button>
         </Box>

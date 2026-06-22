@@ -1,0 +1,35 @@
+{
+  "id": "FEAT-002",
+  "type": "docs",
+  "description": "Add JSDoc documentation comments to all functions, classes, and exported declarations in the app/lib/ directory (database, logger, metrics, telemetry, repositories, generated models, utility modules)",
+  "status": "completed",
+  "steps": [
+    "Add JSDoc to app/lib/database.ts - document the db export and connection setup",
+    "Add JSDoc to app/lib/date.ts - document all date utility functions",
+    "Add JSDoc to app/lib/db.ts - document the DB connection factory",
+    "Add JSDoc to app/lib/ensureMigrations.ts - document the migration helper",
+    "Add JSDoc to app/lib/logger.ts - document the Logger class and all its methods (getTraceContext, formatMessage, log, withSpan, debug, info, warn, error)",
+    "Add JSDoc to app/lib/metrics.ts - document all metric functions",
+    "Add JSDoc to app/lib/telemetry.ts - document telemetry setup",
+    "Add JSDoc to app/lib/types.ts - document all type/interface declarations if they contain functions",
+    "Add JSDoc to app/lib/repositories/BaseRepository.ts - document the abstract class and all methods (findById, findAll, count, exists)",
+    "Add JSDoc to app/lib/repositories/BrewRepository.ts - document the class and all methods",
+    "Add JSDoc to app/lib/generated-models/Beans.ts - document the model class and methods",
+    "Add JSDoc to app/lib/generated-models/BrewFeedback.ts - document the model class and methods",
+    "Add JSDoc to app/lib/generated-models/Brews.ts - document the model class and methods",
+    "Add JSDoc to app/lib/generated-models/BrewsJoined.ts - document the class and methods",
+    "Add JSDoc to app/lib/generated-models/Grinders.ts - document the model class and methods",
+    "Add JSDoc to app/lib/generated-models/Methods.ts - document the model class and methods",
+    "Add JSDoc to app/lib/generated-models/index.ts - document any exports"
+  ],
+  "acceptance_criteria": [
+    "Every exported function, class, and class method in app/lib/ has a JSDoc comment",
+    "JSDoc comments are meaningful and describe the purpose, parameters, and return values",
+    "pnpm type-check still passes after changes"
+  ],
+  "verification": [
+    "pnpm type-check"
+  ],
+  "blocked_reason": null,
+  "findings": "All 17 files in app/lib/ now have JSDoc documentation on every function, class, method, and exported declaration. pnpm type-check passes cleanly. Generated models already had brief JSDoc on methods - these were enhanced with @param and @returns tags."
+}

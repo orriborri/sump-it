@@ -1,3 +1,9 @@
+/**
+ * Auto-generated model exports for all database table models.
+ * Provides a single entry point for importing model classes and their
+ * associated select, insert, and update type definitions.
+ */
+
 // Auto-generated model exports
 export { BeansModel } from './Beans';
 
@@ -20,4 +26,3 @@ export type { BrewsWithJoins } from './BrewsJoined';
 export type { GrindersSelect, GrindersInsert, GrindersUpdate } from './Grinders';
 
 export type { MethodsSelect, MethodsInsert, MethodsUpdate } from './Methods';
-

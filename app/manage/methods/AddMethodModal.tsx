@@ -10,10 +10,14 @@ interface AddMethodModalProps {
   onClose: () => void
 }
 
+/**
+ * Modal dialog for adding a new brew method.
+ * Wraps the AddMethodForm component in a styled dialog with a close button.
+ */
 export function AddMethodModal({ open, onClose }: AddMethodModalProps) {
   return (
-    <Dialog 
-      open={open} 
+    <Dialog
+      open={open}
       onClose={onClose}
       maxWidth="sm"
       fullWidth
@@ -21,17 +25,19 @@ export function AddMethodModal({ open, onClose }: AddMethodModalProps) {
         sx: {
           bgcolor: '#F5F5DC',
           border: '2px solid #8B4513',
-          borderRadius: 2
-        }
+          borderRadius: 2,
+        },
       }}
     >
-      <DialogTitle sx={{ 
-        color: '#8B4513', 
-        fontWeight: 600,
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
-      }}>
+      <DialogTitle
+        sx={{
+          color: '#8B4513',
+          fontWeight: 600,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}
+      >
         Add New Brew Method
         <IconButton onClick={onClose} sx={{ color: '#8B4513' }}>
           <Close />

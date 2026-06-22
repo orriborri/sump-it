@@ -16,6 +16,10 @@ interface BrewingParametersProps {
   grinders?: RuntimeType<Grinders>[]
 }
 
+/**
+ * Displays brewing parameter inputs (recipe, grind setting) with auto-fill from previous brews
+ * Shows pre-filled values from the most recent matching brew and provides a submit button
+ */
 export const BrewingParameters: React.FC<BrewingParametersProps> = ({
   formData,
   updateFormData,
@@ -49,7 +53,13 @@ export const BrewingParameters: React.FC<BrewingParametersProps> = ({
     }
   }, [lastBrew, updateFormData])
 
-  // Convert numeric grind setting to display format based on grinder
+  /**
+   * Converts a raw numeric grind value to a display-friendly format
+   * For stepped grinders, calculates the step number from the raw value
+   * @param grindValue - The raw numeric grind setting value
+   * @param grinder - Optional grinder metadata for format conversion
+   * @returns String representation of the grind setting
+   */
   const formatGrindSetting = (
     grindValue: number,
     grinder?: RuntimeType<Grinders>

@@ -32,6 +32,11 @@ import { deleteBrew, getBrews } from './actions'
 
 type BrewResult = Awaited<ReturnType<typeof getBrews>>[number]
 
+/**
+ * Card component for displaying a single brew record on mobile devices.
+ * Shows brew details including date, bean, method, grinder, parameters,
+ * taste feedback chips, and a delete button.
+ */
 function BrewCard({
   brew,
   onDelete,
@@ -97,9 +102,7 @@ function BrewCard({
             {brew.too_weak && (
               <Chip label="Too Weak" size="small" color="warning" />
             )}
-            {brew.is_sour && (
-              <Chip label="Sour" size="small" color="info" />
-            )}
+            {brew.is_sour && <Chip label="Sour" size="small" color="info" />}
             {brew.is_bitter && (
               <Chip label="Bitter" size="small" color="secondary" />
             )}
@@ -114,6 +117,12 @@ function BrewCard({
   )
 }
 
+/**
+ * Statistics page component that displays brew history.
+ * Renders a responsive table (desktop) or card list (mobile) of all brews
+ * with filtering options and delete confirmation dialogs.
+ * Fetches data client-side and supports loading/error states.
+ */
 const StatsTable = () => {
   const [items, setItems] = useState<BrewResult[]>([])
   const [loading, setLoading] = useState(true)
@@ -170,7 +179,10 @@ const StatsTable = () => {
           {error}
         </Alert>
       ) : items.length === 0 ? (
-        <Typography variant="body1" sx={{ color: '#654321', textAlign: 'center', py: 4 }}>
+        <Typography
+          variant="body1"
+          sx={{ color: '#654321', textAlign: 'center', py: 4 }}
+        >
           No brews logged yet. Start brewing to see your stats here!
         </Typography>
       ) : isMobile ? (
@@ -211,34 +223,18 @@ const StatsTable = () => {
                   <TableCell align="right">{brew.dose}</TableCell>
                   <TableCell align="right">{brew.ratio}</TableCell>
                   <TableCell align="center">
-                    <Stack
-                      direction="row"
-                      spacing={1}
-                      justifyContent="center"
-                    >
+                    <Stack direction="row" spacing={1} justifyContent="center">
                       {brew.too_strong && (
-                        <Chip
-                          label="Too Strong"
-                          size="small"
-                          color="error"
-                        />
+                        <Chip label="Too Strong" size="small" color="error" />
                       )}
                       {brew.too_weak && (
-                        <Chip
-                          label="Too Weak"
-                          size="small"
-                          color="warning"
-                        />
+                        <Chip label="Too Weak" size="small" color="warning" />
                       )}
                       {brew.is_sour && (
                         <Chip label="Sour" size="small" color="info" />
                       )}
                       {brew.is_bitter && (
-                        <Chip
-                          label="Bitter"
-                          size="small"
-                          color="secondary"
-                        />
+                        <Chip label="Bitter" size="small" color="secondary" />
                       )}
                     </Stack>
                   </TableCell>
@@ -272,12 +268,11 @@ const StatsTable = () => {
         open={deleteDialogOpen}
         onClose={() => setDeleteDialogOpen(false)}
       >
-        <DialogTitle sx={{ color: '#8B4513' }}>
-          Delete Brew
-        </DialogTitle>
+        <DialogTitle sx={{ color: '#8B4513' }}>Delete Brew</DialogTitle>
         <DialogContent>
           <Typography>
-            Are you sure you want to delete this brew? This action cannot be undone.
+            Are you sure you want to delete this brew? This action cannot be
+            undone.
           </Typography>
         </DialogContent>
         <DialogActions>

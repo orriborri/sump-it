@@ -10,14 +10,16 @@ const databaseUrl = process.env.DATABASE_URL
 logger.info('Database connection check', {
   hasDatabaseUrl: !!databaseUrl,
   host: databaseUrl ? 'from_url' : process.env.POSTGRES_HOST || 'localhost',
-  database: databaseUrl ? 'from_url' : process.env.POSTGRES_DATABASE || 'postgres',
+  database: databaseUrl
+    ? 'from_url'
+    : process.env.POSTGRES_DATABASE || 'postgres',
   user: databaseUrl ? 'from_url' : process.env.POSTGRES_USER || 'pguser',
-  port: databaseUrl ? 'from_url' : process.env.POSTGRES_PORT || '5432'
+  port: databaseUrl ? 'from_url' : process.env.POSTGRES_PORT || '5432',
 })
 
 const dialect = new PostgresDialect({
   pool: databaseUrl
-    ? new Pool({ 
+    ? new Pool({
         connectionString: databaseUrl,
         max: 20, // Maximum number of clients in the pool
         idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
@@ -35,10 +37,13 @@ const dialect = new PostgresDialect({
       }),
 })
 
-// Database interface is passed to Kysely's constructor, and from now on, Kysely
-// knows your database structure.
-// Dialect is passed to Kysely's constructor, and from now on, Kysely knows how
-// to communicate with your database.
+/**
+ * Primary Kysely database instance configured with the PostgreSQL dialect.
+ * Uses DATABASE_URL environment variable if available, otherwise falls back
+ * to individual connection parameters (POSTGRES_HOST, POSTGRES_DATABASE, etc.).
+ * The connection pool is configured with a max of 20 clients, 30s idle timeout,
+ * and 2s connection timeout.
+ */
 export const db = new Kysely<DB>({
   dialect,
 })

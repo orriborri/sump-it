@@ -3,6 +3,10 @@
 import { GrindersModel } from '@/app/lib/generated-models/Grinders'
 import { db } from '@/app/lib/database'
 
+/**
+ * Represents the configurable settings for a coffee grinder
+ * Used for rendering appropriate input controls and validation
+ */
 export interface GrinderSettings {
   id: number
   name: string
@@ -12,7 +16,15 @@ export interface GrinderSettings {
   setting_type: string
 }
 
-export async function getGrinderSettings(grinderId: string): Promise<GrinderSettings | null> {
+/**
+ * Fetches grinder settings from the database by grinder ID
+ * Alternative implementation to equipment/actions.ts for direct grinder lookups
+ * @param grinderId - The grinder ID as a string
+ * @returns Grinder settings object or null if the grinder is not found
+ */
+export async function getGrinderSettings(
+  grinderId: string
+): Promise<GrinderSettings | null> {
   const parsedId = parseInt(grinderId, 10)
   if (isNaN(parsedId)) {
     return null

@@ -20,6 +20,11 @@ interface BeanSelectorProps {
   grinders?: RuntimeType<Grinders>[]
 }
 
+/**
+ * Displays dropdown selectors for coffee beans, brewing method, and grinder
+ * Falls back to mock data when server-provided data is not available
+ * Automatically selects the grinder if only one is available
+ */
 export const BeanSelector: React.FC<BeanSelectorProps> = ({
   form,
   beans,

@@ -1,6 +1,7 @@
-// Mock data for development and testing
-// Real data is fetched in server components and passed down as props
-
+/**
+ * Mock coffee beans data for development and testing
+ * Real data is fetched in server components and passed down as props
+ */
 export const MOCK_BEANS = [
   {
     id: 1,
@@ -17,12 +18,18 @@ export const MOCK_BEANS = [
   { id: 3, name: 'Kenyan AA', roster: 'Light', rostery: 'Artisan Coffee' },
 ]
 
+/**
+ * Mock brewing methods data for development and testing
+ */
 export const MOCK_METHODS = [
   { id: 1, name: 'Pour Over' },
   { id: 2, name: 'French Press' },
   { id: 3, name: 'AeroPress' },
 ]
 
+/**
+ * Mock grinder data for development and testing
+ */
 export const MOCK_GRINDERS = [
   { id: 1, name: 'Baratza Encore' },
   { id: 2, name: 'Comandante C40' },

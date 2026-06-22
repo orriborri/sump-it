@@ -20,6 +20,14 @@ interface QuickBrewProps {
   onSelect: (_config: FormData) => void
 }
 
+/**
+ * Converts a timestamp string into a human-readable relative time description.
+ * Uses compact single-character formatting (e.g. "5m ago") suited for card UI,
+ * rather than the verbose format from the shared utility.
+ * @param dateString - ISO date string to convert
+ * @returns Relative time string like "5m ago", "2h ago", "3d ago", or a formatted date
+ * @see app/lib/date.ts#timeAgo for the verbose version using date-fns formatDistanceToNow
+ */
 function timeAgo(dateString: string): string {
   const date = new Date(dateString)
   const now = new Date()
@@ -34,9 +42,18 @@ function timeAgo(dateString: string): string {
   return date.toLocaleDateString()
 }
 
+/**
+ * Displays a list of recent brew configurations as tappable cards
+ * Allows users to quickly repeat a previous brew by pre-filling the form
+ * Shows bean name, method, grinder, parameters, ratings, and feedback-based suggestions
+ */
 export const QuickBrew: React.FC<QuickBrewProps> = ({ configs, onSelect }) => {
   if (configs.length === 0) return null
 
+  /**
+   * Transforms a QuickBrewConfig into FormData and passes it to the onSelect callback
+   * @param config - The selected quick brew configuration to convert and apply
+   */
   const handleSelect = (config: QuickBrewConfig) => {
     const formData: FormData = {
       bean_id: config.bean_id,
@@ -62,12 +79,9 @@ export const QuickBrew: React.FC<QuickBrewProps> = ({ configs, onSelect }) => {
         </Typography>
       </Box>
 
-      <Typography
-        variant="body2"
-        color="text.secondary"
-        sx={{ mb: 2 }}
-      >
-        Tap a recent brew to pre-fill your settings and skip straight to brewing.
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        Tap a recent brew to pre-fill your settings and skip straight to
+        brewing.
       </Typography>
 
       <Stack
@@ -75,7 +89,7 @@ export const QuickBrew: React.FC<QuickBrewProps> = ({ configs, onSelect }) => {
         spacing={2}
         sx={{ overflowX: { sm: 'auto' }, pb: 1 }}
       >
-        {configs.map((config) => (
+        {configs.map(config => (
           <Card
             key={config.id}
             sx={{
@@ -83,11 +97,14 @@ export const QuickBrew: React.FC<QuickBrewProps> = ({ configs, onSelect }) => {
               maxWidth: { sm: 320 },
               flex: { sm: '0 0 auto' },
               border: '2px solid',
-              borderColor: config.suggested_grind ? 'success.main' : 'primary.light',
+              borderColor: config.suggested_grind
+                ? 'success.main'
+                : 'primary.light',
               transition: 'all 0.2s ease',
               '&:hover': {
                 transform: 'translateY(-3px)',
-                boxShadow: (theme) => `0 6px 20px ${theme.palette.primary.main}40`,
+                boxShadow: theme =>
+                  `0 6px 20px ${theme.palette.primary.main}40`,
                 borderColor: 'primary.main',
               },
             }}
@@ -95,10 +112,21 @@ export const QuickBrew: React.FC<QuickBrewProps> = ({ configs, onSelect }) => {
             <CardActionArea onClick={() => handleSelect(config)}>
               <CardContent sx={{ p: 2.5 }}>
                 {/* Bean name as primary identifier */}
-                <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 1.5 }}>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    justifyContent: 'space-between',
+                    mb: 1.5,
+                  }}
+                >
                   <Typography
                     variant="subtitle1"
-                    sx={{ fontWeight: 600, color: 'text.primary', lineHeight: 1.3 }}
+                    sx={{
+                      fontWeight: 600,
+                      color: 'text.primary',
+                      lineHeight: 1.3,
+                    }}
                   >
                     {config.bean_name}
                   </Typography>
@@ -113,7 +141,11 @@ export const QuickBrew: React.FC<QuickBrewProps> = ({ configs, onSelect }) => {
                 </Box>
 
                 {/* Method + Grinder chips */}
-                <Stack direction="row" spacing={0.75} sx={{ mb: 2, flexWrap: 'wrap', gap: 0.5 }}>
+                <Stack
+                  direction="row"
+                  spacing={0.75}
+                  sx={{ mb: 2, flexWrap: 'wrap', gap: 0.5 }}
+                >
                   <Chip
                     label={config.method_name}
                     size="small"
@@ -137,11 +169,7 @@ export const QuickBrew: React.FC<QuickBrewProps> = ({ configs, onSelect }) => {
                 </Stack>
 
                 {/* Parameters */}
-                <Stack
-                  direction="row"
-                  spacing={2}
-                  sx={{ mb: 1.5 }}
-                >
+                <Stack direction="row" spacing={2} sx={{ mb: 1.5 }}>
                   <Box>
                     <Typography variant="caption" color="text.secondary">
                       Dose
@@ -166,7 +194,9 @@ export const QuickBrew: React.FC<QuickBrewProps> = ({ configs, onSelect }) => {
                       variant="body2"
                       sx={{
                         fontWeight: 600,
-                        color: config.suggested_grind ? 'success.main' : 'text.primary',
+                        color: config.suggested_grind
+                          ? 'success.main'
+                          : 'text.primary',
                       }}
                     >
                       {config.grind}
@@ -199,7 +229,9 @@ export const QuickBrew: React.FC<QuickBrewProps> = ({ configs, onSelect }) => {
                   sx={{ pt: 1, borderTop: 1, borderColor: 'divider' }}
                 >
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <AccessTime sx={{ fontSize: 14, color: 'text.secondary' }} />
+                    <AccessTime
+                      sx={{ fontSize: 14, color: 'text.secondary' }}
+                    />
                     <Typography variant="caption" color="text.secondary">
                       {timeAgo(config.last_brewed_at)}
                     </Typography>

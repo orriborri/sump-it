@@ -17,10 +17,19 @@ interface LogEntry {
   spanId?: string
 }
 
+/**
+ * Structured logger that integrates with OpenTelemetry tracing.
+ * Automatically attaches trace and span IDs to log entries, records log events
+ * on the active span, and formats output for both development and production environments.
+ */
 class Logger {
   private isDevelopment = process.env.NODE_ENV === 'development'
   private tracer = trace.getTracer('sump-it-logger', '1.0.0')
 
+  /**
+   * Retrieves the current OpenTelemetry trace and span IDs from the active span context.
+   * @returns An object containing traceId and spanId if an active span exists, otherwise an empty object
+   */
   private getTraceContext() {
     const activeSpan = trace.getActiveSpan()
     if (activeSpan) {
@@ -33,6 +42,12 @@ class Logger {
     return {}
   }
 
+  /**
+   * Formats a log entry into a structured string with timestamp, level, message,
+   * optional trace context, context data, and error information.
+   * @param entry - The log entry object to format
+   * @returns A formatted log string suitable for console output
+   */
   private formatMessage(entry: LogEntry): string {
     const { level, message, timestamp, context, error, traceId, spanId } = entry
     let formatted = `[${timestamp}] ${level.toUpperCase()}: ${message}`
@@ -55,6 +70,15 @@ class Logger {
     return formatted
   }
 
+  /**
+   * Core logging method that creates a structured log entry, attaches it to the
+   * active OpenTelemetry span as an event, and writes to the console based on
+   * environment and log level. In production, only warn and error levels are output.
+   * @param level - The severity level of the log message
+   * @param message - The log message text
+   * @param context - Optional key-value metadata to include with the log entry
+   * @param error - Optional Error object to attach to the log entry
+   */
   private log(
     level: LogLevel,
     message: string,
@@ -105,6 +129,16 @@ class Logger {
     }
   }
 
+  /**
+   * Wraps an operation in an OpenTelemetry span for distributed tracing.
+   * Automatically records success/failure status and handles both synchronous
+   * and asynchronous operations. On failure, logs the error and records the
+   * exception on the span before rethrowing.
+   * @param name - The name of the span (typically the operation being performed)
+   * @param operation - The function to execute within the span context
+   * @param attributes - Optional OpenTelemetry attributes to attach to the span
+   * @returns The result of the operation
+   */
   // Create a span for operations
   withSpan<T>(
     name: string,
@@ -161,21 +195,45 @@ class Logger {
     )
   }
 
+  /**
+   * Logs a debug-level message. Only output in development environments.
+   * @param message - The debug message text
+   * @param context - Optional key-value metadata to include with the log entry
+   */
   debug(message: string, context?: Record<string, unknown>) {
     this.log('debug', message, context)
   }
 
+  /**
+   * Logs an info-level message. Only output in development environments.
+   * @param message - The informational message text
+   * @param context - Optional key-value metadata to include with the log entry
+   */
   info(message: string, context?: Record<string, unknown>) {
     this.log('info', message, context)
   }
 
+  /**
+   * Logs a warning-level message. Output in both development and production.
+   * @param message - The warning message text
+   * @param context - Optional key-value metadata to include with the log entry
+   * @param error - Optional Error object associated with the warning
+   */
   warn(message: string, context?: Record<string, unknown>, error?: Error) {
     this.log('warn', message, context, error)
   }
 
+  /**
+   * Logs an error-level message. Output in both development and production.
+   * Records the exception on the active OpenTelemetry span and sets its status to ERROR.
+   * @param message - The error message text
+   * @param context - Optional key-value metadata to include with the log entry
+   * @param error - Optional Error object to record and attach to the span
+   */
   error(message: string, context?: Record<string, unknown>, error?: Error) {
     this.log('error', message, context, error)
   }
 }
 
+/** Singleton logger instance for application-wide structured logging with OpenTelemetry integration */
 export const logger = new Logger()

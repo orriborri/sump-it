@@ -3,7 +3,11 @@ import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentation
 import { PrometheusExporter } from '@opentelemetry/exporter-prometheus'
 import { logger } from './logger'
 
-// Initialize OpenTelemetry
+/**
+ * Initializes the OpenTelemetry SDK with Prometheus metrics exporter and
+ * auto-instrumentation for HTTP and PostgreSQL. Disables noisy filesystem
+ * and DNS instrumentation. Registers a SIGTERM handler for graceful shutdown.
+ */
 const init = () => {
   // Prometheus metrics exporter
   const prometheusExporter = new PrometheusExporter({
@@ -35,19 +39,20 @@ const init = () => {
   })
 
   sdk.start()
-  
+
   logger.info('OpenTelemetry initialized successfully', {
     metricsPort: 9090,
-    service: 'sump-it'
+    service: 'sump-it',
   })
 
   // Graceful shutdown
   process.on('SIGTERM', () => {
-    sdk.shutdown()
+    sdk
+      .shutdown()
       .then(() => {
         logger.info('OpenTelemetry terminated successfully')
       })
-      .catch((error) => {
+      .catch(error => {
         logger.error('Error terminating OpenTelemetry', {}, error as Error)
       })
       .finally(() => process.exit(0))

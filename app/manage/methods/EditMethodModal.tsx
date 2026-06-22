@@ -15,10 +15,19 @@ interface EditMethodModalProps {
   method: Method
 }
 
-export function EditMethodModal({ open, onClose, method }: EditMethodModalProps) {
+/**
+ * Modal dialog for editing an existing brew method.
+ * Currently displays a placeholder for the edit form implementation.
+ * @todo Implement the full edit form with fields for method name and parameters
+ */
+export function EditMethodModal({
+  open,
+  onClose,
+  method,
+}: EditMethodModalProps) {
   return (
-    <Dialog 
-      open={open} 
+    <Dialog
+      open={open}
       onClose={onClose}
       maxWidth="sm"
       fullWidth
@@ -26,17 +35,19 @@ export function EditMethodModal({ open, onClose, method }: EditMethodModalProps)
         sx: {
           bgcolor: '#F5F5DC',
           border: '2px solid #8B4513',
-          borderRadius: 2
-        }
+          borderRadius: 2,
+        },
       }}
     >
-      <DialogTitle sx={{ 
-        color: '#8B4513', 
-        fontWeight: 600,
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
-      }}>
+      <DialogTitle
+        sx={{
+          color: '#8B4513',
+          fontWeight: 600,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}
+      >
         Edit Brew Method
         <IconButton onClick={onClose} sx={{ color: '#8B4513' }}>
           <Close />

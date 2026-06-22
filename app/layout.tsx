@@ -14,6 +14,11 @@ export const viewport = {
   maximumScale: 1,
 }
 
+/**
+ * Root layout component that wraps the entire application.
+ * Provides the HTML structure, viewport meta, ThemeProvider, header navigation,
+ * and responsive container for all page content.
+ */
 const RootLayout = ({ children }: { children: React.ReactNode }) => {
   return (
     <html lang="en">

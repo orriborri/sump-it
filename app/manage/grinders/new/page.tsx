@@ -5,6 +5,10 @@ import { useRouter } from 'next/navigation'
 import { GrinderForm } from '../GrinderForm'
 import { createGrinder, GrinderFormData } from '../actions'
 
+/**
+ * Page component for creating a new grinder with the full advanced form.
+ * Uses the GrinderForm component and redirects to the grinders list on success.
+ */
 export default function NewGrinderPage() {
   const router = useRouter()
 

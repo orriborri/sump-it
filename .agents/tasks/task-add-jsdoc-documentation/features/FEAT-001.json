@@ -1,0 +1,21 @@
+{
+  "id": "FEAT-001",
+  "type": "chore",
+  "description": "Install dependencies and verify the project baseline builds and passes type-check/lint",
+  "status": "completed",
+  "steps": [
+    "Run 'pnpm install' in /projects/sandbox/sump-it to install all dependencies",
+    "Run 'pnpm type-check' to verify TypeScript compiles without errors",
+    "Run 'pnpm lint:lenient' to verify lint baseline (strict may have existing issues)"
+  ],
+  "acceptance_criteria": [
+    "pnpm install completes successfully",
+    "pnpm type-check passes (exit code 0)"
+  ],
+  "verification": [
+    "pnpm install",
+    "pnpm type-check"
+  ],
+  "blocked_reason": null,
+  "findings": "pnpm install and pnpm type-check both pass cleanly. lint:lenient fails due to circular JSON structure in ESLint/Next.js config (pre-existing issue unrelated to our changes). node_modules installed successfully with pnpm v10.28.1."
+}

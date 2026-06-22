@@ -16,6 +16,10 @@ interface PageProps {
   }>
 }
 
+/**
+ * Server component that displays a shared brew page with feedback collection
+ * Loads the brew and related equipment data from the database for the given ID
+ */
 const SharedBrewPage = async ({ params }: PageProps) => {
   const { id } = await params
   const brewId = parseInt(id)

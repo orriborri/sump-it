@@ -1,28 +1,26 @@
 'use client'
 import React from 'react'
-import {
-  Box,
-  Typography,
-  Stack,
-  Chip,
-  Paper,
-  Collapse,
-} from '@mui/material'
+import { Box, Typography, Stack, Chip, Paper, Collapse } from '@mui/material'
 import { Check } from '@mui/icons-material'
 
 interface IntegratedVerticalStepperProps {
   steps: string[]
   activeStep: number
-  getStepInstructions: (_stepIndex: number) => { title: string; description: string }
+  getStepInstructions: (_stepIndex: number) => {
+    title: string
+    description: string
+  }
   getStepContent: (_stepIndex: number) => React.ReactNode
 }
 
-export const IntegratedVerticalStepper: React.FC<IntegratedVerticalStepperProps> = ({
-  steps,
-  activeStep,
-  getStepInstructions,
-  getStepContent,
-}) => {
+/**
+ * Renders a vertical stepper with integrated form content for each step
+ * Displays step numbers/checkmarks, instructions, and collapsible form sections
+ * Active steps show their content expanded while completed steps show a summary
+ */
+export const IntegratedVerticalStepper: React.FC<
+  IntegratedVerticalStepperProps
+> = ({ steps, activeStep, getStepInstructions, getStepContent }) => {
   return (
     <Stack spacing={0}>
       {steps.map((label, index) => {
@@ -98,7 +96,7 @@ export const IntegratedVerticalStepper: React.FC<IntegratedVerticalStepperProps>
                         mb: 1,
                         '& .MuiChip-label': {
                           px: 1.5,
-                        }
+                        },
                       }}
                     />
                   )}
@@ -113,7 +111,7 @@ export const IntegratedVerticalStepper: React.FC<IntegratedVerticalStepperProps>
                         mb: 1,
                         '& .MuiChip-label': {
                           px: 1.5,
-                        }
+                        },
                       }}
                     />
                   )}
@@ -189,7 +187,11 @@ export const IntegratedVerticalStepper: React.FC<IntegratedVerticalStepperProps>
                 sx={{
                   width: 3,
                   height: 32,
-                  bgcolor: isCompleted ? 'success.main' : isActive ? 'primary.main' : 'grey.300',
+                  bgcolor: isCompleted
+                    ? 'success.main'
+                    : isActive
+                      ? 'primary.main'
+                      : 'grey.300',
                   ml: 2.25,
                   transition: 'all 0.3s ease',
                 }}

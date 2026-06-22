@@ -18,7 +18,17 @@ interface Suggestions {
   reason: string
 }
 
-export function generateBrewSuggestions(feedback: Feedback, current: CurrentBrew): Suggestions {
+/**
+ * Generates brewing parameter suggestions based on user feedback from their last brew
+ * Adjusts grind and ratio values to address reported taste issues
+ * @param feedback - Object containing boolean flags for taste problems (too weak, too strong, etc.)
+ * @param current - The current brew parameters (grind and ratio) to adjust from
+ * @returns Suggested grind and ratio values with a human-readable reason string
+ */
+export function generateBrewSuggestions(
+  feedback: Feedback,
+  current: CurrentBrew
+): Suggestions {
   let grindAdjustment = 0
   let ratioAdjustment = 0
   const reasons = []
@@ -30,7 +40,7 @@ export function generateBrewSuggestions(feedback: Feedback, current: CurrentBrew
   }
 
   if (feedback.too_strong) {
-    grindAdjustment += 2 // Coarser grind  
+    grindAdjustment += 2 // Coarser grind
     ratioAdjustment += 1 // Weaker ratio
     reasons.push('coarser grind and weaker ratio for less extraction')
   }
@@ -55,11 +65,14 @@ export function generateBrewSuggestions(feedback: Feedback, current: CurrentBrew
     reasons.push('grind finer to increase extraction')
   }
 
-  const reason = reasons.length > 0 ? `Try ${reasons.join(' and ')}` : 'Current settings look good'
+  const reason =
+    reasons.length > 0
+      ? `Try ${reasons.join(' and ')}`
+      : 'Current settings look good'
 
   return {
     grind: Math.max(1, Math.min(40, current.grind + grindAdjustment)),
     ratio: Math.max(10, Math.min(20, current.ratio + ratioAdjustment)),
-    reason
+    reason,
   }
 }
