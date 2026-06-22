@@ -26,21 +26,25 @@ describe('Delete Bean Integration Tests', () => {
   it('deletes bean when confirmed in modal', async () => {
     // Create test bean
     const bean = await beansModel.create({
-      name: 'Test Bean to Delete'
+      name: 'Test Bean to Delete',
     })
 
     render(<DeleteButton beanId={bean!.id} beanName="Test Bean to Delete" />)
-    
-    // Click delete icon button to open modal
-    const deleteButton = screen.getByRole('button')
+
+    // Click delete button to open modal
+    const deleteButton = screen.getByRole('button', {
+      name: /delete test bean to delete/i,
+    })
     fireEvent.click(deleteButton)
 
     // Verify modal is open
     expect(screen.getByText('Delete Coffee Bean')).toBeInTheDocument()
-    expect(screen.getByText('Are you sure you want to delete "Test Bean to Delete"?')).toBeInTheDocument()
+    expect(
+      screen.getByText('Are you sure you want to delete "Test Bean to Delete"?')
+    ).toBeInTheDocument()
 
     // Click confirm delete
-    const confirmButton = screen.getByRole('button', { name: /^delete$/i })
+    const confirmButton = screen.getByText('Delete')
     fireEvent.click(confirmButton)
 
     await waitFor(async () => {
@@ -52,17 +56,19 @@ describe('Delete Bean Integration Tests', () => {
   it('does not delete bean when cancelled in modal', async () => {
     // Create test bean
     const bean = await beansModel.create({
-      name: 'Test Bean to Keep'
+      name: 'Test Bean to Keep',
     })
 
     render(<DeleteButton beanId={bean!.id} beanName="Test Bean to Keep" />)
-    
-    // Click the initial delete icon button to open modal (only button before dialog opens)
-    const initialButton = screen.getByRole('button')
-    fireEvent.click(initialButton)
+
+    // Click delete button to open modal
+    const deleteButton = screen.getByRole('button', {
+      name: /delete test bean to keep/i,
+    })
+    fireEvent.click(deleteButton)
 
     // Click cancel
-    const cancelButton = screen.getByRole('button', { name: /cancel/i })
+    const cancelButton = screen.getByText('Cancel')
     fireEvent.click(cancelButton)
 
     await waitFor(async () => {
