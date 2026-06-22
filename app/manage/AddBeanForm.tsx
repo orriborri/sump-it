@@ -1,8 +1,7 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 import { Box, Button, Stack, Alert } from '@mui/material'
-import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Input } from '../common/Input'
 import { BeanFormData, addBean } from './actions'
@@ -12,6 +11,7 @@ interface AddBeanFormProps {
   onSuccess?: () => void
 }
 
+/** Form for adding a new coffee bean with name, roastery, and roast level fields. */
 export const AddBeanForm = ({ onSuccess }: AddBeanFormProps = {}) => {
   const { control, handleSubmit, reset } = useForm<BeanFormData>()
   const [isSubmitting, setIsSubmitting] = useState(false)

@@ -17,6 +17,7 @@ interface EditGrinderClientProps {
   grinder: GrinderData
 }
 
+/** Client component wrapping GrinderForm for editing an existing grinder. */
 export const EditGrinderClient: React.FC<EditGrinderClientProps> = ({
   grinder,
 }) => {

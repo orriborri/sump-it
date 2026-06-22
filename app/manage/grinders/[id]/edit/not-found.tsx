@@ -3,6 +3,7 @@ import { Box, Typography, Button, Card, CardContent } from '@mui/material'
 import { Error, ArrowBack } from '@mui/icons-material'
 import Link from 'next/link'
 
+/** 404 page shown when a grinder ID does not exist or has been deleted. */
 export default function NotFound() {
   return (
     <Box sx={{ p: 3, maxWidth: 600, mx: 'auto', textAlign: 'center' }}>

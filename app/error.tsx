@@ -9,6 +9,7 @@ interface ErrorProps {
   reset: () => void
 }
 
+/** Route-level error boundary displaying a recovery UI with retry and home links. */
 export default function Error({ error, reset }: ErrorProps) {
   React.useEffect(() => {
     // Log the error to an error reporting service

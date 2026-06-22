@@ -25,6 +25,7 @@ interface PageProps {
   }>
 }
 
+/** Edit grinder page that fetches grinder data and renders the edit form with breadcrumbs. */
 export default async function EditGrinderPage({ params }: PageProps) {
   const { id } = await params
   const grinder = await getGrinder(id)

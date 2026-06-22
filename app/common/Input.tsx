@@ -18,6 +18,7 @@ interface Props<T extends FieldValues> {
   disabled?: boolean
 }
 
+/** Reusable controlled text input component that wraps MUI TextField with React Hook Form. */
 export const Input = <T extends FieldValues>({
   control,
   name,
@@ -45,7 +46,7 @@ export const Input = <T extends FieldValues>({
           fullWidth
           label={label}
           type={type}
-          error={!!error}
+          error={Boolean(error)}
           helperText={error?.message}
           disabled={disabled}
           sx={{ mb: 1 }}

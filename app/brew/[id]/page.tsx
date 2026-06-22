@@ -16,6 +16,7 @@ interface PageProps {
   }>
 }
 
+/** Shared brew detail page showing brew info and a feedback submission form. */
 const SharedBrewPage = async ({ params }: PageProps) => {
   const { id } = await params
   const brewId = parseInt(id)

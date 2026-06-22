@@ -18,6 +18,7 @@ interface StepProps {
   grinders?: RuntimeType<Grinders>[]
 }
 
+/** Multi-step brew form combining equipment selection and brewing parameters with navigation. */
 export const Step: React.FC<StepProps> = ({
   form,
   onSubmit,
@@ -68,8 +69,6 @@ export const Step: React.FC<StepProps> = ({
     currentStep,
     prevStep,
     nextStep,
-    formData: _formData,
-    updateFormData: _updateFormData,
   } = form
 
 

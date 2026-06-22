@@ -3,6 +3,7 @@ import { Box, Typography, Button, Paper } from '@mui/material'
 import { Home, Coffee } from '@mui/icons-material'
 import Link from 'next/link'
 
+/** 404 page with navigation links to the home page and brew page. */
 export default function NotFound() {
   return (
     <Box

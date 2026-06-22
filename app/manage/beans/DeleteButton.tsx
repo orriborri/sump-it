@@ -18,6 +18,7 @@ interface DeleteButtonProps {
   beanName: string
 }
 
+/** Delete button with confirmation dialog for removing a coffee bean. */
 export function DeleteButton({ beanId, beanName }: DeleteButtonProps) {
   const [open, setOpen] = useState(false)
 

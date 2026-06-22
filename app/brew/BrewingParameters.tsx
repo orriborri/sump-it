@@ -16,6 +16,7 @@ interface BrewingParametersProps {
   grinders?: RuntimeType<Grinders>[]
 }
 
+/** Displays brewing parameter inputs (recipe, grind setting) with auto-fill from previous brews. */
 export const BrewingParameters: React.FC<BrewingParametersProps> = ({
   formData,
   updateFormData,

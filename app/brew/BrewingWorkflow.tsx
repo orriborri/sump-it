@@ -17,6 +17,7 @@ interface BrewingWorkflowProps {
   recentConfigs: QuickBrewConfig[]
 }
 
+/** Orchestrates the full brew workflow, connecting quick-brew shortcuts with the step form. */
 export const BrewingWorkflow: React.FC<BrewingWorkflowProps> = ({
   beans,
   methods,

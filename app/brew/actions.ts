@@ -3,7 +3,7 @@
 import { db } from '../lib/database'
 import { BrewsModel } from '../lib/generated-models/Brews'
 
-import { BrewsJoinedQueries } from '../lib/generated-models/BrewsJoined'
+import { BrewsJoinedQueries, BrewsWithJoins } from '../lib/generated-models/BrewsJoined'
 import { FormData } from './types'
 import type { Kysely } from 'kysely'
 import type { DB } from '../lib/db.d'
@@ -11,15 +11,17 @@ import type { DB } from '../lib/db.d'
 // Allow dependency injection for testing
 let testDb: Kysely<DB> | null = null
 
+/** Sets a test database instance for dependency injection during testing. */
 export async function setTestDatabase(database: Kysely<DB> | null) {
   testDb = database
 }
 
+/** Returns the active database instance (test or production). */
 function getDatabase() {
   return testDb || db
 }
 
-// Initialize models with current database
+/** Initializes and returns model instances using the current database connection. */
 function getModels() {
   const currentDb = getDatabase()
   return {
@@ -28,8 +30,7 @@ function getModels() {
   }
 }
 
-import { BrewsWithJoins } from '../lib/generated-models/BrewsJoined'
-
+/** Retrieves previous brews matching the given bean, method, and grinder combination. */
 export async function getPreviousBrews(
   bean_id: string,
   method_id: string,
@@ -51,6 +52,7 @@ export async function getPreviousBrews(
   }
 }
 
+/** Persists a new brew record to the database from the form data. */
 export async function saveBrew(data: FormData) {
   try {
     const { brewsModel } = getModels()

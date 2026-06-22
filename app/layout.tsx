@@ -14,6 +14,7 @@ export const viewport = {
   maximumScale: 1,
 }
 
+/** Root layout providing ThemeProvider, app header, and responsive container. */
 const RootLayout = ({ children }: { children: React.ReactNode }) => {
   return (
     <html lang="en">

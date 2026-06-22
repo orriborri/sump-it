@@ -11,6 +11,7 @@ interface AddMethodFormProps {
   onSuccess?: () => void
 }
 
+/** Form for adding a new brewing method with simple name input. */
 export function AddMethodForm({ onSuccess }: AddMethodFormProps = {}) {
   const { control, handleSubmit, reset } = useForm<MethodFormData>()
   const [isSubmitting, setIsSubmitting] = useState(false)

@@ -10,6 +10,7 @@ interface AddMethodModalProps {
   onClose: () => void
 }
 
+/** Modal dialog containing the AddMethodForm for adding methods without leaving the page. */
 export function AddMethodModal({ open, onClose }: AddMethodModalProps) {
   return (
     <Dialog 

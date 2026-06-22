@@ -3,6 +3,7 @@
 import { GrindersModel } from '@/app/lib/generated-models/Grinders'
 import { db } from '@/app/lib/database'
 
+/** Grinder configuration including range and step settings. */
 export interface GrinderSettings {
   id: number
   name: string
@@ -12,6 +13,7 @@ export interface GrinderSettings {
   setting_type: string
 }
 
+/** Fetches grinder settings by ID, returning null if not found or invalid. */
 export async function getGrinderSettings(grinderId: string): Promise<GrinderSettings | null> {
   try {
     const grindersModel = new GrindersModel(db)

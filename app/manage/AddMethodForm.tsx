@@ -8,6 +8,7 @@ import { LocalCafe } from '@mui/icons-material'
 
 const popularMethods = ['V60', 'French Press', 'AeroPress', 'Chemex', 'Espresso', 'Cold Brew']
 
+/** Form for adding a new brewing method with popular method chip suggestions. */
 export const AddMethodForm = () => {
   const { control, handleSubmit, reset, setValue } = useForm<MethodFormData>()
   const [isSubmitting, setIsSubmitting] = useState(false)

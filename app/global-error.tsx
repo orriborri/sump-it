@@ -7,6 +7,7 @@ interface GlobalErrorProps {
   reset: () => void
 }
 
+/** Top-level error boundary for unrecoverable errors, rendering a minimal HTML fallback. */
 export default function GlobalError({ error, reset }: GlobalErrorProps) {
   React.useEffect(() => {
     // Log the error for debugging - import logger at component level to avoid SSR issues

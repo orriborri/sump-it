@@ -7,6 +7,7 @@ interface UseStepNavigationProps {
   totalSteps: number
 }
 
+/** Provides step navigation state and validation for the multi-step brew form. */
 export const useStepNavigation = ({ currentStep, formData, totalSteps }: UseStepNavigationProps) => {
   const getValidationErrors = () => {
     const errors = []

@@ -114,6 +114,7 @@ function BrewCard({
   )
 }
 
+/** Statistics page displaying brew history in a table or card view with delete capability. */
 const StatsTable = () => {
   const [items, setItems] = useState<BrewResult[]>([])
   const [loading, setLoading] = useState(true)

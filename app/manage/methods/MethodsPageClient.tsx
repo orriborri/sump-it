@@ -29,6 +29,7 @@ interface MethodsPageClientProps {
   methods: Method[]
 }
 
+/** Client-side methods list page with table display and add/edit/delete modals. */
 export function MethodsPageClient({ methods }: MethodsPageClientProps) {
   const [addModalOpen, setAddModalOpen] = useState(false)
   const [editModalOpen, setEditModalOpen] = useState(false)

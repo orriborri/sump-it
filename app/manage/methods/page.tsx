@@ -6,6 +6,7 @@ import { MethodsPageClient } from './MethodsPageClient'
 // Force dynamic rendering
 export const dynamic = 'force-dynamic'
 
+/** Methods management page that fetches all methods and renders the client list component. */
 const MethodsPage = async () => {
   const methodsModel = new MethodsModel(db)
   const methods = await methodsModel.findAll()

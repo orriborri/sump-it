@@ -10,6 +10,7 @@ interface ButtonProps extends MuiButtonProps {
   rounded?: boolean
 }
 
+/** Styled button component wrapping MUI Button with optional rounded border support. */
 export const Button = ({
   children,
   variant = 'contained',

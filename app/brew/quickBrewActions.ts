@@ -3,6 +3,7 @@
 import { db } from '@/app/lib/database'
 import { logger } from '@/app/lib/logger'
 
+/** Configuration for a quick-brew shortcut derived from recent brew history. */
 export interface QuickBrewConfig {
   id: number
   bean_id: number

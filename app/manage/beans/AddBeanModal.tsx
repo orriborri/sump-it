@@ -10,6 +10,7 @@ interface AddBeanModalProps {
   onClose: () => void
 }
 
+/** Modal dialog containing the AddBeanForm for adding beans without leaving the page. */
 export function AddBeanModal({ open, onClose }: AddBeanModalProps) {
   return (
     <Dialog 
