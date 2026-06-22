@@ -2,7 +2,7 @@
   "id": "FEAT-004",
   "type": "docs",
   "description": "Add JSDoc documentation comments to all functions and components in app/manage/, app/common/, app/navigation/, app/stats/, app/providers/, app/api/, and root-level TypeScript files",
-  "status": "in_progress",
+  "status": "completed",
   "steps": [
     "Add JSDoc to app/manage/actions.ts - document addBean, addMethod, addGrinder, getBeans, getMethods, getGrinders, deleteMethod",
     "Add JSDoc to app/manage/AddBeanForm.tsx - document the component",
@@ -58,5 +58,5 @@
     "pnpm lint:lenient"
   ],
   "blocked_reason": null,
-  "findings": ""
+  "findings": "pnpm type-check passes. pnpm lint:lenient has a pre-existing circular JSON structure error in the ESLint config (unrelated to JSDoc changes, also fails on base commit). All 47 files documented successfully."
 }
