@@ -176,6 +176,7 @@ describe('BrewingWorkflow Integration', () => {
   it('renders quick brew section when recent configs exist', () => {
     const recentConfigs = [
       {
+        id: 1,
         bean_id: 1,
         method_id: 1,
         grinder_id: 1,
@@ -187,7 +188,10 @@ describe('BrewingWorkflow Integration', () => {
         method_name: 'V60',
         grinder_name: 'Commandante C40',
         brew_count: 3,
-        last_brewed: new Date().toISOString(),
+        last_brewed_at: new Date().toISOString(),
+        last_rating: null,
+        suggested_grind: null,
+        suggested_ratio: null,
       },
     ]
 
