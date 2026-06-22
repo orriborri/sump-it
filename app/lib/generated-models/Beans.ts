@@ -18,7 +18,7 @@ export class BeansModel {
   /**
    * Create a new bean record
    * @param data - The bean data to insert (excludes auto-generated id and created_at)
-   * @returns The newly created bean record, or undefined if the insert failed
+   * @returns The newly created bean record
    */
   async create(data: Omit<BeansInsert, 'id' | 'created_at'>): Promise<BeansSelect | undefined> {
     return await this._db

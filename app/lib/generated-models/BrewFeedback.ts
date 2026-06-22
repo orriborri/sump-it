@@ -18,7 +18,7 @@ export class BrewFeedbackModel {
   /**
    * Create a new brew feedback record
    * @param data - The feedback data to insert (excludes auto-generated id and created_at)
-   * @returns The newly created feedback record, or undefined if the insert failed
+   * @returns The newly created feedback record
    */
   async create(data: Omit<BrewFeedbackInsert, 'id' | 'created_at'>): Promise<BrewFeedbackSelect | undefined> {
     return await this._db

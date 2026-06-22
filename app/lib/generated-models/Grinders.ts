@@ -18,7 +18,7 @@ export class GrindersModel {
   /**
    * Create a new grinder record
    * @param data - The grinder data to insert (excludes auto-generated id and created_at)
-   * @returns The newly created grinder record, or undefined if the insert failed
+   * @returns The newly created grinder record
    */
   async create(data: Omit<GrindersInsert, 'id' | 'created_at'>): Promise<GrindersSelect | undefined> {
     return await this._db

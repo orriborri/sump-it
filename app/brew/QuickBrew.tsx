@@ -21,9 +21,12 @@ interface QuickBrewProps {
 }
 
 /**
- * Converts a timestamp string into a human-readable relative time description
+ * Converts a timestamp string into a human-readable relative time description.
+ * Uses compact single-character formatting (e.g. "5m ago") suited for card UI,
+ * rather than the verbose format from the shared utility.
  * @param dateString - ISO date string to convert
  * @returns Relative time string like "5m ago", "2h ago", "3d ago", or a formatted date
+ * @see app/lib/date.ts#timeAgo for the verbose version using date-fns formatDistanceToNow
  */
 function timeAgo(dateString: string): string {
   const date = new Date(dateString)

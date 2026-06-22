@@ -18,7 +18,7 @@ export class MethodsModel {
   /**
    * Create a new method record
    * @param data - The method data to insert (excludes auto-generated id and created_at)
-   * @returns The newly created method record, or undefined if the insert failed
+   * @returns The newly created method record
    */
   async create(data: Omit<MethodsInsert, 'id' | 'created_at'>): Promise<MethodsSelect | undefined> {
     return await this._db

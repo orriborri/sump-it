@@ -18,7 +18,7 @@ export class BrewsModel {
   /**
    * Create a new brew record
    * @param data - The brew data to insert (excludes auto-generated id and created_at)
-   * @returns The newly created brew record, or undefined if the insert failed
+   * @returns The newly created brew record
    */
   async create(data: Omit<BrewsInsert, 'id' | 'created_at'>): Promise<BrewsSelect | undefined> {
     return await this._db
