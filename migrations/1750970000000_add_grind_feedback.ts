@@ -1,6 +1,7 @@
 import { Kysely, sql } from 'kysely'
+import { DB } from './db-types'
 
-export async function up(db: Kysely<any>): Promise<void> {
+export async function up(db: Kysely<DB>): Promise<void> {
   // Add grind feedback columns to brew_feedback table
   await db.schema
     .alterTable('brew_feedback')
@@ -12,7 +13,7 @@ export async function up(db: Kysely<any>): Promise<void> {
     .execute()
 }
 
-export async function down(db: Kysely<any>): Promise<void> {
+export async function down(db: Kysely<DB>): Promise<void> {
   // Remove grind feedback columns
   await db.schema
     .alterTable('brew_feedback')

@@ -1,8 +1,8 @@
 // Simple DB interface for migrations
 export interface DB {
-  beans: any;
-  methods: any;
-  grinders: any;
-  brews: any;
-  brew_feedback: any;
+  beans: Record<string, unknown>;
+  methods: Record<string, unknown>;
+  grinders: Record<string, unknown>;
+  brews: Record<string, unknown>;
+  brew_feedback: Record<string, unknown>;
 }

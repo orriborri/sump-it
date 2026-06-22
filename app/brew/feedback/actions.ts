@@ -3,22 +3,13 @@
 import { db } from '../../lib/database'
 import { BrewFeedbackModel } from '../../lib/generated-models/BrewFeedback'
 import type { Kysely } from 'kysely'
-import type { Database } from '../../lib/db'
-
-// Interface for feedback input data
-interface BrewFeedbackInput {
-  coffee_amount_ml?: number | null
-  too_strong?: boolean
-  too_weak?: boolean
-  is_sour?: boolean
-  is_bitter?: boolean
-  overall_rating?: number | null
-}
+import type { DB } from '../../lib/db.d'
+import type { BrewFeedbackInput } from '../types'
 
 // Allow dependency injection for testing
-let testDb: Kysely<Database> | null = null
+let testDb: Kysely<DB> | null = null
 
-export async function setTestDatabase(database: Kysely<Database> | null) {
+export async function setTestDatabase(database: Kysely<DB> | null) {
   testDb = database
 }
 
@@ -26,11 +17,14 @@ function getDatabase() {
   return testDb || db
 }
 
-export async function saveBrewFeedback(brewId: number, feedback: BrewFeedbackInput) {
+export async function saveBrewFeedback(
+  brewId: number,
+  feedback: BrewFeedbackInput
+) {
   try {
     const currentDb = getDatabase()
-    const feedbackModel = new BrewFeedbackModel(currentDb as any)
-    
+    const feedbackModel = new BrewFeedbackModel(currentDb)
+
     const savedFeedback = await feedbackModel.create({
       brew_id: brewId,
       coffee_amount_ml: feedback.coffee_amount_ml || null,
@@ -41,7 +35,7 @@ export async function saveBrewFeedback(brewId: number, feedback: BrewFeedbackInp
       overall_rating: feedback.overall_rating || null,
     })
 
-    return { success: true, feedback: savedFeedback }
+    return { success: true, data: savedFeedback }
   } catch {
     return { success: false, error: 'Failed to save feedback' }
   }

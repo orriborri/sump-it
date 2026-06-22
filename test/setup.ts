@@ -8,7 +8,7 @@ import {
 } from './database-setup'
 
 // Global test database instance
-let testDb: any
+let testDb: ReturnType<typeof createTestDatabase> | null = null
 
 // Mock Next.js router
 vi.mock('next/navigation', () => ({
@@ -35,6 +35,9 @@ beforeEach(async () => {
 })
 
 afterEach(async () => {
+  // Explicit cleanup is required here despite @testing-library/react's auto-cleanup.
+  // In singleFork mode with async afterEach (database teardown), the auto-cleanup
+  // may not execute before the next test renders, causing DOM leakage between tests.
   cleanup()
   if (testDb) {
     await cleanupTestDatabase(testDb)

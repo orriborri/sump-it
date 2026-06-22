@@ -1,6 +1,7 @@
 import { Kysely, sql } from "kysely";
+import { DB } from "./db-types";
 
-export async function up(db: Kysely<any>): Promise<void> {
+export async function up(db: Kysely<DB>): Promise<void> {
   // Add grinder setting columns
   await db.schema
     .alterTable("grinders")
@@ -11,7 +12,7 @@ export async function up(db: Kysely<any>): Promise<void> {
     .execute();
 }
 
-export async function down(db: Kysely<any>): Promise<void> {
+export async function down(db: Kysely<DB>): Promise<void> {
   await db.schema
     .alterTable("grinders")
     .dropColumn("min_setting")

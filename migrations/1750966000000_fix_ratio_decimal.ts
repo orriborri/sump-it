@@ -1,7 +1,7 @@
 import { Kysely, sql } from "kysely";
+import { DB } from "./db-types";
 
-// `any` is required here since migrations should be frozen in time. alternatively, keep a "snapshot" db interface.
-export async function up(db: Kysely<any>): Promise<void> {
+export async function up(db: Kysely<DB>): Promise<void> {
 	// Change ratio column from integer to decimal to support precise ratios like 16.67
 	await db.schema
 		.alterTable("brews")
@@ -9,8 +9,7 @@ export async function up(db: Kysely<any>): Promise<void> {
 		.execute();
 }
 
-// `any` is required here since migrations should be frozen in time. alternatively, keep a "snapshot" db interface.
-export async function down(db: Kysely<any>): Promise<void> {
+export async function down(db: Kysely<DB>): Promise<void> {
 	// Revert back to integer (this will truncate decimal values)
 	await db.schema
 		.alterTable("brews")

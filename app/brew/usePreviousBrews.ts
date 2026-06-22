@@ -1,15 +1,24 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { getPreviousBrews } from './actions'
+import type { BrewsWithJoins } from '../lib/generated-models/BrewsJoined'
 
-export const usePreviousBrews = (beanId: number, methodId: number, grinderId: number) => {
-  const [previousBrews, setPreviousBrews] = useState<any[]>([])
+export const usePreviousBrews = (
+  beanId: number,
+  methodId: number,
+  grinderId: number
+) => {
+  const [previousBrews, setPreviousBrews] = useState<BrewsWithJoins[]>([])
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     if (beanId > 0 && methodId > 0 && grinderId > 0) {
       setLoading(true)
-      getPreviousBrews(beanId.toString(), methodId.toString(), grinderId.toString())
+      getPreviousBrews(
+        beanId.toString(),
+        methodId.toString(),
+        grinderId.toString()
+      )
         .then(setPreviousBrews)
         .finally(() => setLoading(false))
     }
