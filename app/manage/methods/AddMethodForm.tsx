@@ -45,7 +45,7 @@ export function AddMethodForm({ onSuccess }: AddMethodFormProps = {}) {
           {error}
         </Alert>
       )}
-      
+
       <Stack spacing={2}>
         <Input
           control={control}
@@ -53,17 +53,17 @@ export function AddMethodForm({ onSuccess }: AddMethodFormProps = {}) {
           label="Method Name"
           rules={{ required: 'Method name is required' }}
         />
-        
+
         <Button
           type="submit"
           variant="contained"
           startIcon={<LocalCafe />}
           disabled={isSubmitting}
           fullWidth
-          sx={{ 
+          sx={{
             mt: 2,
-            bgcolor: '#8B4513', 
-            '&:hover': { bgcolor: '#6B3410' }
+            bgcolor: '#8B4513',
+            '&:hover': { bgcolor: '#6B3410' },
           }}
         >
           {isSubmitting ? 'Adding Method...' : 'Add Method'}
