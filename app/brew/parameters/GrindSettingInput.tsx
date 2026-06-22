@@ -71,7 +71,7 @@ export const GrindSettingInput: React.FC<GrindSettingInputProps> = ({
         <IconButton
           onClick={handleDecrement}
           disabled={currentGrind <= minSetting}
-          size="small"
+          sx={{ minWidth: 44, minHeight: 44 }}
         >
           <Remove />
         </IconButton>
@@ -94,7 +94,7 @@ export const GrindSettingInput: React.FC<GrindSettingInputProps> = ({
         <IconButton
           onClick={handleIncrement}
           disabled={currentGrind >= maxSetting}
-          size="small"
+          sx={{ minWidth: 44, minHeight: 44 }}
         >
           <Add />
         </IconButton>
