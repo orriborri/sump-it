@@ -4,16 +4,7 @@ import { db } from '../../lib/database'
 import { BrewFeedbackModel } from '../../lib/generated-models/BrewFeedback'
 import type { Kysely } from 'kysely'
 import type { DB } from '../../lib/db.d'
-
-// Interface for feedback input data
-interface BrewFeedbackInput {
-  coffee_amount_ml?: number | null
-  too_strong?: boolean
-  too_weak?: boolean
-  is_sour?: boolean
-  is_bitter?: boolean
-  overall_rating?: number | null
-}
+import type { BrewFeedbackInput } from '../types'
 
 // Allow dependency injection for testing
 let testDb: Kysely<DB> | null = null
