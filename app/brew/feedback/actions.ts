@@ -17,11 +17,14 @@ function getDatabase() {
   return testDb || db
 }
 
-export async function saveBrewFeedback(brewId: number, feedback: BrewFeedbackInput) {
+export async function saveBrewFeedback(
+  brewId: number,
+  feedback: BrewFeedbackInput
+) {
   try {
     const currentDb = getDatabase()
     const feedbackModel = new BrewFeedbackModel(currentDb)
-    
+
     const savedFeedback = await feedbackModel.create({
       brew_id: brewId,
       coffee_amount_ml: feedback.coffee_amount_ml || null,

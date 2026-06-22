@@ -53,7 +53,10 @@ export const SharedBrewFeedback: React.FC<SharedBrewFeedbackProps> = ({
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const handleFeedbackChange = (field: string, value: string | number | boolean) => {
+  const handleFeedbackChange = (
+    field: string,
+    value: string | number | boolean
+  ) => {
     setFeedback(prev => ({
       ...prev,
       [field]: value,

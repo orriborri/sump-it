@@ -313,9 +313,10 @@ export async function saveBrew(data: FormData) {
   }
 }
 
-
-
-export async function saveBrewFeedback(brewId: number, feedback: BrewFeedbackInput) {
+export async function saveBrewFeedback(
+  brewId: number,
+  feedback: BrewFeedbackInput
+) {
   try {
     const savedFeedback = await feedbackModel.create({
       brew_id: brewId,
