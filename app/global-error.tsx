@@ -7,6 +7,11 @@ interface GlobalErrorProps {
   reset: () => void
 }
 
+/**
+ * Global error boundary for unrecoverable application-level errors.
+ * Renders a standalone HTML page (without the app shell) with error details
+ * and recovery options. Used as a fallback when the root layout itself fails.
+ */
 export default function GlobalError({ error, reset }: GlobalErrorProps) {
   React.useEffect(() => {
     // Log the error for debugging - import logger at component level to avoid SSR issues

@@ -5,6 +5,12 @@ import { ExpandMore } from '@mui/icons-material'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
+/**
+ * Application header with navigation bar.
+ * Renders the top AppBar with links to Home, Brew, Stats, and a dropdown
+ * menu for the Manage section (Beans, Methods, Grinders). Highlights the
+ * active navigation item based on the current route.
+ */
 export const Header = () => {
   const pathname = usePathname()
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null)

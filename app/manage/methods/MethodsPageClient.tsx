@@ -29,6 +29,11 @@ interface MethodsPageClientProps {
   methods: Method[]
 }
 
+/**
+ * Client-side page component for managing brew methods.
+ * Displays a table of all methods with edit and delete action buttons.
+ * Includes modals for adding, editing, and deleting methods.
+ */
 export function MethodsPageClient({ methods }: MethodsPageClientProps) {
   const [addModalOpen, setAddModalOpen] = useState(false)
   const [editModalOpen, setEditModalOpen] = useState(false)

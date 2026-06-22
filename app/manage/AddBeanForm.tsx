@@ -12,6 +12,11 @@ interface AddBeanFormProps {
   onSuccess?: () => void
 }
 
+/**
+ * Form component for adding a new coffee bean to the collection.
+ * Provides input fields for bean name, roster, roastery, and roast level.
+ * Displays success/error feedback after submission.
+ */
 export const AddBeanForm = ({ onSuccess }: AddBeanFormProps = {}) => {
   const { control, handleSubmit, reset } = useForm<BeanFormData>()
   const [isSubmitting, setIsSubmitting] = useState(false)

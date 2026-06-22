@@ -4,6 +4,11 @@ import { Breadcrumbs, Link as MuiLink } from '@mui/material'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
+/**
+ * Breadcrumb navigation component that automatically generates
+ * breadcrumb links based on the current URL path segments.
+ * Each segment is capitalized and linked except the last (current page).
+ */
 export const BreadcrumbNav = () => {
   const pathname = usePathname()
   const paths = pathname.split('/').filter(p => p)

@@ -22,6 +22,11 @@ interface GenericSelectProps<T, F extends FieldValues> {
   getLabel: (_item: T) => string
 }
 
+/**
+ * Reusable generic select dropdown component integrated with react-hook-form.
+ * Wraps MUI Select with form control and renders menu items from a typed array.
+ * Uses accessor functions for flexible key, value, and label extraction.
+ */
 export const Select = <T, F extends FieldValues>({
   control,
   name,

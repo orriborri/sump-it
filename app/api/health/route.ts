@@ -19,6 +19,11 @@ const dbConnectionGauge = meter.createUpDownCounter('database_connection_status'
   description: 'Database connection status (1 = connected, 0 = disconnected)'
 })
 
+/**
+ * Health check API endpoint that verifies database connectivity and returns system status.
+ * Records OpenTelemetry metrics for health check duration and database connection status.
+ * @returns JSON response with health status, database info, memory usage, and table counts
+ */
 export async function GET() {
   const startTime = Date.now()
   

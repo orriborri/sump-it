@@ -7,6 +7,11 @@ import { revalidatePath } from 'next/cache'
 // Initialize models
 const brewsModel = new BrewsModel(db)
 
+/**
+ * Fetches all brew records with joined bean, method, grinder, and feedback data.
+ * Uses a complex Kysely query with left joins for comprehensive brew history reporting.
+ * @returns Array of brew records with associated bean name, method name, grinder name, and feedback
+ */
 export async function getBrews() {
   // For complex joins, we still use direct Kysely queries
   // This is appropriate since it's a complex reporting query
@@ -36,6 +41,10 @@ export async function getBrews() {
     .execute()
 }
 
+/**
+ * Deletes a brew record by ID and revalidates the stats page cache
+ * @param id - The ID of the brew to delete
+ */
 export async function deleteBrew(id: number) {
   // Use the generated model for simple operations
   await brewsModel.deleteById(id)

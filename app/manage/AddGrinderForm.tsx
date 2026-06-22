@@ -12,6 +12,12 @@ const popularGrinders = [
   { name: 'Timemore C2', range: '1-25' }
 ]
 
+/**
+ * Quick-add form component for creating a new grinder entry.
+ * Uses default numeric settings (range 1-40, step 1) and offers
+ * popular grinder presets as clickable chip suggestions.
+ * Links to the advanced grinder setup form for custom configurations.
+ */
 export const AddGrinderForm = () => {
   const [name, setName] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)

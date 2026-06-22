@@ -15,6 +15,10 @@ interface EditMethodModalProps {
   method: Method
 }
 
+/**
+ * Modal dialog for editing an existing brew method.
+ * Currently displays a placeholder for the edit form implementation.
+ */
 export function EditMethodModal({ open, onClose, method }: EditMethodModalProps) {
   return (
     <Dialog 

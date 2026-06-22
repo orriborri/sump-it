@@ -16,6 +16,10 @@ interface DeleteMethodModalProps {
   method: Method
 }
 
+/**
+ * Confirmation dialog for deleting a brew method.
+ * Displays a warning and handles the delete action with error feedback.
+ */
 export function DeleteMethodModal({ open, onClose, method }: DeleteMethodModalProps) {
   const [isDeleting, setIsDeleting] = useState(false)
   const [error, setError] = useState<string | null>(null)

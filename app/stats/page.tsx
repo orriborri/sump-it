@@ -32,6 +32,11 @@ import { deleteBrew, getBrews } from './actions'
 
 type BrewResult = Awaited<ReturnType<typeof getBrews>>[number]
 
+/**
+ * Card component for displaying a single brew record on mobile devices.
+ * Shows brew details including date, bean, method, grinder, parameters,
+ * taste feedback chips, and a delete button.
+ */
 function BrewCard({
   brew,
   onDelete,
@@ -114,6 +119,12 @@ function BrewCard({
   )
 }
 
+/**
+ * Statistics page component that displays brew history.
+ * Renders a responsive table (desktop) or card list (mobile) of all brews
+ * with filtering options and delete confirmation dialogs.
+ * Fetches data client-side and supports loading/error states.
+ */
 const StatsTable = () => {
   const [items, setItems] = useState<BrewResult[]>([])
   const [loading, setLoading] = useState(true)

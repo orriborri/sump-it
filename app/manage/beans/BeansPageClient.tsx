@@ -33,6 +33,11 @@ interface BeansPageClientProps {
   beans: Bean[]
 }
 
+/**
+ * Client-side page component for managing coffee beans.
+ * Displays a table listing all beans with their details and action buttons
+ * for editing and deleting. Includes a modal for adding new beans.
+ */
 export function BeansPageClient({ beans }: BeansPageClientProps) {
   const [modalOpen, setModalOpen] = useState(false)
   const router = useRouter()

@@ -1,6 +1,10 @@
 import React from 'react'
 import { Box, CircularProgress, Typography } from '@mui/material'
 
+/**
+ * Loading component displayed during route transitions.
+ * Shows a centered circular progress spinner with a coffee-themed message.
+ */
 export default function Loading() {
   return (
     <Box

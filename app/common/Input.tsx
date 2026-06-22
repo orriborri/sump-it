@@ -18,6 +18,11 @@ interface Props<T extends FieldValues> {
   disabled?: boolean
 }
 
+/**
+ * Reusable controlled text input component integrated with react-hook-form.
+ * Wraps MUI TextField with form control, validation, and error display.
+ * Supports text and number input types with an optional external onChange handler.
+ */
 export const Input = <T extends FieldValues>({
   control,
   name,

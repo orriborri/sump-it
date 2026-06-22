@@ -9,6 +9,11 @@ import { GrindersModel } from './lib/generated-models/Grinders'
 // Force dynamic rendering
 export const dynamic = 'force-dynamic'
 
+/**
+ * Home page component that displays a hero section with real-time stats
+ * fetched from the database (beans, methods, grinders, brews counts)
+ * and quick-action navigation buttons to start brewing or manage resources.
+ */
 const Page = async () => {
   // Fetch real stats from database
   const beansModel = new BeansModel(db)

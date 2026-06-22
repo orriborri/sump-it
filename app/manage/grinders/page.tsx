@@ -22,11 +22,19 @@ import { DeleteGrinderButton } from './DeleteGrinderButton'
 // Force dynamic rendering since we need database access
 export const dynamic = 'force-dynamic'
 
+/**
+ * Fetches all grinder records from the database for the grinders listing page
+ * @returns Array of all grinder records
+ */
 async function getGrinders() {
   const grindersModel = new GrindersModel(db)
   return await grindersModel.findAll()
 }
 
+/**
+ * Server-side page component for the grinders management section.
+ * Displays a table of all grinders with their settings, range, and action buttons.
+ */
 export default async function GrindersPage() {
   const grinders = await getGrinders()
 

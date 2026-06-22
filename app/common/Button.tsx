@@ -10,6 +10,11 @@ interface ButtonProps extends MuiButtonProps {
   rounded?: boolean
 }
 
+/**
+ * Reusable button component with coffee-themed styling.
+ * Wraps MUI Button with custom defaults for contained/primary variants
+ * and an optional rounded border radius.
+ */
 export const Button = ({
   children,
   variant = 'contained',

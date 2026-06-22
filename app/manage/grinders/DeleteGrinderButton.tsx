@@ -18,6 +18,10 @@ interface DeleteGrinderButtonProps {
   grinderName: string
 }
 
+/**
+ * Delete button with confirmation dialog for removing a grinder.
+ * Shows a warning that the action is irreversible before executing deletion.
+ */
 export const DeleteGrinderButton: React.FC<DeleteGrinderButtonProps> = ({
   grinderId,
   grinderName,

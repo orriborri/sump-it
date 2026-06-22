@@ -32,6 +32,12 @@ interface GrinderFormProps {
   isEditing?: boolean
 }
 
+/**
+ * Comprehensive form component for creating or editing a grinder.
+ * Supports configuring grinder name, setting type (numeric/stepped/continuous),
+ * min/max range, and steps per unit. Includes a live preview with a slider
+ * showing how the grinder settings will appear.
+ */
 export const GrinderForm: React.FC<GrinderFormProps> = ({
   initialData,
   onSubmit,

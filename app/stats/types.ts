@@ -1,3 +1,4 @@
+/** Represents a brew record with all joined data for display in the stats view */
 export type Brew = {
   id: number
   created_at: string

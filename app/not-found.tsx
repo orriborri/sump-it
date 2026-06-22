@@ -3,6 +3,11 @@ import { Box, Typography, Button, Paper } from '@mui/material'
 import { Home, Coffee } from '@mui/icons-material'
 import Link from 'next/link'
 
+/**
+ * 404 Not Found page component.
+ * Displays a friendly error message when a user navigates to a non-existent route,
+ * with links to return home or start a new brew.
+ */
 export default function NotFound() {
   return (
     <Box

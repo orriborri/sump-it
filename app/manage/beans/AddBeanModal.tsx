@@ -10,6 +10,10 @@ interface AddBeanModalProps {
   onClose: () => void
 }
 
+/**
+ * Modal dialog for adding a new coffee bean.
+ * Wraps the AddBeanForm component in a styled dialog with a close button.
+ */
 export function AddBeanModal({ open, onClose }: AddBeanModalProps) {
   return (
     <Dialog 
