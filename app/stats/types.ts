@@ -1,3 +1,4 @@
+/** Brew record with joined entity names and feedback data for the stats view. */
 export type Brew = {
   id: number
   created_at: string

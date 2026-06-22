@@ -20,6 +20,11 @@ interface QuickBrewProps {
   onSelect: (_config: FormData) => void
 }
 
+interface QuickBrewCardProps {
+  config: QuickBrewConfig
+  onSelect: () => void
+}
+
 function timeAgo(dateString: string): string {
   const date = new Date(dateString)
   const now = new Date()
@@ -34,6 +39,150 @@ function timeAgo(dateString: string): string {
   return date.toLocaleDateString()
 }
 
+const QuickBrewCardHeader: React.FC<{ config: QuickBrewConfig }> = ({ config }) => (
+  <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 1.5 }}>
+    <Typography
+      variant="subtitle1"
+      sx={{ fontWeight: 600, color: 'text.primary', lineHeight: 1.3 }}
+    >
+      {config.bean_name}
+    </Typography>
+    {config.last_rating !== null && config.last_rating > 0 && (
+      <Rating
+        value={config.last_rating}
+        readOnly
+        size="small"
+        sx={{ ml: 1, flexShrink: 0 }}
+      />
+    )}
+  </Box>
+)
+
+const QuickBrewCardParams: React.FC<{ config: QuickBrewConfig }> = ({ config }) => (
+  <Stack direction="row" spacing={2} sx={{ mb: 1.5 }}>
+    <Box>
+      <Typography variant="caption" color="text.secondary">
+        Dose
+      </Typography>
+      <Typography variant="body2" sx={{ fontWeight: 600 }}>
+        {config.dose}g
+      </Typography>
+    </Box>
+    <Box>
+      <Typography variant="caption" color="text.secondary">
+        Ratio
+      </Typography>
+      <Typography variant="body2" sx={{ fontWeight: 600 }}>
+        1:{Number(config.ratio).toFixed(1)}
+      </Typography>
+    </Box>
+    <Box>
+      <Typography variant="caption" color="text.secondary">
+        Grind
+      </Typography>
+      <Typography
+        variant="body2"
+        sx={{
+          fontWeight: 600,
+          color: config.suggested_grind ? 'success.main' : 'text.primary',
+        }}
+      >
+        {config.grind}
+        {config.suggested_grind && ' ✨'}
+      </Typography>
+    </Box>
+  </Stack>
+)
+
+const QuickBrewCardFooter: React.FC<{ config: QuickBrewConfig }> = ({ config }) => (
+  <Stack
+    direction="row"
+    justifyContent="space-between"
+    alignItems="center"
+    sx={{ pt: 1, borderTop: 1, borderColor: 'divider' }}
+  >
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+      <AccessTime sx={{ fontSize: 14, color: 'text.secondary' }} />
+      <Typography variant="caption" color="text.secondary">
+        {timeAgo(config.last_brewed_at)}
+      </Typography>
+    </Box>
+    <Typography variant="caption" color="text.secondary">
+      {config.brew_count} brew{config.brew_count !== 1 ? 's' : ''}
+    </Typography>
+  </Stack>
+)
+
+const QuickBrewCardChips: React.FC<{ config: QuickBrewConfig }> = ({ config }) => (
+  <Stack direction="row" spacing={0.75} sx={{ mb: 2, flexWrap: 'wrap', gap: 0.5 }}>
+    <Chip
+      label={config.method_name}
+      size="small"
+      sx={{
+        bgcolor: 'primary.main',
+        color: 'white',
+        fontSize: '0.7rem',
+        height: 24,
+      }}
+    />
+    <Chip
+      label={config.grinder_name}
+      size="small"
+      sx={{
+        bgcolor: 'secondary.main',
+        color: 'white',
+        fontSize: '0.7rem',
+        height: 24,
+      }}
+    />
+  </Stack>
+)
+
+const QuickBrewCard: React.FC<QuickBrewCardProps> = ({ config, onSelect }) => (
+  <Card
+    sx={{
+      minWidth: { sm: 280 },
+      maxWidth: { sm: 320 },
+      flex: { sm: '0 0 auto' },
+      border: '2px solid',
+      borderColor: config.suggested_grind ? 'success.main' : 'primary.light',
+      transition: 'all 0.2s ease',
+      '&:hover': {
+        transform: 'translateY(-3px)',
+        boxShadow: (theme) => `0 6px 20px ${theme.palette.primary.main}40`,
+        borderColor: 'primary.main',
+      },
+    }}
+  >
+    <CardActionArea onClick={onSelect}>
+      <CardContent sx={{ p: 2.5 }}>
+        <QuickBrewCardHeader config={config} />
+        <QuickBrewCardChips config={config} />
+        <QuickBrewCardParams config={config} />
+
+        {/* Suggestion indicator */}
+        {config.suggested_grind && (
+          <Alert
+            severity="success"
+            icon={<TrendingUp sx={{ fontSize: 16 }} />}
+            sx={{
+              py: 0,
+              px: 1,
+              mb: 1,
+              '& .MuiAlert-message': { fontSize: '0.75rem', py: 0.5 },
+            }}
+          >
+            Adjusted from feedback
+          </Alert>
+        )}
+
+        <QuickBrewCardFooter config={config} />
+      </CardContent>
+    </CardActionArea>
+  </Card>
+)
+
+/** Displays a list of recent brew configurations as tappable cards to pre-fill the brew form. */
 export const QuickBrew: React.FC<QuickBrewProps> = ({ configs, onSelect }) => {
   if (configs.length === 0) return null
 
@@ -76,141 +225,11 @@ export const QuickBrew: React.FC<QuickBrewProps> = ({ configs, onSelect }) => {
         sx={{ overflowX: { sm: 'auto' }, pb: 1 }}
       >
         {configs.map((config) => (
-          <Card
+          <QuickBrewCard
             key={config.id}
-            sx={{
-              minWidth: { sm: 280 },
-              maxWidth: { sm: 320 },
-              flex: { sm: '0 0 auto' },
-              border: '2px solid',
-              borderColor: config.suggested_grind ? 'success.main' : 'primary.light',
-              transition: 'all 0.2s ease',
-              '&:hover': {
-                transform: 'translateY(-3px)',
-                boxShadow: (theme) => `0 6px 20px ${theme.palette.primary.main}40`,
-                borderColor: 'primary.main',
-              },
-            }}
-          >
-            <CardActionArea onClick={() => handleSelect(config)}>
-              <CardContent sx={{ p: 2.5 }}>
-                {/* Bean name as primary identifier */}
-                <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 1.5 }}>
-                  <Typography
-                    variant="subtitle1"
-                    sx={{ fontWeight: 600, color: 'text.primary', lineHeight: 1.3 }}
-                  >
-                    {config.bean_name}
-                  </Typography>
-                  {config.last_rating !== null && config.last_rating > 0 && (
-                    <Rating
-                      value={config.last_rating}
-                      readOnly
-                      size="small"
-                      sx={{ ml: 1, flexShrink: 0 }}
-                    />
-                  )}
-                </Box>
-
-                {/* Method + Grinder chips */}
-                <Stack direction="row" spacing={0.75} sx={{ mb: 2, flexWrap: 'wrap', gap: 0.5 }}>
-                  <Chip
-                    label={config.method_name}
-                    size="small"
-                    sx={{
-                      bgcolor: 'primary.main',
-                      color: 'white',
-                      fontSize: '0.7rem',
-                      height: 24,
-                    }}
-                  />
-                  <Chip
-                    label={config.grinder_name}
-                    size="small"
-                    sx={{
-                      bgcolor: 'secondary.main',
-                      color: 'white',
-                      fontSize: '0.7rem',
-                      height: 24,
-                    }}
-                  />
-                </Stack>
-
-                {/* Parameters */}
-                <Stack
-                  direction="row"
-                  spacing={2}
-                  sx={{ mb: 1.5 }}
-                >
-                  <Box>
-                    <Typography variant="caption" color="text.secondary">
-                      Dose
-                    </Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                      {config.dose}g
-                    </Typography>
-                  </Box>
-                  <Box>
-                    <Typography variant="caption" color="text.secondary">
-                      Ratio
-                    </Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                      1:{Number(config.ratio).toFixed(1)}
-                    </Typography>
-                  </Box>
-                  <Box>
-                    <Typography variant="caption" color="text.secondary">
-                      Grind
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        fontWeight: 600,
-                        color: config.suggested_grind ? 'success.main' : 'text.primary',
-                      }}
-                    >
-                      {config.grind}
-                      {config.suggested_grind && ' ✨'}
-                    </Typography>
-                  </Box>
-                </Stack>
-
-                {/* Suggestion indicator */}
-                {config.suggested_grind && (
-                  <Alert
-                    severity="success"
-                    icon={<TrendingUp sx={{ fontSize: 16 }} />}
-                    sx={{
-                      py: 0,
-                      px: 1,
-                      mb: 1,
-                      '& .MuiAlert-message': { fontSize: '0.75rem', py: 0.5 },
-                    }}
-                  >
-                    Adjusted from feedback
-                  </Alert>
-                )}
-
-                {/* Footer: time ago + brew count */}
-                <Stack
-                  direction="row"
-                  justifyContent="space-between"
-                  alignItems="center"
-                  sx={{ pt: 1, borderTop: 1, borderColor: 'divider' }}
-                >
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <AccessTime sx={{ fontSize: 14, color: 'text.secondary' }} />
-                    <Typography variant="caption" color="text.secondary">
-                      {timeAgo(config.last_brewed_at)}
-                    </Typography>
-                  </Box>
-                  <Typography variant="caption" color="text.secondary">
-                    {config.brew_count} brew{config.brew_count !== 1 ? 's' : ''}
-                  </Typography>
-                </Stack>
-              </CardContent>
-            </CardActionArea>
-          </Card>
+            config={config}
+            onSelect={() => handleSelect(config)}
+          />
         ))}
       </Stack>
     </Box>

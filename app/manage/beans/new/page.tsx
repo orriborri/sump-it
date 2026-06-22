@@ -4,6 +4,7 @@ import { AddBeanForm } from '../../../manage/AddBeanForm'
 import Link from 'next/link'
 import { ArrowBack } from '@mui/icons-material'
 
+/** New bean creation page with back navigation and the AddBeanForm. */
 export default function NewBeanPage() {
   return (
     <Box sx={{ p: 3, maxWidth: 600, mx: 'auto' }}>

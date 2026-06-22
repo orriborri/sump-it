@@ -9,6 +9,7 @@ interface RecipeProps {
   updateFormData: (_updates: Partial<FormData>) => void
 }
 
+/** Coffee dose, water amount, and ratio inputs with optional ratio locking for proportional scaling. */
 export const Recipe: React.FC<RecipeProps> = ({ formData, updateFormData }) => {
   const [ratioLocked, setRatioLocked] = useState(true)
   const handleCoffeeChange = (value: number) => {

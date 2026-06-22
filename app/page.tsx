@@ -9,6 +9,52 @@ import { GrindersModel } from './lib/generated-models/Grinders'
 // Force dynamic rendering
 export const dynamic = 'force-dynamic'
 
+interface StatsChipsProps {
+  beansCount: number
+  methodsCount: number
+  grindersCount: number
+  brewsCount: number
+}
+
+/** Displays a summary row of equipment and brew counts as chips. */
+function StatsChips({ beansCount, methodsCount, grindersCount, brewsCount }: StatsChipsProps) {
+  return (
+    <Stack
+      direction="row"
+      spacing={2}
+      justifyContent="center"
+      flexWrap="wrap"
+      useFlexGap
+    >
+      <Chip
+        icon={<Coffee sx={{ color: '#8B4513' }} />}
+        label={`${beansCount} Beans`}
+        variant="outlined"
+        sx={{ borderColor: '#8B4513', color: '#654321', fontWeight: 600 }}
+      />
+      <Chip
+        icon={<LocalCafe sx={{ color: '#D2691E' }} />}
+        label={`${methodsCount} Methods`}
+        variant="outlined"
+        sx={{ borderColor: '#D2691E', color: '#654321', fontWeight: 600 }}
+      />
+      <Chip
+        icon={<Settings sx={{ color: '#A0522D' }} />}
+        label={`${grindersCount} Grinders`}
+        variant="outlined"
+        sx={{ borderColor: '#A0522D', color: '#654321', fontWeight: 600 }}
+      />
+      <Chip
+        icon={<Coffee sx={{ color: '#228B22' }} />}
+        label={`${brewsCount} Brews`}
+        variant="outlined"
+        sx={{ borderColor: '#228B22', color: '#654321', fontWeight: 600 }}
+      />
+    </Stack>
+  )
+}
+
+/** Home page showing app hero, equipment stats, and quick action links. */
 const Page = async () => {
   // Fetch real stats from database
   const beansModel = new BeansModel(db)
@@ -56,38 +102,12 @@ const Page = async () => {
       {/* Compact Stats */}
       <Card sx={{ mb: 4, bgcolor: '#F5F5DC', border: '1px solid #8B4513' }}>
         <CardContent sx={{ py: 2, '&:last-child': { pb: 2 } }}>
-          <Stack
-            direction="row"
-            spacing={2}
-            justifyContent="center"
-            flexWrap="wrap"
-            useFlexGap
-          >
-            <Chip
-              icon={<Coffee sx={{ color: '#8B4513' }} />}
-              label={`${beansCount} Beans`}
-              variant="outlined"
-              sx={{ borderColor: '#8B4513', color: '#654321', fontWeight: 600 }}
-            />
-            <Chip
-              icon={<LocalCafe sx={{ color: '#D2691E' }} />}
-              label={`${methodsCount} Methods`}
-              variant="outlined"
-              sx={{ borderColor: '#D2691E', color: '#654321', fontWeight: 600 }}
-            />
-            <Chip
-              icon={<Settings sx={{ color: '#A0522D' }} />}
-              label={`${grindersCount} Grinders`}
-              variant="outlined"
-              sx={{ borderColor: '#A0522D', color: '#654321', fontWeight: 600 }}
-            />
-            <Chip
-              icon={<Coffee sx={{ color: '#228B22' }} />}
-              label={`${brewsCount} Brews`}
-              variant="outlined"
-              sx={{ borderColor: '#228B22', color: '#654321', fontWeight: 600 }}
-            />
-          </Stack>
+          <StatsChips
+            beansCount={beansCount}
+            methodsCount={methodsCount}
+            grindersCount={grindersCount}
+            brewsCount={brewsCount}
+          />
         </CardContent>
       </Card>
 

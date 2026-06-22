@@ -15,6 +15,7 @@ interface EditMethodModalProps {
   method: Method
 }
 
+/** Modal dialog placeholder for editing a brewing method's name. */
 export function EditMethodModal({ open, onClose, method }: EditMethodModalProps) {
   return (
     <Dialog 

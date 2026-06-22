@@ -3,7 +3,7 @@ import { metrics } from '@opentelemetry/api'
 // Create a meter for custom application metrics
 const meter = metrics.getMeter('sump-it-app', '1.0.0')
 
-// Coffee brewing metrics
+/** OpenTelemetry metrics for tracking coffee brewing events and patterns. */
 export const brewingMetrics = {
   // Counter for total brews created
   brewsTotal: meter.createCounter('coffee_brews_total', {
@@ -41,7 +41,7 @@ export const brewingMetrics = {
   })
 }
 
-// Database operation metrics
+/** OpenTelemetry metrics for monitoring database operations and performance. */
 export const dbMetrics = {
   // Counter for database operations
   operations: meter.createCounter('database_operations_total', {
@@ -59,7 +59,7 @@ export const dbMetrics = {
   })
 }
 
-// HTTP request metrics (supplementing auto-instrumentation)
+/** OpenTelemetry metrics for HTTP request tracking, supplementing auto-instrumentation. */
 export const httpMetrics = {
   // Counter for API requests
   requests: meter.createCounter('http_requests_total', {

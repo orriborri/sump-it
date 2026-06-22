@@ -33,6 +33,92 @@ interface BeansPageClientProps {
   beans: Bean[]
 }
 
+interface BeanRowProps {
+  bean: Bean
+}
+
+const BeanRow: React.FC<BeanRowProps> = ({ bean }) => (
+  <TableRow
+    sx={{ '&:hover': { bgcolor: 'rgba(139, 69, 19, 0.1)' } }}
+  >
+    <TableCell>
+      <Box display="flex" alignItems="center" gap={1}>
+        <Coffee sx={{ color: '#8B4513' }} />
+        <Typography variant="subtitle1" sx={{ color: '#8B4513', fontWeight: 600 }}>
+          {bean.name || 'Unnamed Bean'}
+        </Typography>
+      </Box>
+    </TableCell>
+    <TableCell>
+      <Typography variant="body2" color="text.secondary">
+        {bean.rostery || '-'}
+      </Typography>
+    </TableCell>
+    <TableCell>
+      <Typography variant="body2" color="text.secondary">
+        {bean.roster || '-'}
+      </Typography>
+    </TableCell>
+    <TableCell>
+      <Chip 
+        label={bean.roast_level || 'Unknown'} 
+        size="small" 
+        sx={{ bgcolor: '#8B4513', color: 'white' }}
+      />
+    </TableCell>
+    <TableCell>
+      <Box display="flex" gap={1}>
+        <IconButton 
+          size="small" 
+          component={Link} 
+          href={`/manage/beans/${bean.id}/edit`}
+          sx={{ color: '#8B4513' }}
+        >
+          <Edit fontSize="small" />
+        </IconButton>
+        <DeleteButton beanId={bean.id} beanName={bean.name || 'Unknown'} />
+      </Box>
+    </TableCell>
+  </TableRow>
+)
+
+const BeansTableHeader: React.FC = () => (
+  <TableHead sx={{ bgcolor: '#8B4513' }}>
+    <TableRow>
+      <TableCell sx={{ color: 'white', fontWeight: 600 }}>Bean Name</TableCell>
+      <TableCell sx={{ color: 'white', fontWeight: 600 }}>Roastery</TableCell>
+      <TableCell sx={{ color: 'white', fontWeight: 600 }}>Roster</TableCell>
+      <TableCell sx={{ color: 'white', fontWeight: 600 }}>Roast Level</TableCell>
+      <TableCell sx={{ color: 'white', fontWeight: 600 }}>Actions</TableCell>
+    </TableRow>
+  </TableHead>
+)
+
+interface BeansTableProps {
+  beans: Bean[]
+}
+
+const BeansTable: React.FC<BeansTableProps> = ({ beans }) => (
+  <TableContainer 
+    component={Paper} 
+    sx={{ 
+      bgcolor: '#F5F5DC', 
+      border: '2px solid #8B4513',
+      borderRadius: 2
+    }}
+  >
+    <Table>
+      <BeansTableHeader />
+      <TableBody>
+        {beans.map((bean) => (
+          <BeanRow key={bean.id} bean={bean} />
+        ))}
+      </TableBody>
+    </Table>
+  </TableContainer>
+)
+
+/** Client-side beans list page with table display and add/delete functionality. */
 export function BeansPageClient({ beans }: BeansPageClientProps) {
   const [modalOpen, setModalOpen] = useState(false)
   const router = useRouter()
@@ -82,73 +168,7 @@ export function BeansPageClient({ beans }: BeansPageClientProps) {
           </Button>
         </Box>
       ) : (
-        <TableContainer 
-          component={Paper} 
-          sx={{ 
-            bgcolor: '#F5F5DC', 
-            border: '2px solid #8B4513',
-            borderRadius: 2
-          }}
-        >
-          <Table>
-            <TableHead sx={{ bgcolor: '#8B4513' }}>
-              <TableRow>
-                <TableCell sx={{ color: 'white', fontWeight: 600 }}>Bean Name</TableCell>
-                <TableCell sx={{ color: 'white', fontWeight: 600 }}>Roastery</TableCell>
-                <TableCell sx={{ color: 'white', fontWeight: 600 }}>Roster</TableCell>
-                <TableCell sx={{ color: 'white', fontWeight: 600 }}>Roast Level</TableCell>
-                <TableCell sx={{ color: 'white', fontWeight: 600 }}>Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {beans.map((bean) => (
-                <TableRow 
-                  key={bean.id}
-                  sx={{ '&:hover': { bgcolor: 'rgba(139, 69, 19, 0.1)' } }}
-                >
-                  <TableCell>
-                    <Box display="flex" alignItems="center" gap={1}>
-                      <Coffee sx={{ color: '#8B4513' }} />
-                      <Typography variant="subtitle1" sx={{ color: '#8B4513', fontWeight: 600 }}>
-                        {bean.name || 'Unnamed Bean'}
-                      </Typography>
-                    </Box>
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2" color="text.secondary">
-                      {bean.rostery || '-'}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2" color="text.secondary">
-                      {bean.roster || '-'}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Chip 
-                      label={bean.roast_level || 'Unknown'} 
-                      size="small" 
-                      sx={{ bgcolor: '#8B4513', color: 'white' }}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Box display="flex" gap={1}>
-                      <IconButton 
-                        size="small" 
-                        component={Link} 
-                        href={`/manage/beans/${bean.id}/edit`}
-                        sx={{ color: '#8B4513' }}
-                      >
-                        <Edit fontSize="small" />
-                      </IconButton>
-                      <DeleteButton beanId={bean.id} beanName={bean.name || 'Unknown'} />
-                    </Box>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+        <BeansTable beans={beans} />
       )}
 
       <AddBeanModal 

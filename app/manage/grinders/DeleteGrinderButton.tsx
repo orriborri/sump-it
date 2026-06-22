@@ -18,6 +18,7 @@ interface DeleteGrinderButtonProps {
   grinderName: string
 }
 
+/** Delete button with confirmation dialog and warning for permanently removing a grinder. */
 export const DeleteGrinderButton: React.FC<DeleteGrinderButtonProps> = ({
   grinderId,
   grinderName,

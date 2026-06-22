@@ -3,6 +3,7 @@
 import { db } from '@/app/lib/database'
 import { GrindersModel } from '@/app/lib/generated-models/Grinders'
 
+/** Form data for creating or updating a grinder with detailed settings. */
 export interface GrinderFormData {
   name: string
   min_setting: number
@@ -11,6 +12,7 @@ export interface GrinderFormData {
   setting_type: string
 }
 
+/** Creates a new grinder with full configuration including range and step settings. */
 export async function createGrinder(data: GrinderFormData) {
   try {
     const grindersModel = new GrindersModel(db)
@@ -29,6 +31,7 @@ export async function createGrinder(data: GrinderFormData) {
   }
 }
 
+/** Updates an existing grinder's configuration by ID. */
 export async function updateGrinder(id: number, data: GrinderFormData) {
   try {
     const grindersModel = new GrindersModel(db)
@@ -47,6 +50,7 @@ export async function updateGrinder(id: number, data: GrinderFormData) {
   }
 }
 
+/** Permanently deletes a grinder by ID. */
 export async function deleteGrinder(id: number) {
   try {
     const grindersModel = new GrindersModel(db)

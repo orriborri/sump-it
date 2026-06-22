@@ -22,6 +22,7 @@ const steps = ['Welcome', 'Add Grinder', 'Add Beans', 'Add Method', 'Done']
 
 const COMMON_METHODS = ['V60', 'AeroPress', 'French Press', 'Chemex', 'Kalita Wave']
 
+/** Guided onboarding wizard that helps new users add their first grinder, beans, and method. */
 export const OnboardingWizard: React.FC = () => {
   const router = useRouter()
   const [activeStep, setActiveStep] = useState(0)

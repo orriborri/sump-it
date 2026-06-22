@@ -9,6 +9,7 @@ import { FormData, BrewFeedbackInput } from './types'
 const brewsModel = new BrewsModel(db)
 const feedbackModel = new BrewFeedbackModel(db)
 
+/** Brew data enriched with optional feedback from the brew_feedback table. */
 export interface BrewWithFeedback {
   id: number
   bean_id: number | null
@@ -29,6 +30,7 @@ export interface BrewWithFeedback {
   }
 }
 
+/** Suggested brewing parameters with confidence level and reasoning. */
 export interface ParameterSuggestion {
   water: number
   dose: number
@@ -38,6 +40,7 @@ export interface ParameterSuggestion {
   reasoning: string
 }
 
+/** Fetches all brews for a given equipment combination, joined with their feedback data. */
 export async function getBrewsWithFeedback(
   bean_id: string,
   method_id: string,
@@ -101,6 +104,7 @@ export async function getBrewsWithFeedback(
   }
 }
 
+/** Analyzes brew history and feedback to suggest optimal brewing parameters. */
 export async function suggestOptimalParameters(
   bean_id: string,
   method_id: string,
@@ -170,6 +174,7 @@ export async function suggestOptimalParameters(
   return null
 }
 
+/** Analyzes taste feedback patterns and suggests parameter adjustments to improve the next brew. */
 function analyzeAndSuggestImprovements(
   brews: BrewWithFeedback[]
 ): ParameterSuggestion {
@@ -232,6 +237,7 @@ function analyzeAndSuggestImprovements(
   }
 }
 
+/** Returns sensible default brewing parameters based on the brewing method type. */
 async function getDefaultParameters(
   method_id: string
 ): Promise<ParameterSuggestion> {
@@ -275,7 +281,7 @@ async function getDefaultParameters(
   }
 }
 
-// Keep existing functions
+/** Retrieves previous brews with feedback for the given equipment combination. */
 export async function getPreviousBrews(
   bean_id: string,
   method_id: string,
@@ -284,6 +290,7 @@ export async function getPreviousBrews(
   return getBrewsWithFeedback(bean_id, method_id, grinder_id)
 }
 
+/** Validates and saves a new brew record to the database. */
 export async function saveBrew(data: FormData) {
   try {
     // Validate required fields
@@ -313,6 +320,7 @@ export async function saveBrew(data: FormData) {
   }
 }
 
+/** Saves taste and rating feedback for a completed brew. */
 export async function saveBrewFeedback(
   brewId: number,
   feedback: BrewFeedbackInput

@@ -36,6 +36,7 @@ interface SharedBrewFeedbackProps {
   brewDetails: BrewDetails
 }
 
+/** Feedback form for a shared brew, allowing users to rate and comment on taste characteristics. */
 export const SharedBrewFeedback: React.FC<SharedBrewFeedbackProps> = ({
   brewDetails,
 }) => {

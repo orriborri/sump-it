@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { getPreviousBrews } from './actions'
 import type { BrewsWithJoins } from '../lib/generated-models/BrewsJoined'
 
+/** Fetches and caches previous brew records for the given equipment combination. */
 export const usePreviousBrews = (
   beanId: number,
   methodId: number,

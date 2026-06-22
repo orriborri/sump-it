@@ -8,7 +8,7 @@ const databaseUrl = process.env.DATABASE_URL
 
 // Log database connection info for debugging
 logger.info('Database connection check', {
-  hasDatabaseUrl: !!databaseUrl,
+  hasDatabaseUrl: Boolean(databaseUrl),
   host: databaseUrl ? 'from_url' : process.env.POSTGRES_HOST || 'localhost',
   database: databaseUrl ? 'from_url' : process.env.POSTGRES_DATABASE || 'postgres',
   user: databaseUrl ? 'from_url' : process.env.POSTGRES_USER || 'pguser',
@@ -39,6 +39,7 @@ const dialect = new PostgresDialect({
 // knows your database structure.
 // Dialect is passed to Kysely's constructor, and from now on, Kysely knows how
 // to communicate with your database.
+/** Kysely database instance configured with PostgreSQL dialect and connection pooling. */
 export const db = new Kysely<DB>({
   dialect,
 })

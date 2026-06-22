@@ -7,6 +7,7 @@ import PauseIcon from '@mui/icons-material/Pause'
 import SkipNextIcon from '@mui/icons-material/SkipNext'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 
+/** Brew timer page with start/pause controls and navigation to the rating page on completion. */
 export default function TimerPage() {
   const router = useRouter()
   const params = useParams()

@@ -1,3 +1,4 @@
+/** Input data for submitting taste and quality feedback on a brew. */
 export interface BrewFeedbackInput {
   coffee_amount_ml?: number | null
   too_strong?: boolean
@@ -7,6 +8,7 @@ export interface BrewFeedbackInput {
   overall_rating?: number | null
 }
 
+/** Core form data for creating a new brew record, including optional feedback fields. */
 export interface FormData {
   bean_id: number
   method_id: number

@@ -4,6 +4,7 @@ import { db } from '../../lib/database'
 import { revalidatePath } from 'next/cache'
 import type { FeedbackFormData } from './types'
 
+/** Submits brew feedback (taste notes and rating) for a completed brew. */
 export const submitBrewFeedback = async (
   brewId: number,
   data: FeedbackFormData
@@ -24,6 +25,7 @@ export const submitBrewFeedback = async (
   revalidatePath(`/brew/${brewId}`)
 }
 
+/** Retrieves detailed brew information including bean, method, and grinder names. */
 export async function getBrewDetails(brewId: number) {
   // Implementation will fetch brew with joined data
   return {
@@ -38,6 +40,7 @@ export async function getBrewDetails(brewId: number) {
   }
 }
 
+/** Fetches the most recent brew feedback entries, ordered by rating descending. */
 export const getRecentBrewFeedback = async () => {
   return await db
     .selectFrom('brew_feedback')

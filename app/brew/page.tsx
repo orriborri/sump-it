@@ -10,6 +10,7 @@ import { getRecentBrewConfigs } from './quickBrewActions'
 // Force dynamic rendering since we need database access
 export const dynamic = 'force-dynamic'
 
+/** Brew page that shows either the onboarding wizard or the full brewing workflow. */
 const Page = async () => {
   // Initialize models with database connection
   const beansModel = new BeansModel(db)

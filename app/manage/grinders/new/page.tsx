@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { GrinderForm } from '../GrinderForm'
 import { createGrinder, GrinderFormData } from '../actions'
 
+/** New grinder creation page with the full GrinderForm. */
 export default function NewGrinderPage() {
   const router = useRouter()
 

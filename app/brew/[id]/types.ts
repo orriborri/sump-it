@@ -14,11 +14,13 @@ const feedbackQuery = db
     'overall_rating',
   ])
 
+/** Form data structure matching the brew_feedback table columns for submission. */
 export type FeedbackFormData = Omit<
   FeedbackQueryResult,
   'id' | 'created_at' | 'brew_id'
 >
 
+/** Recent brew feedback entry with associated brew parameters for display. */
 export interface RecentBrewFeedback {
   feedback_id: number
   brew_id: number

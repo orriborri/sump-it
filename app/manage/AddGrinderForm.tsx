@@ -1,7 +1,6 @@
 'use client'
-import React from 'react'
+import React, { useState } from 'react'
 import { Box, Button, TextField, Stack, Alert, Chip, Typography } from '@mui/material'
-import { useState } from 'react'
 import { createGrinder } from './grinders/actions'
 import { Settings } from '@mui/icons-material'
 
@@ -12,6 +11,7 @@ const popularGrinders = [
   { name: 'Timemore C2', range: '1-25' }
 ]
 
+/** Quick grinder form with popular grinder suggestions and default settings. */
 export const AddGrinderForm = () => {
   const [name, setName] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)

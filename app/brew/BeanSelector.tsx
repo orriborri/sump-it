@@ -20,6 +20,7 @@ interface BeanSelectorProps {
   grinders?: RuntimeType<Grinders>[]
 }
 
+/** Equipment selection step allowing users to pick coffee beans, brewing method, and grinder. */
 export const BeanSelector: React.FC<BeanSelectorProps> = ({
   form,
   beans,

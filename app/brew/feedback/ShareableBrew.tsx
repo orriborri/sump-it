@@ -22,8 +22,330 @@ interface ShareableBrewProps {
   brewTime?: number
 }
 
+interface SuggestionsData {
+  grind: number
+  ratio: number
+  reason: string
+}
+
+interface FeedbackData {
+  too_weak: boolean
+  too_strong: boolean
+  grind_too_coarse: boolean
+  grind_too_fine: boolean
+  is_bitter: boolean
+  is_sour: boolean
+  overall_rating: number
+}
+
+interface SuggestionsSummaryProps {
+  suggestions: SuggestionsData
+}
+
+interface BrewDetailsCardProps {
+  brewData: BrewData
+  brewTime?: number
+  shareUrl: string
+}
+
+interface FeedbackFormCardProps {
+  feedback: FeedbackData
+  suggestions: SuggestionsData
+  saving: boolean
+  error: string | null
+  onFeedbackChange: (_feedback: FeedbackData) => void
+  onToggleFeedbackKey: (_key: string) => void
+  onSuggestionsChange: (_suggestions: SuggestionsData) => void
+  onSave: () => void
+}
+
+interface SuggestionsValuesProps {
+  grind: number
+  ratio: number
+}
+
+const SuggestionsValues: React.FC<SuggestionsValuesProps> = ({ grind, ratio }) => (
+  <Stack direction="row" spacing={3}>
+    <Box>
+      <Typography variant="caption" color="text.secondary">Grind</Typography>
+      <Typography variant="body1" sx={{ fontWeight: 600, color: 'success.main' }}>
+        {grind}
+      </Typography>
+    </Box>
+    <Box>
+      <Typography variant="caption" color="text.secondary">Ratio</Typography>
+      <Typography variant="body1" sx={{ fontWeight: 600, color: 'success.main' }}>
+        1:{ratio}
+      </Typography>
+    </Box>
+  </Stack>
+)
+
+const SuggestionsSummary: React.FC<SuggestionsSummaryProps> = ({ suggestions }) => {
+  if (!suggestions.reason) return null
+  return (
+    <Card sx={{ bgcolor: '#F5F5DC', border: '2px solid', borderColor: 'success.main' }}>
+      <CardContent>
+        <Typography variant="subtitle2" sx={{ color: 'success.main', mb: 1, fontWeight: 600 }}>
+          Next Brew Suggestions
+        </Typography>
+        <Typography variant="body2" sx={{ color: '#654321', mb: 1.5 }}>
+          {suggestions.reason}
+        </Typography>
+        <SuggestionsValues grind={suggestions.grind} ratio={suggestions.ratio} />
+      </CardContent>
+    </Card>
+  )
+}
+
+const ActionButtonsRow: React.FC = () => (
+  <Stack direction="row" spacing={2}>
+    <Button
+      component={Link}
+      href="/stats"
+      variant="outlined"
+      startIcon={<BarChart />}
+      fullWidth
+      sx={{ py: 1.25 }}
+    >
+      View History
+    </Button>
+    <Button
+      component={Link}
+      href="/"
+      variant="outlined"
+      startIcon={<Home />}
+      fullWidth
+      sx={{ py: 1.25 }}
+    >
+      Home
+    </Button>
+  </Stack>
+)
+
+const ActionButtons: React.FC = () => (
+  <Card sx={{ bgcolor: '#F5F5DC', border: '2px solid #8B4513' }}>
+    <CardContent>
+      <Typography variant="subtitle2" sx={{ color: '#8B4513', mb: 2, fontWeight: 600 }}>
+        What&apos;s next?
+      </Typography>
+      <Stack spacing={2}>
+        <Button
+          component={Link}
+          href="/brew"
+          variant="contained"
+          size="large"
+          startIcon={<Replay />}
+          fullWidth
+          sx={{ py: 1.5 }}
+        >
+          Brew Again
+        </Button>
+        <ActionButtonsRow />
+      </Stack>
+    </CardContent>
+  </Card>
+)
+
+const BrewParameterItem: React.FC<{ icon: React.ReactNode; label: string }> = ({ icon, label }) => (
+  <Box display="flex" alignItems="center" gap={0.5}>
+    {icon}
+    <Typography variant="body2" sx={{ fontWeight: 500, color: '#654321' }}>
+      {label}
+    </Typography>
+  </Box>
+)
+
+interface BrewDetailsHeaderProps {
+  brewData: BrewData
+  shareUrl: string
+}
+
+const BrewDetailsHeader: React.FC<BrewDetailsHeaderProps> = ({ brewData, shareUrl }) => (
+  <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
+    <Box>
+      <Typography variant="h5" sx={{ fontWeight: 600, color: '#8B4513' }}>
+        ☕ {brewData.bean_name}
+      </Typography>
+      <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+        <Chip label={brewData.method_name} size="small" sx={{ bgcolor: '#8B4513', color: 'white' }} />
+        <Chip label={brewData.grinder_name} size="small" sx={{ bgcolor: '#D2691E', color: 'white' }} />
+      </Stack>
+    </Box>
+    <Button
+      variant="outlined"
+      startIcon={<Share />}
+      onClick={() => navigator.clipboard.writeText(shareUrl)}
+      size="small"
+    >
+      Copy Link
+    </Button>
+  </Box>
+)
+
+const BrewDetailsCard: React.FC<BrewDetailsCardProps> = ({ brewData, brewTime, shareUrl }) => (
+  <Card sx={{ 
+    bgcolor: '#F5F5DC',
+    border: '2px solid #8B4513', 
+    borderRadius: 2,
+    boxShadow: '0 4px 12px rgba(139, 69, 19, 0.15)'
+  }}>
+    <CardContent>
+      <BrewDetailsHeader brewData={brewData} shareUrl={shareUrl} />
+
+      <Stack direction="row" spacing={3} flexWrap="wrap">
+        <BrewParameterItem
+          icon={<Scale fontSize="small" sx={{ color: '#8B4513' }} />}
+          label={`${brewData.dose}g`}
+        />
+        <BrewParameterItem
+          icon={<Water fontSize="small" sx={{ color: '#4682B4' }} />}
+          label={`${brewData.water}ml`}
+        />
+        <BrewParameterItem
+          icon={<Coffee fontSize="small" sx={{ color: '#8B4513' }} />}
+          label={`1:${brewData.ratio}`}
+        />
+        <BrewParameterItem
+          icon={<Settings fontSize="small" sx={{ color: '#696969' }} />}
+          label={`Grind ${brewData.grind}`}
+        />
+        {brewTime !== undefined && brewTime > 0 && (
+          <BrewParameterItem
+            icon={<AccessTime fontSize="small" sx={{ color: '#8B4513' }} />}
+            label={`${String(Math.floor(brewTime / 60)).padStart(2, '0')}:${String(brewTime % 60).padStart(2, '0')}`}
+          />
+        )}
+      </Stack>
+    </CardContent>
+  </Card>
+)
+
+interface TasteNotesSectionProps {
+  feedback: FeedbackData
+  onToggle: (_key: string) => void
+}
+
+const TasteNotesSection: React.FC<TasteNotesSectionProps> = ({ feedback, onToggle }) => (
+  <Box mb={3}>
+    <Typography variant="subtitle2" sx={{ mb: 1, color: '#654321' }}>Taste Notes</Typography>
+    <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+      {[
+        { key: 'too_weak', label: 'Too Weak' },
+        { key: 'too_strong', label: 'Too Strong' },
+        { key: 'is_bitter', label: 'Bitter' },
+        { key: 'is_sour', label: 'Sour' },
+        { key: 'grind_too_coarse', label: 'Grind Too Coarse' },
+        { key: 'grind_too_fine', label: 'Grind Too Fine' }
+      ].map(({ key, label }) => (
+        <Chip
+          key={key}
+          label={label}
+          clickable
+          color={feedback[key as keyof typeof feedback] ? 'primary' : 'default'}
+          onClick={() => onToggle(key)}
+        />
+      ))}
+    </Stack>
+  </Box>
+)
+
+interface SuggestionsEditorProps {
+  suggestions: SuggestionsData
+  onSuggestionsChange: (_suggestions: SuggestionsData) => void
+}
+
+const SuggestionsEditor: React.FC<SuggestionsEditorProps> = ({ suggestions, onSuggestionsChange }) => (
+  <Box mb={3} sx={{ bgcolor: 'rgba(139, 69, 19, 0.05)', p: 2, borderRadius: 1 }}>
+    <Typography variant="subtitle2" sx={{ mb: 1, color: '#8B4513' }}>
+      Next Brew Suggestions
+    </Typography>
+    <Typography variant="body2" sx={{ mb: 2, color: '#654321' }}>
+      {suggestions.reason}
+    </Typography>
+    <Stack direction="row" spacing={2}>
+      <TextField
+        label="Grind Setting"
+        type="number"
+        value={suggestions.grind}
+        onChange={(e) => onSuggestionsChange({ ...suggestions, grind: Number(e.target.value) })}
+        size="small"
+        sx={{ width: 120 }}
+      />
+      <TextField
+        label="Ratio (1:x)"
+        type="number"
+        value={suggestions.ratio}
+        onChange={(e) => onSuggestionsChange({ ...suggestions, ratio: Number(e.target.value) })}
+        size="small"
+        sx={{ width: 120 }}
+      />
+    </Stack>
+  </Box>
+)
+
+const FeedbackFormCard: React.FC<FeedbackFormCardProps> = ({
+  feedback,
+  suggestions,
+  saving,
+  error,
+  onFeedbackChange,
+  onToggleFeedbackKey,
+  onSuggestionsChange,
+  onSave,
+}) => {
+  const hasTasteFeedback = feedback.too_weak || feedback.too_strong ||
+    feedback.is_bitter || feedback.is_sour ||
+    feedback.grind_too_coarse || feedback.grind_too_fine
+
+  return (
+    <Card sx={{ bgcolor: '#F5F5DC', border: '2px solid #8B4513' }}>
+      <CardContent>
+        <Typography variant="h6" sx={{ color: '#8B4513', mb: 2 }}>
+          How was this brew?
+        </Typography>
+
+        {/* Rating */}
+        <Box mb={3}>
+          <Typography variant="subtitle2" sx={{ mb: 1, color: '#654321' }}>Overall Rating</Typography>
+          <Rating 
+            size="large" 
+            value={feedback.overall_rating}
+            onChange={(_, value) => onFeedbackChange({ ...feedback, overall_rating: value || 0 })}
+          />
+        </Box>
+
+        {/* Quick Taste Feedback */}
+        <TasteNotesSection feedback={feedback} onToggle={onToggleFeedbackKey} />
+
+        {/* Auto-generated suggestions */}
+        {hasTasteFeedback && (
+          <SuggestionsEditor suggestions={suggestions} onSuggestionsChange={onSuggestionsChange} />
+        )}
+
+        {error && (
+          <Alert severity="error" sx={{ mb: 1 }}>
+            {error}
+          </Alert>
+        )}
+
+        <Button 
+          variant="contained" 
+          size="large"
+          onClick={onSave}
+          disabled={feedback.overall_rating === 0 || saving}
+          fullWidth
+        >
+          {saving ? 'Saving...' : 'Save Feedback & Suggestions'}
+        </Button>
+      </CardContent>
+    </Card>
+  )
+}
+
+/** Post-brew feedback form with rating, taste notes, and auto-generated parameter suggestions. */
 export const ShareableBrew: React.FC<ShareableBrewProps> = ({ brewData, brewTime }) => {
-  const [feedback, setFeedback] = useState({
+  const [feedback, setFeedback] = useState<FeedbackData>({
     too_weak: false,
     too_strong: false,
     grind_too_coarse: false,
@@ -33,7 +355,7 @@ export const ShareableBrew: React.FC<ShareableBrewProps> = ({ brewData, brewTime
     overall_rating: 0
   })
 
-  const [suggestions, setSuggestions] = useState({
+  const [suggestions, setSuggestions] = useState<SuggestionsData>({
     grind: brewData.grind,
     ratio: brewData.ratio,
     reason: ''
@@ -49,6 +371,10 @@ export const ShareableBrew: React.FC<ShareableBrewProps> = ({ brewData, brewTime
   }, [feedback, brewData.grind, brewData.ratio])
 
   const [error, setError] = useState<string | null>(null)
+
+  const toggleFeedbackKey = (key: string) => {
+    setFeedback(prev => ({ ...prev, [key]: !prev[key as keyof FeedbackData] }))
+  }
 
   const handleSaveFeedback = async () => {
     setSaving(true)
@@ -73,11 +399,10 @@ export const ShareableBrew: React.FC<ShareableBrewProps> = ({ brewData, brewTime
     ? `${window.location.origin}/brew/${brewData.id}/rate`
     : `/brew/${brewData.id}/rate`
 
-  // ─── Success State: Feedback Saved ───────────────────────────────
+  // Success State: Feedback Saved
   if (saved) {
     return (
       <Stack spacing={3}>
-        {/* Success Message */}
         <Alert
           severity="success"
           sx={{
@@ -92,239 +417,26 @@ export const ShareableBrew: React.FC<ShareableBrewProps> = ({ brewData, brewTime
           </Typography>
         </Alert>
 
-        {/* Suggestions Summary */}
-        {suggestions.reason && (
-          <Card sx={{ bgcolor: '#F5F5DC', border: '2px solid', borderColor: 'success.main' }}>
-            <CardContent>
-              <Typography variant="subtitle2" sx={{ color: 'success.main', mb: 1, fontWeight: 600 }}>
-                Next Brew Suggestions
-              </Typography>
-              <Typography variant="body2" sx={{ color: '#654321', mb: 1.5 }}>
-                {suggestions.reason}
-              </Typography>
-              <Stack direction="row" spacing={3}>
-                <Box>
-                  <Typography variant="caption" color="text.secondary">Grind</Typography>
-                  <Typography variant="body1" sx={{ fontWeight: 600, color: 'success.main' }}>
-                    {suggestions.grind}
-                  </Typography>
-                </Box>
-                <Box>
-                  <Typography variant="caption" color="text.secondary">Ratio</Typography>
-                  <Typography variant="body1" sx={{ fontWeight: 600, color: 'success.main' }}>
-                    1:{suggestions.ratio}
-                  </Typography>
-                </Box>
-              </Stack>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Action Buttons */}
-        <Card sx={{ bgcolor: '#F5F5DC', border: '2px solid #8B4513' }}>
-          <CardContent>
-            <Typography variant="subtitle2" sx={{ color: '#8B4513', mb: 2, fontWeight: 600 }}>
-              What&apos;s next?
-            </Typography>
-            <Stack spacing={2}>
-              <Button
-                component={Link}
-                href="/brew"
-                variant="contained"
-                size="large"
-                startIcon={<Replay />}
-                fullWidth
-                sx={{ py: 1.5 }}
-              >
-                Brew Again
-              </Button>
-              <Stack direction="row" spacing={2}>
-                <Button
-                  component={Link}
-                  href="/stats"
-                  variant="outlined"
-                  startIcon={<BarChart />}
-                  fullWidth
-                  sx={{ py: 1.25 }}
-                >
-                  View History
-                </Button>
-                <Button
-                  component={Link}
-                  href="/"
-                  variant="outlined"
-                  startIcon={<Home />}
-                  fullWidth
-                  sx={{ py: 1.25 }}
-                >
-                  Home
-                </Button>
-              </Stack>
-            </Stack>
-          </CardContent>
-        </Card>
+        <SuggestionsSummary suggestions={suggestions} />
+        <ActionButtons />
       </Stack>
     )
   }
 
-  // ─── Feedback Form ───────────────────────────────────────────────
+  // Feedback Form
   return (
     <Stack spacing={3}>
-      {/* Brew Details */}
-      <Card sx={{ 
-        bgcolor: '#F5F5DC',
-        border: '2px solid #8B4513', 
-        borderRadius: 2,
-        boxShadow: '0 4px 12px rgba(139, 69, 19, 0.15)'
-      }}>
-        <CardContent>
-          <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
-            <Box>
-              <Typography variant="h5" sx={{ fontWeight: 600, color: '#8B4513' }}>
-                ☕ {brewData.bean_name}
-              </Typography>
-              <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
-                <Chip label={brewData.method_name} size="small" sx={{ bgcolor: '#8B4513', color: 'white' }} />
-                <Chip label={brewData.grinder_name} size="small" sx={{ bgcolor: '#D2691E', color: 'white' }} />
-              </Stack>
-            </Box>
-            <Button
-              variant="outlined"
-              startIcon={<Share />}
-              onClick={() => navigator.clipboard.writeText(shareUrl)}
-              size="small"
-            >
-              Copy Link
-            </Button>
-          </Box>
-
-          <Stack direction="row" spacing={3} flexWrap="wrap">
-            <Box display="flex" alignItems="center" gap={0.5}>
-              <Scale fontSize="small" sx={{ color: '#8B4513' }} />
-              <Typography variant="body2" sx={{ fontWeight: 500, color: '#654321' }}>
-                {brewData.dose}g
-              </Typography>
-            </Box>
-            <Box display="flex" alignItems="center" gap={0.5}>
-              <Water fontSize="small" sx={{ color: '#4682B4' }} />
-              <Typography variant="body2" sx={{ fontWeight: 500, color: '#654321' }}>
-                {brewData.water}ml
-              </Typography>
-            </Box>
-            <Box display="flex" alignItems="center" gap={0.5}>
-              <Coffee fontSize="small" sx={{ color: '#8B4513' }} />
-              <Typography variant="body2" sx={{ fontWeight: 500, color: '#654321' }}>
-                1:{brewData.ratio}
-              </Typography>
-            </Box>
-            <Box display="flex" alignItems="center" gap={0.5}>
-              <Settings fontSize="small" sx={{ color: '#696969' }} />
-              <Typography variant="body2" sx={{ fontWeight: 500, color: '#654321' }}>
-                Grind {brewData.grind}
-              </Typography>
-            </Box>
-            {brewTime !== undefined && brewTime > 0 && (
-              <Box display="flex" alignItems="center" gap={0.5}>
-                <AccessTime fontSize="small" sx={{ color: '#8B4513' }} />
-                <Typography variant="body2" sx={{ fontWeight: 500, color: '#654321' }}>
-                  {String(Math.floor(brewTime / 60)).padStart(2, '0')}:{String(brewTime % 60).padStart(2, '0')}
-                </Typography>
-              </Box>
-            )}
-          </Stack>
-        </CardContent>
-      </Card>
-
-      {/* Single Feedback Card */}
-      <Card sx={{ bgcolor: '#F5F5DC', border: '2px solid #8B4513' }}>
-        <CardContent>
-          <Typography variant="h6" sx={{ color: '#8B4513', mb: 2 }}>
-            How was this brew?
-          </Typography>
-
-          {/* Rating */}
-          <Box mb={3}>
-            <Typography variant="subtitle2" sx={{ mb: 1, color: '#654321' }}>Overall Rating</Typography>
-            <Rating 
-              size="large" 
-              value={feedback.overall_rating}
-              onChange={(_, value) => setFeedback(prev => ({ ...prev, overall_rating: value || 0 }))}
-            />
-          </Box>
-
-          {/* Quick Taste Feedback */}
-          <Box mb={3}>
-            <Typography variant="subtitle2" sx={{ mb: 1, color: '#654321' }}>Taste Notes</Typography>
-            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-              {[
-                { key: 'too_weak', label: 'Too Weak' },
-                { key: 'too_strong', label: 'Too Strong' },
-                { key: 'is_bitter', label: 'Bitter' },
-                { key: 'is_sour', label: 'Sour' },
-                { key: 'grind_too_coarse', label: 'Grind Too Coarse' },
-                { key: 'grind_too_fine', label: 'Grind Too Fine' }
-              ].map(({ key, label }) => (
-                <Chip
-                  key={key}
-                  label={label}
-                  clickable
-                  color={feedback[key as keyof typeof feedback] ? 'primary' : 'default'}
-                  onClick={() => setFeedback(prev => ({ 
-                    ...prev, 
-                    [key]: !prev[key as keyof typeof prev] 
-                  }))}
-                />
-              ))}
-            </Stack>
-          </Box>
-
-          {/* Auto-generated suggestions (always visible if feedback given) */}
-          {(feedback.too_weak || feedback.too_strong || feedback.is_bitter || feedback.is_sour || feedback.grind_too_coarse || feedback.grind_too_fine) && (
-            <Box mb={3} sx={{ bgcolor: 'rgba(139, 69, 19, 0.05)', p: 2, borderRadius: 1 }}>
-              <Typography variant="subtitle2" sx={{ mb: 1, color: '#8B4513' }}>
-                Next Brew Suggestions
-              </Typography>
-              <Typography variant="body2" sx={{ mb: 2, color: '#654321' }}>
-                {suggestions.reason}
-              </Typography>
-              <Stack direction="row" spacing={2}>
-                <TextField
-                  label="Grind Setting"
-                  type="number"
-                  value={suggestions.grind}
-                  onChange={(e) => setSuggestions(prev => ({ ...prev, grind: Number(e.target.value) }))}
-                  size="small"
-                  sx={{ width: 120 }}
-                />
-                <TextField
-                  label="Ratio (1:x)"
-                  type="number"
-                  value={suggestions.ratio}
-                  onChange={(e) => setSuggestions(prev => ({ ...prev, ratio: Number(e.target.value) }))}
-                  size="small"
-                  sx={{ width: 120 }}
-                />
-              </Stack>
-            </Box>
-          )}
-
-          {error && (
-            <Alert severity="error" sx={{ mb: 1 }}>
-              {error}
-            </Alert>
-          )}
-
-          <Button 
-            variant="contained" 
-            size="large"
-            onClick={handleSaveFeedback}
-            disabled={feedback.overall_rating === 0 || saving}
-            fullWidth
-          >
-            {saving ? 'Saving...' : 'Save Feedback & Suggestions'}
-          </Button>
-        </CardContent>
-      </Card>
+      <BrewDetailsCard brewData={brewData} brewTime={brewTime} shareUrl={shareUrl} />
+      <FeedbackFormCard
+        feedback={feedback}
+        suggestions={suggestions}
+        saving={saving}
+        error={error}
+        onFeedbackChange={setFeedback}
+        onToggleFeedbackKey={toggleFeedbackKey}
+        onSuggestionsChange={setSuggestions}
+        onSave={handleSaveFeedback}
+      />
     </Stack>
   )
 }

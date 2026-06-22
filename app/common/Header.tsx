@@ -5,6 +5,7 @@ import { ExpandMore } from '@mui/icons-material'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
+/** Application header with navigation links and a dropdown menu for manage sections. */
 export const Header = () => {
   const pathname = usePathname()
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null)

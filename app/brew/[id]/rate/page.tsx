@@ -7,6 +7,7 @@ interface RatePageProps {
   searchParams?: Promise<{ [key: string]: string | string[] | undefined }>
 }
 
+/** Brew rating page that displays the ShareableBrew feedback form after brewing. */
 export default async function RatePage({ params, searchParams }: RatePageProps) {
   const { id } = await params
   const searchParamsResolved = searchParams ? await searchParams : {}

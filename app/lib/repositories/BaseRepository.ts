@@ -1,9 +1,10 @@
 import { DB } from '../db.d'
 import { Kysely, Selectable } from 'kysely'
 
-// BaseRepository is temporarily disabled due to complex Kysely typing issues
-// Each repository will implement its own methods for now
-
+/**
+ * Abstract base repository providing common CRUD operations for Kysely database tables.
+ * Subclasses specify the table and inherit findById, findAll, count, and exists methods.
+ */
 export abstract class BaseRepository<TTable extends keyof DB> {
   constructor(
     protected _db: Kysely<DB>,
@@ -52,6 +53,6 @@ export abstract class BaseRepository<TTable extends keyof DB> {
       .select('id')
       .executeTakeFirst()
 
-    return !!result
+    return Boolean(result)
   }
 }

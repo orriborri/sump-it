@@ -17,6 +17,10 @@ interface LogEntry {
   spanId?: string
 }
 
+/**
+ * Structured logger with OpenTelemetry trace correlation and span management.
+ * Outputs formatted log entries with context, error details, and trace IDs.
+ */
 class Logger {
   private isDevelopment = process.env.NODE_ENV === 'development'
   private tracer = trace.getTracer('sump-it-logger', '1.0.0')
@@ -178,4 +182,5 @@ class Logger {
   }
 }
 
+/** Shared logger instance for application-wide structured logging. */
 export const logger = new Logger()

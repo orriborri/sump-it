@@ -9,6 +9,7 @@ interface GrindSettingInputProps extends FormInputProps {
   grinderId?: string
 }
 
+/** Grind setting input with increment/decrement controls, bounded by the grinder's configured range. */
 export const GrindSettingInput: React.FC<GrindSettingInputProps> = ({
   formData,
   updateFormData,

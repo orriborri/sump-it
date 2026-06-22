@@ -1,3 +1,7 @@
+/**
+ * Auto-generated database model exports.
+ * Provides typed CRUD model classes and their associated insert/update/select types.
+ */
 // Auto-generated model exports
 export { BeansModel } from './Beans';
 

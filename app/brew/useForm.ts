@@ -8,6 +8,7 @@ const INITIAL_DOSE = 15
 const INITIAL_RATIO = 16.67
 const INITIAL_GRIND = 20
 
+/** Return type of the useForm hook including form data and navigation helpers. */
 export interface UseFormReturn {
   formData: FormData
   currentStep: number
@@ -17,6 +18,7 @@ export interface UseFormReturn {
   prefillForm: (_data: FormData, _options?: { skipToStep?: number }) => void
 }
 
+/** Manages multi-step brew form state including form data, step navigation, and form pre-filling. */
 export const useForm = (): UseFormReturn => {
   const [currentStep, setCurrentStep] = useState(0)
   const [formData, setFormData] = useState<FormData>({

@@ -1,6 +1,7 @@
 import React from 'react'
 import { Box, CircularProgress, Typography } from '@mui/material'
 
+/** Full-page loading spinner shown during route transitions. */
 export default function Loading() {
   return (
     <Box
