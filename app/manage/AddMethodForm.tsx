@@ -6,7 +6,14 @@ import { Input } from '../common/Input'
 import { MethodFormData, addMethod } from './actions'
 import { LocalCafe } from '@mui/icons-material'
 
-const popularMethods = ['V60', 'French Press', 'AeroPress', 'Chemex', 'Espresso', 'Cold Brew']
+const popularMethods = [
+  'V60',
+  'French Press',
+  'AeroPress',
+  'Chemex',
+  'Espresso',
+  'Cold Brew',
+]
 
 /**
  * Form component for adding a new brew method.
@@ -39,7 +46,7 @@ export const AddMethodForm = () => {
           ✅ Brew method added successfully!
         </Alert>
       )}
-      
+
       <Stack spacing={2}>
         <Input
           control={control}
@@ -47,10 +54,10 @@ export const AddMethodForm = () => {
           label="Method Name"
           rules={{ required: 'Method name is required' }}
         />
-        
+
         <Box>
           <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ mb: 1 }}>
-            {popularMethods.map((method) => (
+            {popularMethods.map(method => (
               <Chip
                 key={method}
                 label={method}
@@ -62,7 +69,7 @@ export const AddMethodForm = () => {
             ))}
           </Stack>
         </Box>
-        
+
         <Button
           type="submit"
           variant="contained"

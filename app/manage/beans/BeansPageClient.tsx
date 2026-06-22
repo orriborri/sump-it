@@ -49,7 +49,12 @@ export function BeansPageClient({ beans }: BeansPageClientProps) {
 
   return (
     <Box sx={{ p: 3, maxWidth: 1200, mx: 'auto' }}>
-      <Box display="flex" alignItems="center" justifyContent="space-between" mb={3}>
+      <Box
+        display="flex"
+        alignItems="center"
+        justifyContent="space-between"
+        mb={3}
+      >
         <Typography variant="h4" sx={{ color: '#8B4513', fontWeight: 600 }}>
           ☕ Your Coffee Beans
         </Typography>
@@ -57,9 +62,9 @@ export function BeansPageClient({ beans }: BeansPageClientProps) {
           onClick={() => setModalOpen(true)}
           variant="contained"
           startIcon={<Add />}
-          sx={{ 
-            bgcolor: '#8B4513', 
-            '&:hover': { bgcolor: '#6B3410' }
+          sx={{
+            bgcolor: '#8B4513',
+            '&:hover': { bgcolor: '#6B3410' },
           }}
         >
           Add Bean
@@ -78,43 +83,56 @@ export function BeansPageClient({ beans }: BeansPageClientProps) {
             onClick={() => setModalOpen(true)}
             variant="contained"
             startIcon={<Add />}
-            sx={{ 
-              bgcolor: '#8B4513', 
-              '&:hover': { bgcolor: '#6B3410' }
+            sx={{
+              bgcolor: '#8B4513',
+              '&:hover': { bgcolor: '#6B3410' },
             }}
           >
             Add Bean
           </Button>
         </Box>
       ) : (
-        <TableContainer 
-          component={Paper} 
-          sx={{ 
-            bgcolor: '#F5F5DC', 
+        <TableContainer
+          component={Paper}
+          sx={{
+            bgcolor: '#F5F5DC',
             border: '2px solid #8B4513',
-            borderRadius: 2
+            borderRadius: 2,
           }}
         >
           <Table>
             <TableHead sx={{ bgcolor: '#8B4513' }}>
               <TableRow>
-                <TableCell sx={{ color: 'white', fontWeight: 600 }}>Bean Name</TableCell>
-                <TableCell sx={{ color: 'white', fontWeight: 600 }}>Roastery</TableCell>
-                <TableCell sx={{ color: 'white', fontWeight: 600 }}>Roster</TableCell>
-                <TableCell sx={{ color: 'white', fontWeight: 600 }}>Roast Level</TableCell>
-                <TableCell sx={{ color: 'white', fontWeight: 600 }}>Actions</TableCell>
+                <TableCell sx={{ color: 'white', fontWeight: 600 }}>
+                  Bean Name
+                </TableCell>
+                <TableCell sx={{ color: 'white', fontWeight: 600 }}>
+                  Roastery
+                </TableCell>
+                <TableCell sx={{ color: 'white', fontWeight: 600 }}>
+                  Roster
+                </TableCell>
+                <TableCell sx={{ color: 'white', fontWeight: 600 }}>
+                  Roast Level
+                </TableCell>
+                <TableCell sx={{ color: 'white', fontWeight: 600 }}>
+                  Actions
+                </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {beans.map((bean) => (
-                <TableRow 
+              {beans.map(bean => (
+                <TableRow
                   key={bean.id}
                   sx={{ '&:hover': { bgcolor: 'rgba(139, 69, 19, 0.1)' } }}
                 >
                   <TableCell>
                     <Box display="flex" alignItems="center" gap={1}>
                       <Coffee sx={{ color: '#8B4513' }} />
-                      <Typography variant="subtitle1" sx={{ color: '#8B4513', fontWeight: 600 }}>
+                      <Typography
+                        variant="subtitle1"
+                        sx={{ color: '#8B4513', fontWeight: 600 }}
+                      >
                         {bean.name || 'Unnamed Bean'}
                       </Typography>
                     </Box>
@@ -130,23 +148,26 @@ export function BeansPageClient({ beans }: BeansPageClientProps) {
                     </Typography>
                   </TableCell>
                   <TableCell>
-                    <Chip 
-                      label={bean.roast_level || 'Unknown'} 
-                      size="small" 
+                    <Chip
+                      label={bean.roast_level || 'Unknown'}
+                      size="small"
                       sx={{ bgcolor: '#8B4513', color: 'white' }}
                     />
                   </TableCell>
                   <TableCell>
                     <Box display="flex" gap={1}>
-                      <IconButton 
-                        size="small" 
-                        component={Link} 
+                      <IconButton
+                        size="small"
+                        component={Link}
                         href={`/manage/beans/${bean.id}/edit`}
                         sx={{ color: '#8B4513' }}
                       >
                         <Edit fontSize="small" />
                       </IconButton>
-                      <DeleteButton beanId={bean.id} beanName={bean.name || 'Unknown'} />
+                      <DeleteButton
+                        beanId={bean.id}
+                        beanName={bean.name || 'Unknown'}
+                      />
                     </Box>
                   </TableCell>
                 </TableRow>
@@ -156,10 +177,7 @@ export function BeansPageClient({ beans }: BeansPageClientProps) {
         </TableContainer>
       )}
 
-      <AddBeanModal 
-        open={modalOpen} 
-        onClose={handleModalClose} 
-      />
+      <AddBeanModal open={modalOpen} onClose={handleModalClose} />
     </Box>
   )
 }

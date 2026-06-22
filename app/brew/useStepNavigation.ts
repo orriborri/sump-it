@@ -13,28 +13,35 @@ interface UseStepNavigationProps {
  * @param props - Object containing currentStep, formData, and totalSteps
  * @returns Navigation state flags including canGoBack, canGoForward, canSubmit, and validation errors
  */
-export const useStepNavigation = ({ currentStep, formData, totalSteps }: UseStepNavigationProps) => {
+export const useStepNavigation = ({
+  currentStep,
+  formData,
+  totalSteps,
+}: UseStepNavigationProps) => {
   /**
    * Validates the form fields for all completed and current steps
    * @returns Array of human-readable validation error messages
    */
   const getValidationErrors = () => {
     const errors = []
-    
+
     // Step 1 validation
     if (currentStep >= 0) {
       if (formData.bean_id === 0) errors.push('Select a coffee bean')
       if (formData.method_id === 0) errors.push('Select a brewing method')
       if (formData.grinder_id === 0) errors.push('Select a grinder')
     }
-    
+
     // Step 2 validation
     if (currentStep >= 1) {
-      if (!formData.dose || formData.dose <= 0) errors.push('Enter coffee amount')
-      if (!formData.grind || formData.grind <= 0) errors.push('Set grind setting')
-      if (!formData.water || formData.water <= 0) errors.push('Enter water amount')
+      if (!formData.dose || formData.dose <= 0)
+        errors.push('Enter coffee amount')
+      if (!formData.grind || formData.grind <= 0)
+        errors.push('Set grind setting')
+      if (!formData.water || formData.water <= 0)
+        errors.push('Enter water amount')
     }
-    
+
     return errors
   }
 
@@ -44,11 +51,14 @@ export const useStepNavigation = ({ currentStep, formData, totalSteps }: UseStep
   const isLastStep = currentStep === totalSteps - 1
   const canGoBack = currentStep > 0
   const canSubmit = isLastStep && isFormValid
-  
+
   // Can go forward if current step is valid
-  const canGoForward = currentStep === 0 ? 
-    formData.bean_id > 0 && formData.method_id > 0 && formData.grinder_id > 0 :
-    true
+  const canGoForward =
+    currentStep === 0
+      ? formData.bean_id > 0 &&
+        formData.method_id > 0 &&
+        formData.grinder_id > 0
+      : true
 
   return {
     isFormValid,

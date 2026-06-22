@@ -9,7 +9,8 @@ import { getGrinderSettings, GrinderSettings } from './actions'
  * @returns Object containing grinderSettings, loading state, and any error message
  */
 export const useGrinderSettings = (grinderId?: string) => {
-  const [grinderSettings, setGrinderSettings] = useState<GrinderSettings | null>(null)
+  const [grinderSettings, setGrinderSettings] =
+    useState<GrinderSettings | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 

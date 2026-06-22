@@ -23,7 +23,7 @@ export default function TimerPage() {
   useEffect(() => {
     if (isRunning) {
       intervalRef.current = setInterval(() => {
-        setElapsedSeconds((prev) => prev + 1)
+        setElapsedSeconds(prev => prev + 1)
       }, 1000)
     }
 
@@ -38,7 +38,7 @@ export default function TimerPage() {
    * Toggles the timer between running and paused states
    */
   const togglePause = () => {
-    setIsRunning((prev) => !prev)
+    setIsRunning(prev => !prev)
   }
 
   /**
@@ -103,10 +103,7 @@ export default function TimerPage() {
           {formattedTime}
         </Typography>
 
-        <Typography
-          variant="body2"
-          sx={{ color: 'text.secondary', mb: 4 }}
-        >
+        <Typography variant="body2" sx={{ color: 'text.secondary', mb: 4 }}>
           {isRunning ? 'Brewing in progress...' : 'Timer paused'}
         </Typography>
 

@@ -20,7 +20,13 @@ import { addGrinder, addBean, addMethod } from '@/app/manage/actions'
 
 const steps = ['Welcome', 'Add Grinder', 'Add Beans', 'Add Method', 'Done']
 
-const COMMON_METHODS = ['V60', 'AeroPress', 'French Press', 'Chemex', 'Kalita Wave']
+const COMMON_METHODS = [
+  'V60',
+  'AeroPress',
+  'French Press',
+  'Chemex',
+  'Kalita Wave',
+]
 
 /**
  * Multi-step onboarding wizard that guides new users through initial equipment setup
@@ -37,13 +43,15 @@ export const OnboardingWizard: React.FC = () => {
   const [useCustomMethod, setUseCustomMethod] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
-  const [completedItems, setCompletedItems] = useState<Record<number, boolean>>({})
+  const [completedItems, setCompletedItems] = useState<Record<number, boolean>>(
+    {}
+  )
 
   /**
    * Advances the wizard to the next step and clears any error state
    */
   const handleNext = () => {
-    setActiveStep((prev) => prev + 1)
+    setActiveStep(prev => prev + 1)
     setError(null)
   }
 
@@ -59,7 +67,7 @@ export const OnboardingWizard: React.FC = () => {
     setError(null)
     try {
       await addGrinder({ name: grinderName.trim() })
-      setCompletedItems((prev) => ({ ...prev, 1: true }))
+      setCompletedItems(prev => ({ ...prev, 1: true }))
       setTimeout(() => handleNext(), 600)
     } catch {
       setError('Failed to add grinder. Please try again.')
@@ -83,7 +91,7 @@ export const OnboardingWizard: React.FC = () => {
         name: beanName.trim(),
         ...(roastery.trim() ? { rostery: roastery.trim() } : {}),
       })
-      setCompletedItems((prev) => ({ ...prev, 2: true }))
+      setCompletedItems(prev => ({ ...prev, 2: true }))
       setTimeout(() => handleNext(), 600)
     } catch {
       setError('Failed to add beans. Please try again.')
@@ -106,7 +114,7 @@ export const OnboardingWizard: React.FC = () => {
     setError(null)
     try {
       await addMethod({ name: finalName })
-      setCompletedItems((prev) => ({ ...prev, 3: true }))
+      setCompletedItems(prev => ({ ...prev, 3: true }))
       setTimeout(() => handleNext(), 600)
     } catch {
       setError('Failed to add method. Please try again.')
@@ -137,8 +145,8 @@ export const OnboardingWizard: React.FC = () => {
             </Typography>
             <Typography variant="body1" sx={{ mb: 3, color: 'text.secondary' }}>
               Let&apos;s set up your first brew. We&apos;ll add your grinder,
-              coffee beans, and brew method so you can start tracking your
-              brews right away.
+              coffee beans, and brew method so you can start tracking your brews
+              right away.
             </Typography>
             <Button
               variant="contained"
@@ -174,11 +182,11 @@ export const OnboardingWizard: React.FC = () => {
                   fullWidth
                   label="Grinder Name"
                   value={grinderName}
-                  onChange={(e) => setGrinderName(e.target.value)}
+                  onChange={e => setGrinderName(e.target.value)}
                   placeholder="e.g. Comandante C40"
                   sx={{ mb: 2 }}
                   disabled={loading}
-                  onKeyDown={(e) => {
+                  onKeyDown={e => {
                     if (e.key === 'Enter') handleAddGrinder()
                   }}
                 />
@@ -218,7 +226,7 @@ export const OnboardingWizard: React.FC = () => {
                   fullWidth
                   label="Bean Name"
                   value={beanName}
-                  onChange={(e) => setBeanName(e.target.value)}
+                  onChange={e => setBeanName(e.target.value)}
                   placeholder="e.g. Ethiopia Yirgacheffe"
                   sx={{ mb: 2 }}
                   disabled={loading}
@@ -228,7 +236,7 @@ export const OnboardingWizard: React.FC = () => {
                   fullWidth
                   label="Roastery (optional)"
                   value={roastery}
-                  onChange={(e) => setRoastery(e.target.value)}
+                  onChange={e => setRoastery(e.target.value)}
                   placeholder="e.g. Square Mile"
                   sx={{ mb: 2 }}
                   disabled={loading}
@@ -274,7 +282,7 @@ export const OnboardingWizard: React.FC = () => {
                       mb: 2,
                     }}
                   >
-                    {COMMON_METHODS.map((method) => (
+                    {COMMON_METHODS.map(method => (
                       <Chip
                         key={method}
                         label={method}
@@ -310,11 +318,11 @@ export const OnboardingWizard: React.FC = () => {
                       fullWidth
                       label="Method Name"
                       value={methodName}
-                      onChange={(e) => setMethodName(e.target.value)}
+                      onChange={e => setMethodName(e.target.value)}
                       placeholder="e.g. Clever Dripper"
                       sx={{ mb: 2 }}
                       disabled={loading}
-                      onKeyDown={(e) => {
+                      onKeyDown={e => {
                         if (e.key === 'Enter') handleAddMethod()
                       }}
                     />

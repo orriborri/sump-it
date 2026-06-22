@@ -22,7 +22,9 @@ export interface GrinderSettings {
  * @param grinderId - The grinder ID as a string
  * @returns Grinder settings object or null if the grinder is not found
  */
-export async function getGrinderSettings(grinderId: string): Promise<GrinderSettings | null> {
+export async function getGrinderSettings(
+  grinderId: string
+): Promise<GrinderSettings | null> {
   const parsedId = parseInt(grinderId, 10)
   if (isNaN(parsedId)) {
     return null

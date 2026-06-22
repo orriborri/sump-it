@@ -16,9 +16,9 @@ export async function GET() {
       prometheus_endpoint: 'http://localhost:9090/metrics',
       health_endpoint: '/api/health',
       service: 'sump-it',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     }
-    
+
     return NextResponse.json(metricsInfo, {
       status: 200,
       headers: {

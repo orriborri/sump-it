@@ -39,19 +39,20 @@ const init = () => {
   })
 
   sdk.start()
-  
+
   logger.info('OpenTelemetry initialized successfully', {
     metricsPort: 9090,
-    service: 'sump-it'
+    service: 'sump-it',
   })
 
   // Graceful shutdown
   process.on('SIGTERM', () => {
-    sdk.shutdown()
+    sdk
+      .shutdown()
       .then(() => {
         logger.info('OpenTelemetry terminated successfully')
       })
-      .catch((error) => {
+      .catch(error => {
         logger.error('Error terminating OpenTelemetry', {}, error as Error)
       })
       .finally(() => process.exit(0))

@@ -1,6 +1,13 @@
 'use client'
 import React, { useEffect } from 'react'
-import { Box, TextField, Typography, Stack, Alert, IconButton } from '@mui/material'
+import {
+  Box,
+  TextField,
+  Typography,
+  Stack,
+  Alert,
+  IconButton,
+} from '@mui/material'
 import { Add, Remove } from '@mui/icons-material'
 import { FormInputProps } from './types'
 import { useGrinderSettings } from '../equipment/useGrinderSettings'
@@ -77,9 +84,7 @@ export const GrindSettingInput: React.FC<GrindSettingInputProps> = ({
 
   return (
     <Stack spacing={2}>
-      <Typography variant="subtitle2">
-        Grind Setting
-      </Typography>
+      <Typography variant="subtitle2">Grind Setting</Typography>
 
       {/* Grind Setting Input */}
       <Box display="flex" alignItems="center" gap={1} maxWidth={280}>
@@ -100,7 +105,7 @@ export const GrindSettingInput: React.FC<GrindSettingInputProps> = ({
             min: minSetting,
             max: maxSetting,
             step: stepSize,
-            style: { textAlign: 'center' }
+            style: { textAlign: 'center' },
           }}
           size="small"
           sx={{ flex: 1 }}

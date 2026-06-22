@@ -11,7 +11,10 @@ interface RatePageProps {
  * Server component that renders the brew rating page with the ShareableBrew feedback form
  * Extracts brew time from search params if navigating from the timer page
  */
-export default async function RatePage({ params, searchParams }: RatePageProps) {
+export default async function RatePage({
+  params,
+  searchParams,
+}: RatePageProps) {
   const { id } = await params
   const searchParamsResolved = searchParams ? await searchParams : {}
   const brewData = await getBrewDetails(parseInt(id))
@@ -21,9 +24,17 @@ export default async function RatePage({ params, searchParams }: RatePageProps) 
   }
 
   const brewTimeParam = searchParamsResolved.brew_time
-  const brewTimeStr = Array.isArray(brewTimeParam) ? brewTimeParam[0] : brewTimeParam
+  const brewTimeStr = Array.isArray(brewTimeParam)
+    ? brewTimeParam[0]
+    : brewTimeParam
   const brewTime = brewTimeStr ? parseInt(brewTimeStr, 10) : undefined
-  const validBrewTime = brewTime !== undefined && !isNaN(brewTime) && brewTime > 0 && brewTime <= 86400 ? brewTime : undefined
+  const validBrewTime =
+    brewTime !== undefined &&
+    !isNaN(brewTime) &&
+    brewTime > 0 &&
+    brewTime <= 86400
+      ? brewTime
+      : undefined
 
   return (
     <div style={{ maxWidth: 600, margin: '0 auto', padding: 20 }}>

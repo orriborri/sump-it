@@ -39,12 +39,12 @@ export async function getBrewDetails(brewId: number) {
   return {
     id: brewId,
     bean_name: 'Ethiopian Yirgacheffe',
-    method_name: 'V60', 
+    method_name: 'V60',
     grinder_name: 'Comandante',
     dose: 15,
     water: 250,
     ratio: 16.67,
-    grind: 20
+    grind: 20,
   }
 }
 

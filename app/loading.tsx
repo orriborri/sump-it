@@ -17,8 +17,8 @@ export default function Loading() {
         gap: 2,
       }}
     >
-      <CircularProgress 
-        size={60} 
+      <CircularProgress
+        size={60}
         thickness={4}
         sx={{ color: 'primary.main' }}
       />

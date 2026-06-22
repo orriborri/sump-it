@@ -29,20 +29,30 @@ export default function NotFound() {
           bgcolor: 'background.paper',
         }}
       >
-        <Typography variant="h1" sx={{ fontSize: '4rem', color: 'primary.main', mb: 2 }}>
+        <Typography
+          variant="h1"
+          sx={{ fontSize: '4rem', color: 'primary.main', mb: 2 }}
+        >
           404
         </Typography>
-        
+
         <Typography variant="h4" gutterBottom color="primary.main">
           Page Not Found
         </Typography>
-        
+
         <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-          The coffee brewing page you're looking for doesn't exist. 
-          Maybe it's time for a fresh brew?
+          The coffee brewing page you're looking for doesn't exist. Maybe it's
+          time for a fresh brew?
         </Typography>
 
-        <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
+        <Box
+          sx={{
+            display: 'flex',
+            gap: 2,
+            justifyContent: 'center',
+            flexWrap: 'wrap',
+          }}
+        >
           <Button
             component={Link}
             href="/"
@@ -53,7 +63,7 @@ export default function NotFound() {
           >
             Go Home
           </Button>
-          
+
           <Button
             component={Link}
             href="/brew"

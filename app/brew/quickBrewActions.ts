@@ -89,16 +89,16 @@ export async function getRecentBrewConfigs(): Promise<QuickBrewConfig[]> {
           grinder_name: row.grinder_name || 'Unknown Grinder',
           dose: row.dose || 15,
           water: row.water || 250,
-          grind: grindAdjustment !== 0
-            ? currentGrind + grindAdjustment
-            : currentGrind,
+          grind:
+            grindAdjustment !== 0
+              ? currentGrind + grindAdjustment
+              : currentGrind,
           ratio: currentRatio,
           last_brewed_at: row.created_at.toISOString(),
           brew_count: 0, // Will be updated below
           last_rating: row.overall_rating ?? null,
-          suggested_grind: grindAdjustment !== 0
-            ? currentGrind + grindAdjustment
-            : null,
+          suggested_grind:
+            grindAdjustment !== 0 ? currentGrind + grindAdjustment : null,
           suggested_ratio: null, // Could be extended later
         })
       }
@@ -112,7 +112,9 @@ export async function getRecentBrewConfigs(): Promise<QuickBrewConfig[]> {
     // Return top 5 most recent unique configs
     return Array.from(seenCombos.values()).slice(0, 5)
   } catch (error) {
-    logger.error('Failed to fetch recent brew configs', { error: String(error) })
+    logger.error('Failed to fetch recent brew configs', {
+      error: String(error),
+    })
     return []
   }
 }

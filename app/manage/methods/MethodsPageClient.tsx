@@ -70,7 +70,12 @@ export function MethodsPageClient({ methods }: MethodsPageClientProps) {
 
   return (
     <Box sx={{ p: 3, maxWidth: 1200, mx: 'auto' }}>
-      <Box display="flex" alignItems="center" justifyContent="space-between" mb={3}>
+      <Box
+        display="flex"
+        alignItems="center"
+        justifyContent="space-between"
+        mb={3}
+      >
         <Typography variant="h4" sx={{ color: '#8B4513', fontWeight: 600 }}>
           ☕ Your Brew Methods
         </Typography>
@@ -78,9 +83,9 @@ export function MethodsPageClient({ methods }: MethodsPageClientProps) {
           onClick={() => setAddModalOpen(true)}
           variant="contained"
           startIcon={<Add />}
-          sx={{ 
-            bgcolor: '#8B4513', 
-            '&:hover': { bgcolor: '#6B3410' }
+          sx={{
+            bgcolor: '#8B4513',
+            '&:hover': { bgcolor: '#6B3410' },
           }}
         >
           Add Method
@@ -99,56 +104,63 @@ export function MethodsPageClient({ methods }: MethodsPageClientProps) {
             onClick={() => setAddModalOpen(true)}
             variant="contained"
             startIcon={<Add />}
-            sx={{ 
-              bgcolor: '#8B4513', 
-              '&:hover': { bgcolor: '#6B3410' }
+            sx={{
+              bgcolor: '#8B4513',
+              '&:hover': { bgcolor: '#6B3410' },
             }}
           >
             Add Method
           </Button>
         </Box>
       ) : (
-        <TableContainer 
-          component={Paper} 
-          sx={{ 
-            bgcolor: '#F5F5DC', 
+        <TableContainer
+          component={Paper}
+          sx={{
+            bgcolor: '#F5F5DC',
             border: '2px solid #8B4513',
-            borderRadius: 2
+            borderRadius: 2,
           }}
         >
           <Table>
             <TableHead sx={{ bgcolor: '#8B4513' }}>
               <TableRow>
-                <TableCell sx={{ color: 'white', fontWeight: 600 }}>Method Name</TableCell>
-                <TableCell sx={{ color: 'white', fontWeight: 600 }}>Actions</TableCell>
+                <TableCell sx={{ color: 'white', fontWeight: 600 }}>
+                  Method Name
+                </TableCell>
+                <TableCell sx={{ color: 'white', fontWeight: 600 }}>
+                  Actions
+                </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {methods.map((method) => (
-                <TableRow 
+              {methods.map(method => (
+                <TableRow
                   key={method.id}
                   sx={{ '&:hover': { bgcolor: 'rgba(139, 69, 19, 0.1)' } }}
                 >
                   <TableCell>
                     <Box display="flex" alignItems="center" gap={1}>
                       <LocalCafe sx={{ color: '#8B4513' }} />
-                      <Typography variant="subtitle1" sx={{ color: '#8B4513', fontWeight: 600 }}>
+                      <Typography
+                        variant="subtitle1"
+                        sx={{ color: '#8B4513', fontWeight: 600 }}
+                      >
                         {method.name}
                       </Typography>
                     </Box>
                   </TableCell>
                   <TableCell>
                     <Box display="flex" gap={1}>
-                      <IconButton 
-                        size="small" 
+                      <IconButton
+                        size="small"
                         onClick={() => handleEdit(method)}
                         sx={{ color: '#8B4513' }}
                         aria-label="Edit method"
                       >
                         <Edit fontSize="small" />
                       </IconButton>
-                      <IconButton 
-                        size="small" 
+                      <IconButton
+                        size="small"
                         onClick={() => handleDelete(method)}
                         sx={{ color: '#DC143C' }}
                         aria-label="Delete method"
@@ -164,20 +176,17 @@ export function MethodsPageClient({ methods }: MethodsPageClientProps) {
         </TableContainer>
       )}
 
-      <AddMethodModal 
-        open={addModalOpen} 
-        onClose={handleAddModalClose} 
-      />
+      <AddMethodModal open={addModalOpen} onClose={handleAddModalClose} />
 
       {selectedMethod && (
         <>
-          <EditMethodModal 
-            open={editModalOpen} 
+          <EditMethodModal
+            open={editModalOpen}
             onClose={handleEditModalClose}
             method={selectedMethod}
           />
-          <DeleteMethodModal 
-            open={deleteModalOpen} 
+          <DeleteMethodModal
+            open={deleteModalOpen}
             onClose={handleDeleteModalClose}
             method={selectedMethod}
           />

@@ -1,6 +1,14 @@
 'use client'
 import React from 'react'
-import { AppBar, Toolbar, Typography, Box, Menu, MenuItem, Button } from '@mui/material'
+import {
+  AppBar,
+  Toolbar,
+  Typography,
+  Box,
+  Menu,
+  MenuItem,
+  Button,
+} from '@mui/material'
 import { ExpandMore } from '@mui/icons-material'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -63,7 +71,7 @@ export const Header = () => {
               {item.name}
             </Box>
           ))}
-          
+
           <Button
             onClick={handleManageClick}
             endIcon={<ExpandMore />}
@@ -78,7 +86,7 @@ export const Header = () => {
           >
             Manage
           </Button>
-          
+
           <Menu
             anchorEl={anchorEl}
             open={Boolean(anchorEl)}
@@ -87,7 +95,7 @@ export const Header = () => {
               '& .MuiPaper-root': {
                 bgcolor: '#F5F5DC',
                 border: '1px solid #8B4513',
-              }
+              },
             }}
           >
             {manageItems.map(item => (

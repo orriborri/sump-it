@@ -21,7 +21,9 @@ export interface GrinderSettings {
  * @param grinderId - The grinder ID as a string to look up
  * @returns Grinder settings object with min/max/step values, or null if not found
  */
-export async function getGrinderSettings(grinderId: string): Promise<GrinderSettings | null> {
+export async function getGrinderSettings(
+  grinderId: string
+): Promise<GrinderSettings | null> {
   try {
     const grindersModel = new GrindersModel(db)
     const numericId = parseInt(grinderId, 10)

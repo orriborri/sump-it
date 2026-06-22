@@ -1,4 +1,12 @@
-import { Box, Button, Typography, Card, CardContent, Stack, Chip } from '@mui/material'
+import {
+  Box,
+  Button,
+  Typography,
+  Card,
+  CardContent,
+  Stack,
+  Chip,
+} from '@mui/material'
 import { Coffee, BarChart, Settings, LocalCafe } from '@mui/icons-material'
 import Link from 'next/link'
 import { db } from './lib/database'
@@ -20,18 +28,28 @@ const Page = async () => {
   const methodsModel = new MethodsModel(db)
   const grindersModel = new GrindersModel(db)
 
-  const [beansCount, methodsCount, grindersCount, brewsCount] = await Promise.all([
-    beansModel.count(),
-    methodsModel.count(),
-    grindersModel.count(),
-    db.selectFrom('brews').select(({ fn }) => fn.count<number>('id').as('count')).executeTakeFirst().then(result => result?.count ?? 0)
-  ])
+  const [beansCount, methodsCount, grindersCount, brewsCount] =
+    await Promise.all([
+      beansModel.count(),
+      methodsModel.count(),
+      grindersModel.count(),
+      db
+        .selectFrom('brews')
+        .select(({ fn }) => fn.count<number>('id').as('count'))
+        .executeTakeFirst()
+        .then(result => result?.count ?? 0),
+    ])
 
   return (
     <Box sx={{ py: 2 }}>
       {/* Hero Section */}
       <Box sx={{ textAlign: 'center', mb: 4, py: 4 }}>
-        <Typography variant="h3" component="h1" gutterBottom sx={{ color: '#654321', fontWeight: 700 }}>
+        <Typography
+          variant="h3"
+          component="h1"
+          gutterBottom
+          sx={{ color: '#654321', fontWeight: 700 }}
+        >
           Sump It
         </Typography>
         <Typography variant="h6" color="text.secondary" sx={{ mb: 4 }}>
@@ -109,7 +127,14 @@ const Page = async () => {
           href="/stats"
           variant="outlined"
           startIcon={<BarChart />}
-          sx={{ borderColor: '#8B4513', color: '#8B4513', '&:hover': { borderColor: '#654321', bgcolor: 'rgba(139, 69, 19, 0.04)' } }}
+          sx={{
+            borderColor: '#8B4513',
+            color: '#8B4513',
+            '&:hover': {
+              borderColor: '#654321',
+              bgcolor: 'rgba(139, 69, 19, 0.04)',
+            },
+          }}
         >
           View Stats
         </Button>
@@ -118,7 +143,14 @@ const Page = async () => {
           href="/manage/beans"
           variant="outlined"
           startIcon={<LocalCafe />}
-          sx={{ borderColor: '#D2691E', color: '#D2691E', '&:hover': { borderColor: '#A0522D', bgcolor: 'rgba(210, 105, 30, 0.04)' } }}
+          sx={{
+            borderColor: '#D2691E',
+            color: '#D2691E',
+            '&:hover': {
+              borderColor: '#A0522D',
+              bgcolor: 'rgba(210, 105, 30, 0.04)',
+            },
+          }}
         >
           Manage Beans
         </Button>
@@ -127,7 +159,14 @@ const Page = async () => {
           href="/manage/grinders"
           variant="outlined"
           startIcon={<Settings />}
-          sx={{ borderColor: '#A0522D', color: '#A0522D', '&:hover': { borderColor: '#8B4513', bgcolor: 'rgba(160, 82, 45, 0.04)' } }}
+          sx={{
+            borderColor: '#A0522D',
+            color: '#A0522D',
+            '&:hover': {
+              borderColor: '#8B4513',
+              bgcolor: 'rgba(160, 82, 45, 0.04)',
+            },
+          }}
         >
           Manage Grinders
         </Button>
