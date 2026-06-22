@@ -26,10 +26,10 @@ export const BrewingWorkflow: React.FC<BrewingWorkflowProps> = ({
 }) => {
   const form = useForm()
   const router = useRouter()
-  
+
   const handleSubmit = async () => {
     const result = await saveBrew(form.formData)
-    
+
     if (result.success && result.brew) {
       router.push(`/brew/${result.brew.id}/timer`)
     }

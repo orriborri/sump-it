@@ -36,11 +36,12 @@ interface GrinderRowProps {
 }
 
 const GrinderRow: React.FC<GrinderRowProps> = ({ grinder }) => (
-  <TableRow
-    sx={{ '&:hover': { bgcolor: 'rgba(160, 82, 45, 0.1)' } }}
-  >
+  <TableRow sx={{ '&:hover': { bgcolor: 'rgba(160, 82, 45, 0.1)' } }}>
     <TableCell>
-      <Typography variant="subtitle1" sx={{ color: '#8B4513', fontWeight: 600 }}>
+      <Typography
+        variant="subtitle1"
+        sx={{ color: '#8B4513', fontWeight: 600 }}
+      >
         {grinder.name}
       </Typography>
     </TableCell>
@@ -68,9 +69,9 @@ const GrinderRow: React.FC<GrinderRowProps> = ({ grinder }) => (
     </TableCell>
     <TableCell>
       <Box display="flex" gap={1}>
-        <IconButton 
-          size="small" 
-          component={Link} 
+        <IconButton
+          size="small"
+          component={Link}
           href={`/manage/grinders/${grinder.id}/edit`}
           sx={{ color: '#A0522D' }}
         >
@@ -88,7 +89,9 @@ const GrinderRow: React.FC<GrinderRowProps> = ({ grinder }) => (
 const GrindersTableHeader: React.FC = () => (
   <TableHead sx={{ bgcolor: '#A0522D' }}>
     <TableRow>
-      <TableCell sx={{ color: 'white', fontWeight: 600 }}>Grinder Name</TableCell>
+      <TableCell sx={{ color: 'white', fontWeight: 600 }}>
+        Grinder Name
+      </TableCell>
       <TableCell sx={{ color: 'white', fontWeight: 600 }}>Range</TableCell>
       <TableCell sx={{ color: 'white', fontWeight: 600 }}>Step Size</TableCell>
       <TableCell sx={{ color: 'white', fontWeight: 600 }}>Type</TableCell>
@@ -102,18 +105,18 @@ interface GrindersTableProps {
 }
 
 const GrindersTable: React.FC<GrindersTableProps> = ({ grinders }) => (
-  <TableContainer 
-    component={Paper} 
-    sx={{ 
-      bgcolor: '#F5F5DC', 
+  <TableContainer
+    component={Paper}
+    sx={{
+      bgcolor: '#F5F5DC',
       border: '2px solid #A0522D',
-      borderRadius: 2
+      borderRadius: 2,
     }}
   >
     <Table>
       <GrindersTableHeader />
       <TableBody>
-        {grinders.map((grinder) => (
+        {grinders.map(grinder => (
           <GrinderRow key={grinder.id} grinder={grinder} />
         ))}
       </TableBody>
@@ -133,7 +136,10 @@ export default async function GrindersPage() {
   return (
     <Box sx={{ p: 3, maxWidth: 1200, mx: 'auto' }}>
       <Box display="flex" alignItems="center" gap={2} mb={3}>
-        <Typography variant="h4" sx={{ color: '#8B4513', fontWeight: 600, flex: 1 }}>
+        <Typography
+          variant="h4"
+          sx={{ color: '#8B4513', fontWeight: 600, flex: 1 }}
+        >
           ⚙️ Your Grinders
         </Typography>
         <Button

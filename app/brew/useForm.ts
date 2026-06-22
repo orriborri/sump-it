@@ -50,12 +50,15 @@ export const useForm = (): UseFormReturn => {
    * Pre-fill all form fields at once and optionally jump to a specific step.
    * Used by Quick Brew to skip the equipment selection step entirely.
    */
-  const prefillForm = useCallback((_data: FormData, _options?: { skipToStep?: number }) => {
-    setFormData(_data)
-    if (_options?.skipToStep !== undefined) {
-      setCurrentStep(_options.skipToStep)
-    }
-  }, [])
+  const prefillForm = useCallback(
+    (_data: FormData, _options?: { skipToStep?: number }) => {
+      setFormData(_data)
+      if (_options?.skipToStep !== undefined) {
+        setCurrentStep(_options.skipToStep)
+      }
+    },
+    []
+  )
 
   return {
     formData,

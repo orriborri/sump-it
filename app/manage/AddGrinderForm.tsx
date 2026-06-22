@@ -1,6 +1,14 @@
 'use client'
 import React, { useState } from 'react'
-import { Box, Button, TextField, Stack, Alert, Chip, Typography } from '@mui/material'
+import {
+  Box,
+  Button,
+  TextField,
+  Stack,
+  Alert,
+  Chip,
+  Typography,
+} from '@mui/material'
 import { createGrinder } from './grinders/actions'
 import { Settings } from '@mui/icons-material'
 
@@ -8,7 +16,7 @@ const popularGrinders = [
   { name: 'Baratza Encore', range: '1-40' },
   { name: 'Comandante C40', range: '1-30' },
   { name: 'Hario Mini Mill', range: '1-20' },
-  { name: 'Timemore C2', range: '1-25' }
+  { name: 'Timemore C2', range: '1-25' },
 ]
 
 /** Quick grinder form with popular grinder suggestions and default settings. */
@@ -77,7 +85,7 @@ export const AddGrinderForm = () => {
             Popular grinders:
           </Typography>
           <Stack direction="row" spacing={1} flexWrap="wrap">
-            {popularGrinders.map((grinder) => (
+            {popularGrinders.map(grinder => (
               <Chip
                 key={grinder.name}
                 label={`${grinder.name} (${grinder.range})`}
@@ -91,7 +99,8 @@ export const AddGrinderForm = () => {
         </Box>
 
         <Alert severity="info" sx={{ fontSize: '0.875rem' }}>
-          Default: Range 1-40, whole number steps. Need custom settings? Use the advanced form.
+          Default: Range 1-40, whole number steps. Need custom settings? Use the
+          advanced form.
         </Alert>
 
         <Button

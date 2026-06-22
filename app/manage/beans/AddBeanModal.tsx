@@ -13,8 +13,8 @@ interface AddBeanModalProps {
 /** Modal dialog containing the AddBeanForm for adding beans without leaving the page. */
 export function AddBeanModal({ open, onClose }: AddBeanModalProps) {
   return (
-    <Dialog 
-      open={open} 
+    <Dialog
+      open={open}
       onClose={onClose}
       maxWidth="sm"
       fullWidth
@@ -22,17 +22,19 @@ export function AddBeanModal({ open, onClose }: AddBeanModalProps) {
         sx: {
           bgcolor: '#F5F5DC',
           border: '2px solid #8B4513',
-          borderRadius: 2
-        }
+          borderRadius: 2,
+        },
       }}
     >
-      <DialogTitle sx={{ 
-        color: '#8B4513', 
-        fontWeight: 600,
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
-      }}>
+      <DialogTitle
+        sx={{
+          color: '#8B4513',
+          fontWeight: 600,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}
+      >
         Add New Coffee Bean
         <IconButton onClick={onClose} sx={{ color: '#8B4513' }}>
           <Close />

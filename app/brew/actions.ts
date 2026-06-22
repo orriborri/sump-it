@@ -3,7 +3,10 @@
 import { db } from '../lib/database'
 import { BrewsModel } from '../lib/generated-models/Brews'
 
-import { BrewsJoinedQueries, BrewsWithJoins } from '../lib/generated-models/BrewsJoined'
+import {
+  BrewsJoinedQueries,
+  BrewsWithJoins,
+} from '../lib/generated-models/BrewsJoined'
 import { FormData } from './types'
 import type { Kysely } from 'kysely'
 import type { DB } from '../lib/db.d'

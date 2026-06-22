@@ -38,13 +38,14 @@ interface BeanRowProps {
 }
 
 const BeanRow: React.FC<BeanRowProps> = ({ bean }) => (
-  <TableRow
-    sx={{ '&:hover': { bgcolor: 'rgba(139, 69, 19, 0.1)' } }}
-  >
+  <TableRow sx={{ '&:hover': { bgcolor: 'rgba(139, 69, 19, 0.1)' } }}>
     <TableCell>
       <Box display="flex" alignItems="center" gap={1}>
         <Coffee sx={{ color: '#8B4513' }} />
-        <Typography variant="subtitle1" sx={{ color: '#8B4513', fontWeight: 600 }}>
+        <Typography
+          variant="subtitle1"
+          sx={{ color: '#8B4513', fontWeight: 600 }}
+        >
           {bean.name || 'Unnamed Bean'}
         </Typography>
       </Box>
@@ -60,17 +61,17 @@ const BeanRow: React.FC<BeanRowProps> = ({ bean }) => (
       </Typography>
     </TableCell>
     <TableCell>
-      <Chip 
-        label={bean.roast_level || 'Unknown'} 
-        size="small" 
+      <Chip
+        label={bean.roast_level || 'Unknown'}
+        size="small"
         sx={{ bgcolor: '#8B4513', color: 'white' }}
       />
     </TableCell>
     <TableCell>
       <Box display="flex" gap={1}>
-        <IconButton 
-          size="small" 
-          component={Link} 
+        <IconButton
+          size="small"
+          component={Link}
           href={`/manage/beans/${bean.id}/edit`}
           sx={{ color: '#8B4513' }}
         >
@@ -88,7 +89,9 @@ const BeansTableHeader: React.FC = () => (
       <TableCell sx={{ color: 'white', fontWeight: 600 }}>Bean Name</TableCell>
       <TableCell sx={{ color: 'white', fontWeight: 600 }}>Roastery</TableCell>
       <TableCell sx={{ color: 'white', fontWeight: 600 }}>Roster</TableCell>
-      <TableCell sx={{ color: 'white', fontWeight: 600 }}>Roast Level</TableCell>
+      <TableCell sx={{ color: 'white', fontWeight: 600 }}>
+        Roast Level
+      </TableCell>
       <TableCell sx={{ color: 'white', fontWeight: 600 }}>Actions</TableCell>
     </TableRow>
   </TableHead>
@@ -99,18 +102,18 @@ interface BeansTableProps {
 }
 
 const BeansTable: React.FC<BeansTableProps> = ({ beans }) => (
-  <TableContainer 
-    component={Paper} 
-    sx={{ 
-      bgcolor: '#F5F5DC', 
+  <TableContainer
+    component={Paper}
+    sx={{
+      bgcolor: '#F5F5DC',
       border: '2px solid #8B4513',
-      borderRadius: 2
+      borderRadius: 2,
     }}
   >
     <Table>
       <BeansTableHeader />
       <TableBody>
-        {beans.map((bean) => (
+        {beans.map(bean => (
           <BeanRow key={bean.id} bean={bean} />
         ))}
       </TableBody>
@@ -130,7 +133,12 @@ export function BeansPageClient({ beans }: BeansPageClientProps) {
 
   return (
     <Box sx={{ p: 3, maxWidth: 1200, mx: 'auto' }}>
-      <Box display="flex" alignItems="center" justifyContent="space-between" mb={3}>
+      <Box
+        display="flex"
+        alignItems="center"
+        justifyContent="space-between"
+        mb={3}
+      >
         <Typography variant="h4" sx={{ color: '#8B4513', fontWeight: 600 }}>
           ☕ Your Coffee Beans
         </Typography>
@@ -138,9 +146,9 @@ export function BeansPageClient({ beans }: BeansPageClientProps) {
           onClick={() => setModalOpen(true)}
           variant="contained"
           startIcon={<Add />}
-          sx={{ 
-            bgcolor: '#8B4513', 
-            '&:hover': { bgcolor: '#6B3410' }
+          sx={{
+            bgcolor: '#8B4513',
+            '&:hover': { bgcolor: '#6B3410' },
           }}
         >
           Add Bean
@@ -159,9 +167,9 @@ export function BeansPageClient({ beans }: BeansPageClientProps) {
             onClick={() => setModalOpen(true)}
             variant="contained"
             startIcon={<Add />}
-            sx={{ 
-              bgcolor: '#8B4513', 
-              '&:hover': { bgcolor: '#6B3410' }
+            sx={{
+              bgcolor: '#8B4513',
+              '&:hover': { bgcolor: '#6B3410' },
             }}
           >
             Add Bean
@@ -171,10 +179,7 @@ export function BeansPageClient({ beans }: BeansPageClientProps) {
         <BeansTable beans={beans} />
       )}
 
-      <AddBeanModal 
-        open={modalOpen} 
-        onClose={handleModalClose} 
-      />
+      <AddBeanModal open={modalOpen} onClose={handleModalClose} />
     </Box>
   )
 }

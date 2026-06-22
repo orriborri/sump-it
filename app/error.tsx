@@ -38,7 +38,7 @@ export default function Error({ error, reset }: ErrorProps) {
         <Typography variant="h4" gutterBottom color="error">
           Something went wrong!
         </Typography>
-        
+
         <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
           We encountered an unexpected error in your coffee brewing app.
         </Typography>
@@ -63,12 +63,8 @@ export default function Error({ error, reset }: ErrorProps) {
           >
             Try Again
           </Button>
-          
-          <Button
-            variant="outlined"
-            startIcon={<Home />}
-            href="/"
-          >
+
+          <Button variant="outlined" startIcon={<Home />} href="/">
             Go Home
           </Button>
         </Box>

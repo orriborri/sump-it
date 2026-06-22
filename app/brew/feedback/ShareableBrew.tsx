@@ -1,7 +1,28 @@
 'use client'
 import React, { useState } from 'react'
-import { Box, Typography, Button, Rating, Stack, Card, CardContent, TextField, Chip, Alert } from '@mui/material'
-import { Share, Coffee, Scale, Water, Settings, Replay, Home, BarChart, AccessTime } from '@mui/icons-material'
+import {
+  Box,
+  Typography,
+  Button,
+  Rating,
+  Stack,
+  Card,
+  CardContent,
+  TextField,
+  Chip,
+  Alert,
+} from '@mui/material'
+import {
+  Share,
+  Coffee,
+  Scale,
+  Water,
+  Settings,
+  Replay,
+  Home,
+  BarChart,
+  AccessTime,
+} from '@mui/icons-material'
 import Link from 'next/link'
 import { generateBrewSuggestions } from './BrewSuggestions'
 import { saveBrewFeedback } from './actions'
@@ -64,35 +85,62 @@ interface SuggestionsValuesProps {
   ratio: number
 }
 
-const SuggestionsValues: React.FC<SuggestionsValuesProps> = ({ grind, ratio }) => (
+const SuggestionsValues: React.FC<SuggestionsValuesProps> = ({
+  grind,
+  ratio,
+}) => (
   <Stack direction="row" spacing={3}>
     <Box>
-      <Typography variant="caption" color="text.secondary">Grind</Typography>
-      <Typography variant="body1" sx={{ fontWeight: 600, color: 'success.main' }}>
+      <Typography variant="caption" color="text.secondary">
+        Grind
+      </Typography>
+      <Typography
+        variant="body1"
+        sx={{ fontWeight: 600, color: 'success.main' }}
+      >
         {grind}
       </Typography>
     </Box>
     <Box>
-      <Typography variant="caption" color="text.secondary">Ratio</Typography>
-      <Typography variant="body1" sx={{ fontWeight: 600, color: 'success.main' }}>
+      <Typography variant="caption" color="text.secondary">
+        Ratio
+      </Typography>
+      <Typography
+        variant="body1"
+        sx={{ fontWeight: 600, color: 'success.main' }}
+      >
         1:{ratio}
       </Typography>
     </Box>
   </Stack>
 )
 
-const SuggestionsSummary: React.FC<SuggestionsSummaryProps> = ({ suggestions }) => {
+const SuggestionsSummary: React.FC<SuggestionsSummaryProps> = ({
+  suggestions,
+}) => {
   if (!suggestions.reason) return null
   return (
-    <Card sx={{ bgcolor: '#F5F5DC', border: '2px solid', borderColor: 'success.main' }}>
+    <Card
+      sx={{
+        bgcolor: '#F5F5DC',
+        border: '2px solid',
+        borderColor: 'success.main',
+      }}
+    >
       <CardContent>
-        <Typography variant="subtitle2" sx={{ color: 'success.main', mb: 1, fontWeight: 600 }}>
+        <Typography
+          variant="subtitle2"
+          sx={{ color: 'success.main', mb: 1, fontWeight: 600 }}
+        >
           Next Brew Suggestions
         </Typography>
         <Typography variant="body2" sx={{ color: '#654321', mb: 1.5 }}>
           {suggestions.reason}
         </Typography>
-        <SuggestionsValues grind={suggestions.grind} ratio={suggestions.ratio} />
+        <SuggestionsValues
+          grind={suggestions.grind}
+          ratio={suggestions.ratio}
+        />
       </CardContent>
     </Card>
   )
@@ -126,7 +174,10 @@ const ActionButtonsRow: React.FC = () => (
 const ActionButtons: React.FC = () => (
   <Card sx={{ bgcolor: '#F5F5DC', border: '2px solid #8B4513' }}>
     <CardContent>
-      <Typography variant="subtitle2" sx={{ color: '#8B4513', mb: 2, fontWeight: 600 }}>
+      <Typography
+        variant="subtitle2"
+        sx={{ color: '#8B4513', mb: 2, fontWeight: 600 }}
+      >
         What&apos;s next?
       </Typography>
       <Stack spacing={2}>
@@ -147,7 +198,10 @@ const ActionButtons: React.FC = () => (
   </Card>
 )
 
-const BrewParameterItem: React.FC<{ icon: React.ReactNode; label: string }> = ({ icon, label }) => (
+const BrewParameterItem: React.FC<{ icon: React.ReactNode; label: string }> = ({
+  icon,
+  label,
+}) => (
   <Box display="flex" alignItems="center" gap={0.5}>
     {icon}
     <Typography variant="body2" sx={{ fontWeight: 500, color: '#654321' }}>
@@ -161,15 +215,31 @@ interface BrewDetailsHeaderProps {
   shareUrl: string
 }
 
-const BrewDetailsHeader: React.FC<BrewDetailsHeaderProps> = ({ brewData, shareUrl }) => (
-  <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
+const BrewDetailsHeader: React.FC<BrewDetailsHeaderProps> = ({
+  brewData,
+  shareUrl,
+}) => (
+  <Box
+    display="flex"
+    justifyContent="space-between"
+    alignItems="flex-start"
+    mb={2}
+  >
     <Box>
       <Typography variant="h5" sx={{ fontWeight: 600, color: '#8B4513' }}>
         ☕ {brewData.bean_name}
       </Typography>
       <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
-        <Chip label={brewData.method_name} size="small" sx={{ bgcolor: '#8B4513', color: 'white' }} />
-        <Chip label={brewData.grinder_name} size="small" sx={{ bgcolor: '#D2691E', color: 'white' }} />
+        <Chip
+          label={brewData.method_name}
+          size="small"
+          sx={{ bgcolor: '#8B4513', color: 'white' }}
+        />
+        <Chip
+          label={brewData.grinder_name}
+          size="small"
+          sx={{ bgcolor: '#D2691E', color: 'white' }}
+        />
       </Stack>
     </Box>
     <Button
@@ -183,13 +253,19 @@ const BrewDetailsHeader: React.FC<BrewDetailsHeaderProps> = ({ brewData, shareUr
   </Box>
 )
 
-const BrewDetailsCard: React.FC<BrewDetailsCardProps> = ({ brewData, brewTime, shareUrl }) => (
-  <Card sx={{ 
-    bgcolor: '#F5F5DC',
-    border: '2px solid #8B4513', 
-    borderRadius: 2,
-    boxShadow: '0 4px 12px rgba(139, 69, 19, 0.15)'
-  }}>
+const BrewDetailsCard: React.FC<BrewDetailsCardProps> = ({
+  brewData,
+  brewTime,
+  shareUrl,
+}) => (
+  <Card
+    sx={{
+      bgcolor: '#F5F5DC',
+      border: '2px solid #8B4513',
+      borderRadius: 2,
+      boxShadow: '0 4px 12px rgba(139, 69, 19, 0.15)',
+    }}
+  >
     <CardContent>
       <BrewDetailsHeader brewData={brewData} shareUrl={shareUrl} />
 
@@ -226,9 +302,14 @@ interface TasteNotesSectionProps {
   onToggle: (_key: string) => void
 }
 
-const TasteNotesSection: React.FC<TasteNotesSectionProps> = ({ feedback, onToggle }) => (
+const TasteNotesSection: React.FC<TasteNotesSectionProps> = ({
+  feedback,
+  onToggle,
+}) => (
   <Box mb={3}>
-    <Typography variant="subtitle2" sx={{ mb: 1, color: '#654321' }}>Taste Notes</Typography>
+    <Typography variant="subtitle2" sx={{ mb: 1, color: '#654321' }}>
+      Taste Notes
+    </Typography>
     <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
       {[
         { key: 'too_weak', label: 'Too Weak' },
@@ -236,7 +317,7 @@ const TasteNotesSection: React.FC<TasteNotesSectionProps> = ({ feedback, onToggl
         { key: 'is_bitter', label: 'Bitter' },
         { key: 'is_sour', label: 'Sour' },
         { key: 'grind_too_coarse', label: 'Grind Too Coarse' },
-        { key: 'grind_too_fine', label: 'Grind Too Fine' }
+        { key: 'grind_too_fine', label: 'Grind Too Fine' },
       ].map(({ key, label }) => (
         <Chip
           key={key}
@@ -255,8 +336,14 @@ interface SuggestionsEditorProps {
   onSuggestionsChange: (_suggestions: SuggestionsData) => void
 }
 
-const SuggestionsEditor: React.FC<SuggestionsEditorProps> = ({ suggestions, onSuggestionsChange }) => (
-  <Box mb={3} sx={{ bgcolor: 'rgba(139, 69, 19, 0.05)', p: 2, borderRadius: 1 }}>
+const SuggestionsEditor: React.FC<SuggestionsEditorProps> = ({
+  suggestions,
+  onSuggestionsChange,
+}) => (
+  <Box
+    mb={3}
+    sx={{ bgcolor: 'rgba(139, 69, 19, 0.05)', p: 2, borderRadius: 1 }}
+  >
     <Typography variant="subtitle2" sx={{ mb: 1, color: '#8B4513' }}>
       Next Brew Suggestions
     </Typography>
@@ -268,7 +355,9 @@ const SuggestionsEditor: React.FC<SuggestionsEditorProps> = ({ suggestions, onSu
         label="Grind Setting"
         type="number"
         value={suggestions.grind}
-        onChange={(e) => onSuggestionsChange({ ...suggestions, grind: Number(e.target.value) })}
+        onChange={e =>
+          onSuggestionsChange({ ...suggestions, grind: Number(e.target.value) })
+        }
         size="small"
         sx={{ width: 120 }}
       />
@@ -276,7 +365,9 @@ const SuggestionsEditor: React.FC<SuggestionsEditorProps> = ({ suggestions, onSu
         label="Ratio (1:x)"
         type="number"
         value={suggestions.ratio}
-        onChange={(e) => onSuggestionsChange({ ...suggestions, ratio: Number(e.target.value) })}
+        onChange={e =>
+          onSuggestionsChange({ ...suggestions, ratio: Number(e.target.value) })
+        }
         size="small"
         sx={{ width: 120 }}
       />
@@ -294,9 +385,13 @@ const FeedbackFormCard: React.FC<FeedbackFormCardProps> = ({
   onSuggestionsChange,
   onSave,
 }) => {
-  const hasTasteFeedback = feedback.too_weak || feedback.too_strong ||
-    feedback.is_bitter || feedback.is_sour ||
-    feedback.grind_too_coarse || feedback.grind_too_fine
+  const hasTasteFeedback =
+    feedback.too_weak ||
+    feedback.too_strong ||
+    feedback.is_bitter ||
+    feedback.is_sour ||
+    feedback.grind_too_coarse ||
+    feedback.grind_too_fine
 
   return (
     <Card sx={{ bgcolor: '#F5F5DC', border: '2px solid #8B4513' }}>
@@ -307,11 +402,15 @@ const FeedbackFormCard: React.FC<FeedbackFormCardProps> = ({
 
         {/* Rating */}
         <Box mb={3}>
-          <Typography variant="subtitle2" sx={{ mb: 1, color: '#654321' }}>Overall Rating</Typography>
-          <Rating 
-            size="large" 
+          <Typography variant="subtitle2" sx={{ mb: 1, color: '#654321' }}>
+            Overall Rating
+          </Typography>
+          <Rating
+            size="large"
             value={feedback.overall_rating}
-            onChange={(_, value) => onFeedbackChange({ ...feedback, overall_rating: value || 0 })}
+            onChange={(_, value) =>
+              onFeedbackChange({ ...feedback, overall_rating: value || 0 })
+            }
           />
         </Box>
 
@@ -320,7 +419,10 @@ const FeedbackFormCard: React.FC<FeedbackFormCardProps> = ({
 
         {/* Auto-generated suggestions */}
         {hasTasteFeedback && (
-          <SuggestionsEditor suggestions={suggestions} onSuggestionsChange={onSuggestionsChange} />
+          <SuggestionsEditor
+            suggestions={suggestions}
+            onSuggestionsChange={onSuggestionsChange}
+          />
         )}
 
         {error && (
@@ -329,8 +431,8 @@ const FeedbackFormCard: React.FC<FeedbackFormCardProps> = ({
           </Alert>
         )}
 
-        <Button 
-          variant="contained" 
+        <Button
+          variant="contained"
           size="large"
           onClick={onSave}
           disabled={feedback.overall_rating === 0 || saving}
@@ -344,7 +446,10 @@ const FeedbackFormCard: React.FC<FeedbackFormCardProps> = ({
 }
 
 /** Post-brew feedback form with rating, taste notes, and auto-generated parameter suggestions. */
-export const ShareableBrew: React.FC<ShareableBrewProps> = ({ brewData, brewTime }) => {
+export const ShareableBrew: React.FC<ShareableBrewProps> = ({
+  brewData,
+  brewTime,
+}) => {
   const [feedback, setFeedback] = useState<FeedbackData>({
     too_weak: false,
     too_strong: false,
@@ -352,13 +457,13 @@ export const ShareableBrew: React.FC<ShareableBrewProps> = ({ brewData, brewTime
     grind_too_fine: false,
     is_bitter: false,
     is_sour: false,
-    overall_rating: 0
+    overall_rating: 0,
   })
 
   const [suggestions, setSuggestions] = useState<SuggestionsData>({
     grind: brewData.grind,
     ratio: brewData.ratio,
-    reason: ''
+    reason: '',
   })
 
   const [saved, setSaved] = useState(false)
@@ -366,7 +471,10 @@ export const ShareableBrew: React.FC<ShareableBrewProps> = ({ brewData, brewTime
 
   // Update suggestions when feedback changes
   React.useEffect(() => {
-    const newSuggestions = generateBrewSuggestions(feedback, { grind: brewData.grind, ratio: brewData.ratio })
+    const newSuggestions = generateBrewSuggestions(feedback, {
+      grind: brewData.grind,
+      ratio: brewData.ratio,
+    })
     setSuggestions(newSuggestions)
   }, [feedback, brewData.grind, brewData.ratio])
 
@@ -382,9 +490,9 @@ export const ShareableBrew: React.FC<ShareableBrewProps> = ({ brewData, brewTime
     const feedbackData = {
       ...feedback,
       recommended_grind_adjustment: suggestions.grind - brewData.grind,
-      grind_notes: `Next brew: Grind ${suggestions.grind}, Ratio 1:${suggestions.ratio}. ${suggestions.reason}`
+      grind_notes: `Next brew: Grind ${suggestions.grind}, Ratio 1:${suggestions.ratio}. ${suggestions.reason}`,
     }
-    
+
     const result = await saveBrewFeedback(brewData.id, feedbackData)
     setSaving(false)
 
@@ -395,9 +503,10 @@ export const ShareableBrew: React.FC<ShareableBrewProps> = ({ brewData, brewTime
     }
   }
 
-  const shareUrl = typeof window !== 'undefined' 
-    ? `${window.location.origin}/brew/${brewData.id}/rate`
-    : `/brew/${brewData.id}/rate`
+  const shareUrl =
+    typeof window !== 'undefined'
+      ? `${window.location.origin}/brew/${brewData.id}/rate`
+      : `/brew/${brewData.id}/rate`
 
   // Success State: Feedback Saved
   if (saved) {
@@ -413,7 +522,8 @@ export const ShareableBrew: React.FC<ShareableBrewProps> = ({ brewData, brewTime
             Feedback saved!
           </Typography>
           <Typography variant="body2">
-            Your suggestions will be applied to your next brew with this combination.
+            Your suggestions will be applied to your next brew with this
+            combination.
           </Typography>
         </Alert>
 
@@ -426,7 +536,11 @@ export const ShareableBrew: React.FC<ShareableBrewProps> = ({ brewData, brewTime
   // Feedback Form
   return (
     <Stack spacing={3}>
-      <BrewDetailsCard brewData={brewData} brewTime={brewTime} shareUrl={shareUrl} />
+      <BrewDetailsCard
+        brewData={brewData}
+        brewTime={brewTime}
+        shareUrl={shareUrl}
+      />
       <FeedbackFormCard
         feedback={feedback}
         suggestions={suggestions}

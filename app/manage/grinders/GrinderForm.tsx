@@ -41,15 +41,15 @@ interface GrinderPreviewSliderProps {
   formData: GrinderFormData
 }
 
-const GrinderPreviewSlider: React.FC<GrinderPreviewSliderProps> = ({ formData }) => (
+const GrinderPreviewSlider: React.FC<GrinderPreviewSliderProps> = ({
+  formData,
+}) => (
   <Box sx={{ px: 2 }}>
     <Typography variant="caption" gutterBottom display="block">
       Sample slider:
     </Typography>
     <Slider
-      value={Math.round(
-        (formData.min_setting + formData.max_setting) / 2
-      )}
+      value={Math.round((formData.min_setting + formData.max_setting) / 2)}
       min={formData.min_setting}
       max={formData.max_setting}
       step={formData.step_size}
@@ -69,17 +69,16 @@ const GrinderPreviewSlider: React.FC<GrinderPreviewSliderProps> = ({ formData })
   </Box>
 )
 
-const GrinderPreview: React.FC<GrinderPreviewProps> = ({ formData, stepsPerUnit }) => (
+const GrinderPreview: React.FC<GrinderPreviewProps> = ({
+  formData,
+  stepsPerUnit,
+}) => (
   <Card variant="outlined" sx={{ bgcolor: 'grey.50' }}>
     <CardContent>
       <Typography variant="subtitle2" gutterBottom>
         Preview
       </Typography>
-      <Typography
-        variant="body2"
-        color="text.secondary"
-        sx={{ mb: 2 }}
-      >
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
         This is how your grinder settings will appear:
       </Typography>
 
@@ -113,7 +112,10 @@ interface GrinderTypeSelectProps {
   onChange: (_value: string) => void
 }
 
-const GrinderTypeSelect: React.FC<GrinderTypeSelectProps> = ({ value, onChange }) => (
+const GrinderTypeSelect: React.FC<GrinderTypeSelectProps> = ({
+  value,
+  onChange,
+}) => (
   <FormControl fullWidth>
     <InputLabel>Setting Type</InputLabel>
     <Select
@@ -134,7 +136,11 @@ interface GrinderRangeFieldsProps {
   onMaxChange: (_value: number) => void
 }
 
-const GrinderRangeFields: React.FC<GrinderRangeFieldsProps> = ({ formData, onMinChange, onMaxChange }) => (
+const GrinderRangeFields: React.FC<GrinderRangeFieldsProps> = ({
+  formData,
+  onMinChange,
+  onMaxChange,
+}) => (
   <Stack direction="row" spacing={2}>
     <TextField
       label="Minimum Setting"
@@ -163,7 +169,11 @@ interface GrinderFormActionsProps {
   onCancel: () => void
 }
 
-const GrinderFormActions: React.FC<GrinderFormActionsProps> = ({ isSubmitting, isEditing, onCancel }) => (
+const GrinderFormActions: React.FC<GrinderFormActionsProps> = ({
+  isSubmitting,
+  isEditing,
+  onCancel,
+}) => (
   <Stack direction="row" spacing={2} justifyContent="flex-end">
     <Button
       variant="outlined"
@@ -288,14 +298,14 @@ export const GrinderForm: React.FC<GrinderFormProps> = ({
           {/* Setting Type */}
           <GrinderTypeSelect
             value={formData.setting_type}
-            onChange={(value) => handleChange('setting_type', value)}
+            onChange={value => handleChange('setting_type', value)}
           />
 
           {/* Min/Max Settings */}
           <GrinderRangeFields
             formData={formData}
-            onMinChange={(value) => handleChange('min_setting', value)}
-            onMaxChange={(value) => handleChange('max_setting', value)}
+            onMinChange={value => handleChange('min_setting', value)}
+            onMaxChange={value => handleChange('max_setting', value)}
           />
 
           {/* Steps Per Unit */}
@@ -316,7 +326,11 @@ export const GrinderForm: React.FC<GrinderFormProps> = ({
           <GrinderPreview formData={formData} stepsPerUnit={stepsPerUnit} />
 
           {/* Action Buttons */}
-          <GrinderFormActions isSubmitting={isSubmitting} isEditing={isEditing} onCancel={onCancel} />
+          <GrinderFormActions
+            isSubmitting={isSubmitting}
+            isEditing={isEditing}
+            onCancel={onCancel}
+          />
         </Stack>
       </CardContent>
     </Card>

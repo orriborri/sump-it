@@ -14,7 +14,9 @@ export interface GrinderSettings {
 }
 
 /** Fetches grinder settings by ID, returning null if not found or invalid. */
-export async function getGrinderSettings(grinderId: string): Promise<GrinderSettings | null> {
+export async function getGrinderSettings(
+  grinderId: string
+): Promise<GrinderSettings | null> {
   try {
     const grindersModel = new GrindersModel(db)
     const numericId = parseInt(grinderId, 10)

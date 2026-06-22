@@ -39,8 +39,17 @@ function timeAgo(dateString: string): string {
   return date.toLocaleDateString()
 }
 
-const QuickBrewCardHeader: React.FC<{ config: QuickBrewConfig }> = ({ config }) => (
-  <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 1.5 }}>
+const QuickBrewCardHeader: React.FC<{ config: QuickBrewConfig }> = ({
+  config,
+}) => (
+  <Box
+    sx={{
+      display: 'flex',
+      alignItems: 'flex-start',
+      justifyContent: 'space-between',
+      mb: 1.5,
+    }}
+  >
     <Typography
       variant="subtitle1"
       sx={{ fontWeight: 600, color: 'text.primary', lineHeight: 1.3 }}
@@ -58,7 +67,9 @@ const QuickBrewCardHeader: React.FC<{ config: QuickBrewConfig }> = ({ config }) 
   </Box>
 )
 
-const QuickBrewCardParams: React.FC<{ config: QuickBrewConfig }> = ({ config }) => (
+const QuickBrewCardParams: React.FC<{ config: QuickBrewConfig }> = ({
+  config,
+}) => (
   <Stack direction="row" spacing={2} sx={{ mb: 1.5 }}>
     <Box>
       <Typography variant="caption" color="text.secondary">
@@ -94,7 +105,9 @@ const QuickBrewCardParams: React.FC<{ config: QuickBrewConfig }> = ({ config }) 
   </Stack>
 )
 
-const QuickBrewCardFooter: React.FC<{ config: QuickBrewConfig }> = ({ config }) => (
+const QuickBrewCardFooter: React.FC<{ config: QuickBrewConfig }> = ({
+  config,
+}) => (
   <Stack
     direction="row"
     justifyContent="space-between"
@@ -113,8 +126,14 @@ const QuickBrewCardFooter: React.FC<{ config: QuickBrewConfig }> = ({ config }) 
   </Stack>
 )
 
-const QuickBrewCardChips: React.FC<{ config: QuickBrewConfig }> = ({ config }) => (
-  <Stack direction="row" spacing={0.75} sx={{ mb: 2, flexWrap: 'wrap', gap: 0.5 }}>
+const QuickBrewCardChips: React.FC<{ config: QuickBrewConfig }> = ({
+  config,
+}) => (
+  <Stack
+    direction="row"
+    spacing={0.75}
+    sx={{ mb: 2, flexWrap: 'wrap', gap: 0.5 }}
+  >
     <Chip
       label={config.method_name}
       size="small"
@@ -149,7 +168,7 @@ const QuickBrewCard: React.FC<QuickBrewCardProps> = ({ config, onSelect }) => (
       transition: 'all 0.2s ease',
       '&:hover': {
         transform: 'translateY(-3px)',
-        boxShadow: (theme) => `0 6px 20px ${theme.palette.primary.main}40`,
+        boxShadow: theme => `0 6px 20px ${theme.palette.primary.main}40`,
         borderColor: 'primary.main',
       },
     }}
@@ -211,12 +230,9 @@ export const QuickBrew: React.FC<QuickBrewProps> = ({ configs, onSelect }) => {
         </Typography>
       </Box>
 
-      <Typography
-        variant="body2"
-        color="text.secondary"
-        sx={{ mb: 2 }}
-      >
-        Tap a recent brew to pre-fill your settings and skip straight to brewing.
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        Tap a recent brew to pre-fill your settings and skip straight to
+        brewing.
       </Typography>
 
       <Stack
@@ -224,7 +240,7 @@ export const QuickBrew: React.FC<QuickBrewProps> = ({ configs, onSelect }) => {
         spacing={2}
         sx={{ overflowX: { sm: 'auto' }, pb: 1 }}
       >
-        {configs.map((config) => (
+        {configs.map(config => (
           <QuickBrewCard
             key={config.id}
             config={config}

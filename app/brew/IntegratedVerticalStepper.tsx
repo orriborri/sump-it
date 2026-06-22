@@ -1,19 +1,15 @@
 'use client'
 import React from 'react'
-import {
-  Box,
-  Typography,
-  Stack,
-  Chip,
-  Paper,
-  Collapse,
-} from '@mui/material'
+import { Box, Typography, Stack, Chip, Paper, Collapse } from '@mui/material'
 import { Check } from '@mui/icons-material'
 
 interface IntegratedVerticalStepperProps {
   steps: string[]
   activeStep: number
-  getStepInstructions: (_stepIndex: number) => { title: string; description: string }
+  getStepInstructions: (_stepIndex: number) => {
+    title: string
+    description: string
+  }
   getStepContent: (_stepIndex: number) => React.ReactNode
 }
 
@@ -39,7 +35,11 @@ interface StepBodyProps {
 }
 
 /** Circular step number indicator that shows completion state. */
-const StepIndicator: React.FC<StepIndicatorProps> = ({ isActive, isCompleted, index }) => (
+const StepIndicator: React.FC<StepIndicatorProps> = ({
+  isActive,
+  isCompleted,
+  index,
+}) => (
   <Box
     sx={{
       width: 40,
@@ -71,7 +71,11 @@ const StepIndicator: React.FC<StepIndicatorProps> = ({ isActive, isCompleted, in
 )
 
 /** Step title with active/completed status chip. */
-const StepHeader: React.FC<StepHeaderProps> = ({ label, isActive, isCompleted }) => (
+const StepHeader: React.FC<StepHeaderProps> = ({
+  label,
+  isActive,
+  isCompleted,
+}) => (
   <Box sx={{ mb: 2 }}>
     <Typography
       variant="h6"
@@ -104,7 +108,7 @@ const StepHeader: React.FC<StepHeaderProps> = ({ label, isActive, isCompleted })
           mb: 1,
           '& .MuiChip-label': {
             px: 1.5,
-          }
+          },
         }}
       />
     )}
@@ -119,7 +123,7 @@ const StepHeader: React.FC<StepHeaderProps> = ({ label, isActive, isCompleted })
           mb: 1,
           '& .MuiChip-label': {
             px: 1.5,
-          }
+          },
         }}
       />
     )}
@@ -127,7 +131,14 @@ const StepHeader: React.FC<StepHeaderProps> = ({ label, isActive, isCompleted })
 )
 
 /** Step content area including header, instructions, form content, and completion summary. */
-const StepBody: React.FC<StepBodyProps> = ({ label, isActive, isCompleted, instructions, index, getStepContent }) => (
+const StepBody: React.FC<StepBodyProps> = ({
+  label,
+  isActive,
+  isCompleted,
+  instructions,
+  index,
+  getStepContent,
+}) => (
   <Box sx={{ flex: 1, pb: 4 }}>
     <StepHeader label={label} isActive={isActive} isCompleted={isCompleted} />
 
@@ -195,12 +206,9 @@ const StepBody: React.FC<StepBodyProps> = ({ label, isActive, isCompleted, instr
 )
 
 /** Multi-step vertical stepper with inline form content, status indicators, and instructions. */
-export const IntegratedVerticalStepper: React.FC<IntegratedVerticalStepperProps> = ({
-  steps,
-  activeStep,
-  getStepInstructions,
-  getStepContent,
-}) => {
+export const IntegratedVerticalStepper: React.FC<
+  IntegratedVerticalStepperProps
+> = ({ steps, activeStep, getStepInstructions, getStepContent }) => {
   return (
     <Stack spacing={0}>
       {steps.map((label, index) => {
@@ -211,7 +219,11 @@ export const IntegratedVerticalStepper: React.FC<IntegratedVerticalStepperProps>
         return (
           <Box key={label}>
             <Stack direction="row" spacing={2} alignItems="flex-start">
-              <StepIndicator isActive={isActive} isCompleted={isCompleted} index={index} />
+              <StepIndicator
+                isActive={isActive}
+                isCompleted={isCompleted}
+                index={index}
+              />
               <StepBody
                 label={label}
                 isActive={isActive}
@@ -228,7 +240,11 @@ export const IntegratedVerticalStepper: React.FC<IntegratedVerticalStepperProps>
                 sx={{
                   width: 3,
                   height: 32,
-                  bgcolor: isCompleted ? 'success.main' : isActive ? 'primary.main' : 'grey.300',
+                  bgcolor: isCompleted
+                    ? 'success.main'
+                    : isActive
+                      ? 'primary.main'
+                      : 'grey.300',
                   ml: 2.25,
                   transition: 'all 0.3s ease',
                 }}
