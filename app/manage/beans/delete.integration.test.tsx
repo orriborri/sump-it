@@ -31,7 +31,7 @@ describe('Delete Bean Integration Tests', () => {
 
     render(<DeleteButton beanId={bean!.id} beanName="Test Bean to Delete" />)
     
-    // Click delete button to open modal
+    // Click delete icon button to open modal
     const deleteButton = screen.getByRole('button')
     fireEvent.click(deleteButton)
 
@@ -40,7 +40,7 @@ describe('Delete Bean Integration Tests', () => {
     expect(screen.getByText('Are you sure you want to delete "Test Bean to Delete"?')).toBeInTheDocument()
 
     // Click confirm delete
-    const confirmButton = screen.getByText('Delete')
+    const confirmButton = screen.getByRole('button', { name: /^delete$/i })
     fireEvent.click(confirmButton)
 
     await waitFor(async () => {
@@ -57,12 +57,12 @@ describe('Delete Bean Integration Tests', () => {
 
     render(<DeleteButton beanId={bean!.id} beanName="Test Bean to Keep" />)
     
-    // Click delete button to open modal
-    const deleteButtons = screen.getAllByRole('button', { name: /delete/i })
-    fireEvent.click(deleteButtons[0])
+    // Click the initial delete icon button to open modal (only button before dialog opens)
+    const initialButton = screen.getByRole('button')
+    fireEvent.click(initialButton)
 
     // Click cancel
-    const cancelButton = screen.getByText('Cancel')
+    const cancelButton = screen.getByRole('button', { name: /cancel/i })
     fireEvent.click(cancelButton)
 
     await waitFor(async () => {

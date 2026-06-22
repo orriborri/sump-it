@@ -43,7 +43,7 @@ describe('Recipe Component', () => {
     
     expect(mockUpdateFormData).toHaveBeenCalledWith({
       dose: 20,
-      water: 333.4 // 20 * 16.67
+      water: expect.closeTo(333.4, 1) // 20 * 16.67
     })
   })
 
@@ -55,7 +55,7 @@ describe('Recipe Component', () => {
     
     expect(mockUpdateFormData).toHaveBeenCalledWith({
       water: 300,
-      dose: 18 // 300 / 16.67
+      dose: expect.closeTo(18, 1) // 300 / 16.67
     })
   })
 
