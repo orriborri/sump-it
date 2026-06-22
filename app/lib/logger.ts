@@ -119,7 +119,11 @@ class Logger {
           const result = operation()
           if (result instanceof Promise) {
             return result
-              .catch(error => {
+              .then(value => {
+                span.setStatus({ code: SpanStatusCode.OK })
+                return value
+              })
+              .catch((error: Error) => {
                 this.error(
                   `Operation ${name} failed`,
                   { operation: name },

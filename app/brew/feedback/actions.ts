@@ -35,7 +35,7 @@ export async function saveBrewFeedback(
       overall_rating: feedback.overall_rating || null,
     })
 
-    return { success: true, feedback: savedFeedback }
+    return { success: true, data: savedFeedback }
   } catch {
     return { success: false, error: 'Failed to save feedback' }
   }
