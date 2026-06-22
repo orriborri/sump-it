@@ -3,18 +3,14 @@
 # CodeRabbit Configuration — Strictest possible settings for sump-it
 # Next.js 15 / React 19 / TypeScript / MUI v7 / Kysely / PostgreSQL
 
-language: "en-US"
+language: 'en-US'
 tone_instructions: >
-  Be extremely strict and thorough. Flag every issue no matter how minor.
-  Prioritize correctness, type safety, security, and performance.
-  Do not hesitate to request changes for code style violations, missing error handling,
-  or architectural concerns. Be direct and uncompromising in your feedback.
+  Be strict and thorough. Flag every issue. Prioritize correctness, type safety, security, and performance. Request changes for style violations, missing error handling, or architectural concerns.
 early_access: true
 enable_free_tier: true
-focus: "casual"
 
 reviews:
-  profile: "assertive"
+  profile: 'assertive'
   request_changes_workflow: true
   high_level_summary: true
   high_level_summary_in_walkthrough: true
@@ -39,26 +35,26 @@ reviews:
   related_prs: true
   suggested_labels: true
   labeling_instructions:
-    - label: "bug"
-      instructions: "Apply when the PR fixes a bug or regression."
-    - label: "feature"
-      instructions: "Apply when the PR adds new user-facing functionality."
-    - label: "refactor"
-      instructions: "Apply when the PR restructures code without changing behavior."
-    - label: "breaking-change"
-      instructions: "Apply when the PR introduces breaking API or schema changes."
-    - label: "security"
-      instructions: "Apply when the PR addresses security vulnerabilities or adds security measures."
-    - label: "performance"
-      instructions: "Apply when the PR improves performance or fixes performance regressions."
-    - label: "database"
-      instructions: "Apply when the PR modifies migrations, database schema, or Kysely queries."
-    - label: "ui"
-      instructions: "Apply when the PR modifies React components, MUI theming, or the stepper workflow."
-    - label: "infrastructure"
-      instructions: "Apply when the PR modifies Docker, CI/CD, or deployment configuration."
-    - label: "dependencies"
-      instructions: "Apply when the PR updates package dependencies."
+    - label: 'bug'
+      instructions: 'Apply when the PR fixes a bug or regression.'
+    - label: 'feature'
+      instructions: 'Apply when the PR adds new user-facing functionality.'
+    - label: 'refactor'
+      instructions: 'Apply when the PR restructures code without changing behavior.'
+    - label: 'breaking-change'
+      instructions: 'Apply when the PR introduces breaking API or schema changes.'
+    - label: 'security'
+      instructions: 'Apply when the PR addresses security vulnerabilities or adds security measures.'
+    - label: 'performance'
+      instructions: 'Apply when the PR improves performance or fixes performance regressions.'
+    - label: 'database'
+      instructions: 'Apply when the PR modifies migrations, database schema, or Kysely queries.'
+    - label: 'ui'
+      instructions: 'Apply when the PR modifies React components, MUI theming, or the stepper workflow.'
+    - label: 'infrastructure'
+      instructions: 'Apply when the PR modifies Docker, CI/CD, or deployment configuration.'
+    - label: 'dependencies'
+      instructions: 'Apply when the PR updates package dependencies.'
   auto_apply_labels: true
   suggested_reviewers: true
   auto_assign_reviewers: true
@@ -67,15 +63,15 @@ reviews:
   enable_prompt_for_ai_agents: true
 
   path_filters:
-    - "!**/*.log"
-    - "!**/node_modules/**"
-    - "!**/.next/**"
-    - "!**/dist/**"
-    - "!**/coverage/**"
-    - "!pnpm-lock.yaml"
+    - '!**/*.log'
+    - '!**/node_modules/**'
+    - '!**/.next/**'
+    - '!**/dist/**'
+    - '!**/coverage/**'
+    - '!pnpm-lock.yaml'
 
   path_instructions:
-    - path: "**/*.ts"
+    - path: '**/*.ts'
       instructions: >
         Enforce strict TypeScript practices:
         - All functions MUST have explicit return types
@@ -86,7 +82,7 @@ reviews:
         - Ensure proper null/undefined handling (no non-null assertions `!` without justification)
         - All server actions must return structured responses: { success: boolean, error?: string, data?: T }
         - Numeric database columns stored as strings must be converted with Number() || 0
-    - path: "**/*.tsx"
+    - path: '**/*.tsx'
       instructions: >
         Enforce strict React/Next.js practices:
         - Components must have proper TypeScript interfaces for props (no inline types for complex props)
@@ -98,7 +94,7 @@ reviews:
         - Verify coffee theme colors are used consistently (#8B4513 primary, #4CAF50 success)
         - MUI v7 Grid must use new `size` prop pattern, not legacy `xs`/`md` props
         - Ensure 300ms transitions for stepper animations
-    - path: "app/brew/**"
+    - path: 'app/brew/**'
       instructions: >
         This is the main feature domain (coffee brewing workflow):
         - Preserve the Integrated Vertical Stepper design — single column layout only
@@ -108,7 +104,7 @@ reviews:
         - All server actions must be in actions.ts files with 'use server' directive
         - Follow the import hierarchy: same level or subdirectories only, NEVER parent imports
         - Use generated models from app/lib/generated-models/ for all DB operations
-    - path: "app/lib/**"
+    - path: 'app/lib/**'
       instructions: >
         Shared library code:
         - NEVER modify db.d.ts — it is auto-generated by kysely-codegen
@@ -116,18 +112,18 @@ reviews:
         - Database connection must use proper connection pooling
         - All database operations must have proper error handling and logging
         - Ensure type safety with Kysely query builder
-    - path: "app/lib/generated-models/**"
+    - path: 'app/lib/generated-models/**'
       instructions: >
         AUTO-GENERATED FILES — DO NOT MODIFY MANUALLY.
         If changes are needed, update the generator script (generate-models.ts) instead.
         Flag any direct modifications to these files as a critical issue.
-    - path: "app/api/**"
+    - path: 'app/api/**'
       instructions: >
         API routes should be minimal — prefer Server Actions for data mutations.
         Health and metrics endpoints are exceptions.
         Ensure proper error responses with appropriate HTTP status codes.
         All responses must include proper Content-Type headers.
-    - path: "**/*.test.ts"
+    - path: '**/*.test.ts'
       instructions: >
         Test files using Vitest + @testing-library/react:
         - Tests must focus on user behavior, not implementation details
@@ -136,7 +132,7 @@ reviews:
         - No test IDs for querying — use accessible roles, labels, and text
         - Each test must have clear arrange/act/assert structure
         - Mock external dependencies, not internal modules
-    - path: "**/*.test.tsx"
+    - path: '**/*.test.tsx'
       instructions: >
         React component test files:
         - Render components with necessary providers (theme, etc.)
@@ -144,7 +140,7 @@ reviews:
         - Verify accessibility (screen readers, keyboard navigation)
         - No snapshot tests — prefer explicit assertions
         - Use in-memory SQLite with createTestDatabase() for DB tests
-    - path: "migrations/**"
+    - path: 'migrations/**'
       instructions: >
         Database migration files:
         - Migrations must be reversible (include both up and down)
@@ -152,7 +148,7 @@ reviews:
         - Use explicit column types (no implicit defaults)
         - Add appropriate indexes for columns used in WHERE/JOIN clauses
         - Include comments explaining schema decisions
-    - path: "Dockerfile"
+    - path: 'Dockerfile'
       instructions: >
         Docker configuration:
         - Must use multi-stage builds
@@ -161,7 +157,7 @@ reviews:
         - Minimize image layers and size
         - No secrets in build args
         - Run as non-root user
-    - path: ".github/workflows/**"
+    - path: '.github/workflows/**'
       instructions: >
         CI/CD workflow files:
         - Pin action versions to specific SHA or major version
@@ -169,7 +165,7 @@ reviews:
         - All secrets must use GitHub secrets, never hardcoded
         - Ensure proper job dependencies and conditions
         - Docker builds only on push to main/develop branches
-    - path: "app/brew/schemas.ts"
+    - path: 'app/brew/schemas.ts'
       instructions: >
         Zod validation schemas:
         - All form inputs must have Zod validation
@@ -177,7 +173,7 @@ reviews:
         - Include meaningful error messages for each field
         - Numeric fields must validate ranges (min/max)
         - String fields must validate length and format
-    - path: "**/*.sql"
+    - path: '**/*.sql'
       instructions: >
         SQL files:
         - Use parameterized queries, never string concatenation
@@ -190,19 +186,19 @@ reviews:
 
   slop_detection:
     enabled: true
-    label: "ai-slop"
+    label: 'ai-slop'
 
   auto_review:
     enabled: true
     auto_incremental_review: true
     auto_pause_after_reviewed_commits: 10
     ignore_title_keywords:
-      - "WIP"
-      - "DO NOT MERGE"
-      - "DRAFT"
+      - 'WIP'
+      - 'DO NOT MERGE'
+      - 'DRAFT'
     labels: []
     drafts: false
-    base_branches: ["main", "develop"]
+    base_branches: ['main', 'develop']
 
   finishing_touches:
     docstrings:
@@ -215,10 +211,10 @@ reviews:
   pre_merge_checks:
     override_requested_reviewers_only: true
     docstrings:
-      mode: "error"
+      mode: 'error'
       threshold: 80
     title:
-      mode: "error"
+      mode: 'error'
       requirements: >
         PR title must follow conventional commits format: type(scope): description.
         Types: feat, fix, refactor, docs, style, test, chore, perf, ci, build.
@@ -226,28 +222,28 @@ reviews:
         Description should be concise (under 72 characters), lowercase, no period at end.
         Examples: feat(brew): add grind size recommendation, fix(lib): handle null ratio in calculations
     description:
-      mode: "error"
+      mode: 'error'
     issue_assessment:
-      mode: "error"
+      mode: 'error'
     custom_checks:
-      - mode: "error"
-        name: "No Any Types"
+      - mode: 'error'
+        name: 'No Any Types'
         instructions: >
           Check that no new `any` type annotations are introduced in TypeScript files.
           The `any` type bypasses type checking and should never be used.
           Use `unknown` with type guards, proper generics, or specific types instead.
           PASS: No new `any` type usage found in changed files.
           FAIL: New `any` type usage detected. Each instance must be replaced with a proper type.
-      - mode: "error"
-        name: "No Console Statements"
+      - mode: 'error'
+        name: 'No Console Statements'
         instructions: >
           Check that no console.log, console.warn, console.error, or console.debug statements
           are introduced in production code (non-test files).
           Use the structured logger from app/lib/logger.ts instead.
           PASS: No console statements in production code.
           FAIL: Console statements found — use the logger utility instead.
-      - mode: "error"
-        name: "Server Action Return Types"
+      - mode: 'error'
+        name: 'Server Action Return Types'
         instructions: >
           Check that all server actions (functions in files with 'use server' directive)
           return a structured response object with at minimum { success: boolean }.
@@ -255,16 +251,16 @@ reviews:
           Success cases should include data: { success: true, data: T }.
           PASS: All server actions return properly structured responses.
           FAIL: Server action found without proper structured return type.
-      - mode: "error"
-        name: "Import Hierarchy"
+      - mode: 'error'
+        name: 'Import Hierarchy'
         instructions: >
           Check the import hierarchy rule: files should only import from the same level
           (sibling files) or lower levels (subdirectories). NEVER from parent or higher levels.
           Exception: importing from app/lib/ is always allowed as it's the shared utility layer.
           PASS: All imports follow the downward dependency rule.
           FAIL: Upward import detected — importing from a parent directory violates architecture.
-      - mode: "warning"
-        name: "Generated Files Not Modified"
+      - mode: 'warning'
+        name: 'Generated Files Not Modified'
         instructions: >
           Check that auto-generated files are not directly modified:
           - app/lib/db.d.ts (generated by kysely-codegen)
@@ -290,7 +286,7 @@ reviews:
       enabled_categories: []
       disabled_categories: []
       enabled_only: false
-      level: "picky"
+      level: 'picky'
     biome:
       enabled: true
     hadolint:
@@ -335,42 +331,42 @@ knowledge_base:
   code_guidelines:
     enabled: true
   learnings:
-    scope: "local"
+    scope: 'local'
     approval_delay: 0
   issues:
-    scope: "local"
+    scope: 'local'
   pull_requests:
-    scope: "local"
+    scope: 'local'
 
 code_generation:
   docstrings:
-    language: "en-US"
+    language: 'en-US'
     path_instructions:
-      - path: "**/*.ts"
+      - path: '**/*.ts'
         instructions: >
           Use TSDoc format for all docstrings.
           Include @param, @returns, @throws, and @example tags.
           Document all exported functions, classes, and interfaces.
-      - path: "**/*.tsx"
+      - path: '**/*.tsx'
         instructions: >
           Document component props with TSDoc.
           Include usage examples in @example tags.
           Document any side effects or context dependencies.
   unit_tests:
     path_instructions:
-      - path: "app/brew/**/*.ts"
+      - path: 'app/brew/**/*.ts'
         instructions: >
           Use Vitest with @testing-library/react.
           Test user-facing behavior, not implementation.
           Use in-memory SQLite for database tests.
           Follow AAA pattern (Arrange, Act, Assert).
-      - path: "app/brew/**/*.tsx"
+      - path: 'app/brew/**/*.tsx'
         instructions: >
           Render with MUI ThemeProvider.
           Test accessibility with proper ARIA queries.
           Use userEvent for interactions.
           Verify stepper behavior and progressive disclosure.
-      - path: "app/lib/**/*.ts"
+      - path: 'app/lib/**/*.ts'
         instructions: >
           Unit test pure functions with edge cases.
           Mock database connections for repository tests.
@@ -383,21 +379,21 @@ issue_enrichment:
     enabled: true
     auto_planning:
       enabled: true
-      labels: ["feature", "enhancement", "bug"]
+      labels: ['feature', 'enhancement', 'bug']
   labeling:
     labeling_instructions:
-      - label: "bug"
-        instructions: "Bug report or defect."
-      - label: "feature"
-        instructions: "New feature request or enhancement."
-      - label: "documentation"
-        instructions: "Documentation improvements needed."
-      - label: "good first issue"
-        instructions: "Simple issue suitable for newcomers."
-      - label: "priority:high"
-        instructions: "Blocking issue or critical bug."
-      - label: "database"
-        instructions: "Related to database schema, migrations, or queries."
-      - label: "ui"
-        instructions: "Related to UI components or stepper workflow."
+      - label: 'bug'
+        instructions: 'Bug report or defect.'
+      - label: 'feature'
+        instructions: 'New feature request or enhancement.'
+      - label: 'documentation'
+        instructions: 'Documentation improvements needed.'
+      - label: 'good first issue'
+        instructions: 'Simple issue suitable for newcomers.'
+      - label: 'priority:high'
+        instructions: 'Blocking issue or critical bug.'
+      - label: 'database'
+        instructions: 'Related to database schema, migrations, or queries.'
+      - label: 'ui'
+        instructions: 'Related to UI components or stepper workflow.'
     auto_apply_labels: true
