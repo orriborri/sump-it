@@ -1,7 +1,15 @@
 'use client'
 
 import React, { useState } from 'react'
-import { IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography } from '@mui/material'
+import {
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  Typography,
+} from '@mui/material'
 import { Delete } from '@mui/icons-material'
 import { deleteBean } from './actions'
 
@@ -20,8 +28,8 @@ export function DeleteButton({ beanId, beanName }: DeleteButtonProps) {
 
   return (
     <>
-      <IconButton 
-        size="small" 
+      <IconButton
+        size="small"
         aria-label={`Delete ${beanName}`}
         onClick={() => setOpen(true)}
         sx={{ color: '#DC143C' }}
@@ -30,20 +38,16 @@ export function DeleteButton({ beanId, beanName }: DeleteButtonProps) {
       </IconButton>
 
       <Dialog open={open} onClose={() => setOpen(false)}>
-        <DialogTitle sx={{ color: '#8B4513' }}>
-          Delete Coffee Bean
-        </DialogTitle>
+        <DialogTitle sx={{ color: '#8B4513' }}>Delete Coffee Bean</DialogTitle>
         <DialogContent>
-          <Typography>
-            Are you sure you want to delete "{beanName}"?
-          </Typography>
+          <Typography>Are you sure you want to delete "{beanName}"?</Typography>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpen(false)} sx={{ color: '#666' }}>
             Cancel
           </Button>
-          <Button 
-            onClick={handleDelete} 
+          <Button
+            onClick={handleDelete}
             variant="contained"
             sx={{ bgcolor: '#DC143C', '&:hover': { bgcolor: '#B91C3C' } }}
           >
