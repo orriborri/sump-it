@@ -1,4 +1,9 @@
-import { trace, SpanStatusCode, SpanKind, type Attributes } from '@opentelemetry/api'
+import {
+  trace,
+  SpanStatusCode,
+  SpanKind,
+  type Attributes,
+} from '@opentelemetry/api'
 
 type LogLevel = 'debug' | 'info' | 'warn' | 'error'
 
@@ -22,7 +27,7 @@ class Logger {
       const spanContext = activeSpan.spanContext()
       return {
         traceId: spanContext.traceId,
-        spanId: spanContext.spanId
+        spanId: spanContext.spanId,
       }
     }
     return {}
@@ -31,26 +36,31 @@ class Logger {
   private formatMessage(entry: LogEntry): string {
     const { level, message, timestamp, context, error, traceId, spanId } = entry
     let formatted = `[${timestamp}] ${level.toUpperCase()}: ${message}`
-    
+
     if (traceId && spanId) {
       formatted += ` | trace_id=${traceId} span_id=${spanId}`
     }
-    
+
     if (context) {
       formatted += ` | Context: ${JSON.stringify(context)}`
     }
-    
+
     if (error) {
       formatted += ` | Error: ${error.message}`
       if (this.isDevelopment && error.stack) {
         formatted += `\n${error.stack}`
       }
     }
-    
+
     return formatted
   }
 
-  private log(level: LogLevel, message: string, context?: Record<string, unknown>, error?: Error) {
+  private log(
+    level: LogLevel,
+    message: string,
+    context?: Record<string, unknown>,
+    error?: Error
+  ) {
     const traceContext = this.getTraceContext()
     const entry: LogEntry = {
       level,
@@ -58,7 +68,7 @@ class Logger {
       timestamp: new Date().toISOString(),
       context,
       error,
-      ...traceContext
+      ...traceContext,
     }
 
     const formatted = this.formatMessage(entry)
@@ -70,12 +80,15 @@ class Logger {
         'log.message': message,
         'log.level': level,
         ...(context && { 'log.context': JSON.stringify(context) }),
-        ...(error && { 'log.error': error.message })
+        ...(error && { 'log.error': error.message }),
       })
 
       if (error && level === 'error') {
         activeSpan.recordException(error)
-        activeSpan.setStatus({ code: SpanStatusCode.ERROR, message: error.message })
+        activeSpan.setStatus({
+          code: SpanStatusCode.ERROR,
+          message: error.message,
+        })
       }
     }
 
@@ -93,31 +106,55 @@ class Logger {
   }
 
   // Create a span for operations
-  withSpan<T>(name: string, operation: () => T | Promise<T>, attributes?: Attributes): T | Promise<T> {
-    return this.tracer.startActiveSpan(name, { kind: SpanKind.INTERNAL, attributes }, (span) => {
-      try {
-        const result = operation()
-        if (result instanceof Promise) {
-          return result.catch((error) => {
-            this.error(`Operation ${name} failed`, { operation: name }, error)
-            span.recordException(error)
-            span.setStatus({ code: SpanStatusCode.ERROR, message: error.message })
-            throw error
-          }).finally(() => {
-            span.end()
+  withSpan<T>(
+    name: string,
+    operation: () => T | Promise<T>,
+    attributes?: Attributes
+  ): T | Promise<T> {
+    return this.tracer.startActiveSpan(
+      name,
+      { kind: SpanKind.INTERNAL, attributes },
+      span => {
+        try {
+          const result = operation()
+          if (result instanceof Promise) {
+            return result
+              .catch(error => {
+                this.error(
+                  `Operation ${name} failed`,
+                  { operation: name },
+                  error
+                )
+                span.recordException(error)
+                span.setStatus({
+                  code: SpanStatusCode.ERROR,
+                  message: error.message,
+                })
+                throw error
+              })
+              .finally(() => {
+                span.end()
+              })
+          }
+          span.setStatus({ code: SpanStatusCode.OK })
+          span.end()
+          return result
+        } catch (error) {
+          this.error(
+            `Operation ${name} failed`,
+            { operation: name },
+            error as Error
+          )
+          span.recordException(error as Error)
+          span.setStatus({
+            code: SpanStatusCode.ERROR,
+            message: (error as Error).message,
           })
+          span.end()
+          throw error
         }
-        span.setStatus({ code: SpanStatusCode.OK })
-        span.end()
-        return result
-      } catch (error) {
-        this.error(`Operation ${name} failed`, { operation: name }, error as Error)
-        span.recordException(error as Error)
-        span.setStatus({ code: SpanStatusCode.ERROR, message: (error as Error).message })
-        span.end()
-        throw error
       }
-    })
+    )
   }
 
   debug(message: string, context?: Record<string, unknown>) {

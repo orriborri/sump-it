@@ -4,7 +4,12 @@
  * This script generates TypeScript model classes for database tables with full CRUD operations.
  * Each model provides type-safe database access using Kysely query builder.
  */
-import { Project, InterfaceDeclaration, SourceFile, PropertySignature } from 'ts-morph'
+import {
+  Project,
+  InterfaceDeclaration,
+  SourceFile,
+  PropertySignature,
+} from 'ts-morph'
 import fs from 'fs/promises'
 import path from 'path'
 
@@ -104,17 +109,11 @@ function generateModelClass(
   const properties = tableInterface.getProperties()
 
   // Identify primary key and timestamp fields
-  const primaryKey = properties.find(
-    (p) => p.getName() === 'id'
-  )
+  const primaryKey = properties.find(p => p.getName() === 'id')
     ? 'id'
     : properties[0].getName()
-  const hasCreatedAt = properties.some(
-    (p) => p.getName() === 'created_at'
-  )
-  const hasUpdatedAt = properties.some(
-    (p) => p.getName() === 'updated_at'
-  )
+  const hasCreatedAt = properties.some(p => p.getName() === 'created_at')
+  const hasUpdatedAt = properties.some(p => p.getName() === 'updated_at')
 
   // Generate auto-generated fields list
   const autoFields = [
@@ -429,7 +428,10 @@ ${joins}
 /**
  * Get the TypeScript type for the primary key
  */
-function getPrimaryKeyType(properties: PropertySignature[], primaryKey: string): string {
+function getPrimaryKeyType(
+  properties: PropertySignature[],
+  primaryKey: string
+): string {
   const pkProp = properties.find(p => p.getName() === primaryKey)
   if (!pkProp) return 'number'
 

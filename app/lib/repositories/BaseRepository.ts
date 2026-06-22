@@ -14,22 +14,28 @@ export abstract class BaseRepository<TTable extends keyof DB> {
 
   // Simplified implementations that bypass type issues
   async findById(id: number): Promise<Selectable<DB[TTable]> | undefined> {
-    return await (this._db as unknown as Kysely<Record<string, Record<string, unknown>>>)
+    return (await (
+      this._db as unknown as Kysely<Record<string, Record<string, unknown>>>
+    )
       .selectFrom(this._tableName as string)
       .where('id', '=', id)
       .selectAll()
-      .executeTakeFirst() as Selectable<DB[TTable]> | undefined
+      .executeTakeFirst()) as Selectable<DB[TTable]> | undefined
   }
 
   async findAll(): Promise<Selectable<DB[TTable]>[]> {
-    return await (this._db as unknown as Kysely<Record<string, Record<string, unknown>>>)
+    return (await (
+      this._db as unknown as Kysely<Record<string, Record<string, unknown>>>
+    )
       .selectFrom(this._tableName as string)
       .selectAll()
-      .execute() as Selectable<DB[TTable]>[]
+      .execute()) as Selectable<DB[TTable]>[]
   }
 
   async count(): Promise<number> {
-    const result = await (this._db as unknown as Kysely<Record<string, Record<string, unknown>>>)
+    const result = await (
+      this._db as unknown as Kysely<Record<string, Record<string, unknown>>>
+    )
       .selectFrom(this._tableName as string)
       .select(this._db.fn.count('id').as('count'))
       .executeTakeFirst()
@@ -38,7 +44,9 @@ export abstract class BaseRepository<TTable extends keyof DB> {
   }
 
   async exists(id: number): Promise<boolean> {
-    const result = await (this._db as unknown as Kysely<Record<string, Record<string, unknown>>>)
+    const result = await (
+      this._db as unknown as Kysely<Record<string, Record<string, unknown>>>
+    )
       .selectFrom(this._tableName as string)
       .where('id', '=', id)
       .select('id')

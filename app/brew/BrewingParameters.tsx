@@ -34,15 +34,23 @@ export const BrewingParameters: React.FC<BrewingParametersProps> = ({
   // Previous brews loaded for this combination
 
   // Convert numeric grind setting to display format based on grinder
-  const formatGrindSetting = (grindValue: number, grinder?: RuntimeType<Grinders>) => {
+  const formatGrindSetting = (
+    grindValue: number,
+    grinder?: RuntimeType<Grinders>
+  ) => {
     if (!grinder || !grindValue) return grindValue?.toString() || '0'
-    
-    if (grinder.setting_type === 'stepped' && grinder.min_setting && grinder.step_size) {
+
+    if (
+      grinder.setting_type === 'stepped' &&
+      grinder.min_setting &&
+      grinder.step_size
+    ) {
       // Convert to step number: (grindValue - min_setting) / step_size + 1
-      const stepNumber = Math.round((grindValue - grinder.min_setting) / grinder.step_size) + 1
+      const stepNumber =
+        Math.round((grindValue - grinder.min_setting) / grinder.step_size) + 1
       return stepNumber.toString()
     }
-    
+
     return grindValue.toString()
   }
 
@@ -51,24 +59,26 @@ export const BrewingParameters: React.FC<BrewingParametersProps> = ({
       {/* Previous Brew Feedback */}
       {lastBrew && (
         <Alert severity="info">
-          <Typography variant="subtitle2">Last brew with this combination:</Typography>
+          <Typography variant="subtitle2">
+            Last brew with this combination:
+          </Typography>
           <Typography variant="body2">
-            Grind: {formatGrindSetting(lastBrew.grind ?? 0, currentGrinder)}, Dose: {lastBrew.dose}g, Ratio: 1:{lastBrew.ratio}
+            Grind: {formatGrindSetting(lastBrew.grind ?? 0, currentGrinder)},
+            Dose: {lastBrew.dose}g, Ratio: 1:{lastBrew.ratio}
           </Typography>
         </Alert>
       )}
 
       {/* Recipe (Coffee amount, water, ratio) */}
-      <Recipe
-        formData={formData}
-        updateFormData={updateFormData}
-      />
+      <Recipe formData={formData} updateFormData={updateFormData} />
 
       {/* Grind Setting */}
       <GrindSettingInput
         formData={formData}
         updateFormData={updateFormData}
-        grinderId={formData.grinder_id > 0 ? formData.grinder_id.toString() : undefined}
+        grinderId={
+          formData.grinder_id > 0 ? formData.grinder_id.toString() : undefined
+        }
       />
 
       {/* Start Brewing Button */}

@@ -18,7 +18,14 @@ vi.mock('../app/lib/database', () => ({
 
 // Mock the Form component
 vi.mock('../app/brew/Form', () => ({
-  Form: ({ onSubmit }: { onSubmit: (data: Record<string, unknown>) => void; beans: unknown[]; methods: unknown[]; grinders: unknown[] }) => (
+  Form: ({
+    onSubmit,
+  }: {
+    onSubmit: (data: Record<string, unknown>) => void
+    beans: unknown[]
+    methods: unknown[]
+    grinders: unknown[]
+  }) => (
     <div data-testid="brew-form">
       <button
         onClick={() =>
@@ -41,7 +48,11 @@ vi.mock('../app/brew/Form', () => ({
 
 // Mock the EnhancedBrewFeedback component
 vi.mock('../app/brew/feedback/EnhancedBrewFeedback', () => ({
-  EnhancedBrewFeedback: ({ onSaveFeedback }: { onSaveFeedback: (data: Record<string, unknown>) => void }) => (
+  EnhancedBrewFeedback: ({
+    onSaveFeedback,
+  }: {
+    onSaveFeedback: (data: Record<string, unknown>) => void
+  }) => (
     <div data-testid="brew-feedback">
       <button onClick={() => onSaveFeedback({ rating: 5, notes: 'Great!' })}>
         Save Feedback
@@ -60,9 +71,7 @@ describe('FormWrapper Integration', () => {
       created_at: new Date(),
     },
   ]
-  const mockMethods = [
-    { id: 1, name: 'V60', created_at: new Date() },
-  ]
+  const mockMethods = [{ id: 1, name: 'V60', created_at: new Date() }]
   const mockGrinders = [
     {
       id: 1,

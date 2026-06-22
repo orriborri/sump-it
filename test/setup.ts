@@ -1,6 +1,10 @@
 import '@testing-library/jest-dom'
 import { vi, beforeEach, afterEach } from 'vitest'
-import { createTestDatabase, setupTestDatabase, cleanupTestDatabase } from './database-setup'
+import {
+  createTestDatabase,
+  setupTestDatabase,
+  cleanupTestDatabase,
+} from './database-setup'
 
 // Global test database instance
 let testDb: ReturnType<typeof createTestDatabase> | null = null
