@@ -4,7 +4,7 @@
  * This script generates TypeScript model classes for database tables with full CRUD operations.
  * Each model provides type-safe database access using Kysely query builder.
  */
-import { Project } from 'ts-morph'
+import { Project, InterfaceDeclaration, SourceFile, PropertySignature } from 'ts-morph'
 import fs from 'fs/promises'
 import path from 'path'
 
@@ -99,21 +99,21 @@ async function generate(): Promise<void> {
 function generateModelClass(
   tableName: string,
   interfaceName: string,
-  tableInterface: any
+  tableInterface: InterfaceDeclaration
 ): string {
   const properties = tableInterface.getProperties()
 
   // Identify primary key and timestamp fields
   const primaryKey = properties.find(
-    (p: { getName: () => string }) => p.getName() === 'id'
+    (p) => p.getName() === 'id'
   )
     ? 'id'
     : properties[0].getName()
   const hasCreatedAt = properties.some(
-    (p: { getName: () => string }) => p.getName() === 'created_at'
+    (p) => p.getName() === 'created_at'
   )
   const hasUpdatedAt = properties.some(
-    (p: { getName: () => string }) => p.getName() === 'updated_at'
+    (p) => p.getName() === 'updated_at'
   )
 
   // Generate auto-generated fields list
@@ -252,8 +252,8 @@ export class ${interfaceName}Model {
  * Generates joined table types and query functions
  */
 async function generateJoinedTables(
-  project: any,
-  sourceFile: any
+  project: Project,
+  sourceFile: SourceFile
 ): Promise<void> {
   for (const [tableName, config] of Object.entries(JOINED_TABLES)) {
     const interfaceName = toPascalCase(tableName)
@@ -295,13 +295,24 @@ ${queryFunctions}
   }
 }
 
+interface JoinConfig {
+  table: string
+  on: string
+  type: string
+}
+
+interface JoinedTableConfig {
+  joins: JoinConfig[]
+  selectFields: string[]
+}
+
 /**
  * Generates the TypeScript interface for joined table data
  */
 function generateJoinedTypeInterface(
   tableName: string,
-  config: any,
-  sourceFile: any
+  config: JoinedTableConfig,
+  sourceFile: SourceFile
 ): string {
   const interfaceName = toPascalCase(tableName)
   const joinedTypeName = `${interfaceName}WithJoins`
@@ -349,10 +360,10 @@ function generateJoinedQueryFunctions(
   tableName: string,
   interfaceName: string,
   joinedTypeName: string,
-  config: any
+  config: JoinedTableConfig
 ): string {
   const joins = config.joins
-    .map((join: any) => {
+    .map((join: JoinConfig) => {
       const [leftTable, leftColumn] = join.on.split(' = ')[0].split('.')
       const [rightTable, rightColumn] = join.on.split(' = ')[1].split('.')
       return `      .${join.type}Join('${join.table}', '${leftTable}.${leftColumn}', '${rightTable}.${rightColumn}')`
@@ -418,7 +429,7 @@ ${joins}
 /**
  * Get the TypeScript type for the primary key
  */
-function getPrimaryKeyType(properties: any[], primaryKey: string): string {
+function getPrimaryKeyType(properties: PropertySignature[], primaryKey: string): string {
   const pkProp = properties.find(p => p.getName() === primaryKey)
   if (!pkProp) return 'number'
 

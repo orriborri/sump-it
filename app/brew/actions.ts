@@ -6,13 +6,12 @@ import { BrewsModel } from '../lib/generated-models/Brews'
 import { BrewsJoinedQueries } from '../lib/generated-models/BrewsJoined'
 import { FormData } from './types'
 import type { Kysely } from 'kysely'
-import type { Database } from '../lib/db'
 import type { DB } from '../lib/db.d'
 
 // Allow dependency injection for testing
-let testDb: Kysely<Database> | null = null
+let testDb: Kysely<DB> | null = null
 
-export async function setTestDatabase(database: Kysely<Database> | null) {
+export async function setTestDatabase(database: Kysely<DB> | null) {
   testDb = database
 }
 
@@ -24,9 +23,8 @@ function getDatabase() {
 function getModels() {
   const currentDb = getDatabase()
   return {
-    brewsModel: new BrewsModel(currentDb as Kysely<DB>),
-
-    brewsJoined: new BrewsJoinedQueries(currentDb as Kysely<DB>),
+    brewsModel: new BrewsModel(currentDb),
+    brewsJoined: new BrewsJoinedQueries(currentDb),
   }
 }
 

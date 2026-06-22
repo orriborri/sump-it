@@ -313,7 +313,16 @@ export async function saveBrew(data: FormData) {
   }
 }
 
-export async function saveBrewFeedback(brewId: number, feedback: any) {
+interface BrewFeedbackInput {
+  coffee_amount_ml?: number | null
+  too_strong?: boolean
+  too_weak?: boolean
+  is_sour?: boolean
+  is_bitter?: boolean
+  overall_rating?: number | null
+}
+
+export async function saveBrewFeedback(brewId: number, feedback: BrewFeedbackInput) {
   try {
     const savedFeedback = await feedbackModel.create({
       brew_id: brewId,

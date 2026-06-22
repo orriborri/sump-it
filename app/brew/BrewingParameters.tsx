@@ -73,7 +73,7 @@ export const BrewingParameters: React.FC<BrewingParametersProps> = ({
             Pre-filled from your last brew
           </Typography>
           <Typography variant="body2">
-            Grind: {formatGrindSetting(lastBrew.grind, currentGrinder)}, Dose: {lastBrew.dose}g, Ratio: 1:{lastBrew.ratio}
+            Grind: {formatGrindSetting(lastBrew.grind ?? 0, currentGrinder)}, Dose: {lastBrew.dose}g, Ratio: 1:{lastBrew.ratio}
           </Typography>
           <Typography variant="caption" color="text.secondary">
             Adjust as needed before brewing.

@@ -4,18 +4,19 @@ import {
   createTestDatabase,
   setupTestDatabase,
   cleanupTestDatabase,
+  TestDB,
 } from '../../test/database-setup'
 import type { Kysely } from 'kysely'
-import type { Database } from '../lib/db'
+import type { DB } from '../lib/db.d'
 import type { FormData } from './types'
 
 describe('Brew Workflow Actions - Integration Tests', () => {
-  let testDb: Kysely<Database>
+  let testDb: Kysely<TestDB>
 
   beforeEach(async () => {
     testDb = createTestDatabase()
     await setupTestDatabase(testDb)
-    setTestDatabase(testDb)
+    setTestDatabase(testDb as unknown as Kysely<DB>)
   })
 
   afterEach(async () => {

@@ -1,4 +1,4 @@
-import { trace, SpanStatusCode, SpanKind } from '@opentelemetry/api'
+import { trace, SpanStatusCode, SpanKind, type Attributes } from '@opentelemetry/api'
 
 type LogLevel = 'debug' | 'info' | 'warn' | 'error'
 
@@ -6,7 +6,7 @@ interface LogEntry {
   level: LogLevel
   message: string
   timestamp: string
-  context?: Record<string, any>
+  context?: Record<string, unknown>
   error?: Error
   traceId?: string
   spanId?: string
@@ -50,7 +50,7 @@ class Logger {
     return formatted
   }
 
-  private log(level: LogLevel, message: string, context?: Record<string, any>, error?: Error) {
+  private log(level: LogLevel, message: string, context?: Record<string, unknown>, error?: Error) {
     const traceContext = this.getTraceContext()
     const entry: LogEntry = {
       level,
@@ -93,7 +93,7 @@ class Logger {
   }
 
   // Create a span for operations
-  withSpan<T>(name: string, operation: () => T | Promise<T>, attributes?: Record<string, any>): T | Promise<T> {
+  withSpan<T>(name: string, operation: () => T | Promise<T>, attributes?: Attributes): T | Promise<T> {
     return this.tracer.startActiveSpan(name, { kind: SpanKind.INTERNAL, attributes }, (span) => {
       try {
         const result = operation()
@@ -120,19 +120,19 @@ class Logger {
     })
   }
 
-  debug(message: string, context?: Record<string, any>) {
+  debug(message: string, context?: Record<string, unknown>) {
     this.log('debug', message, context)
   }
 
-  info(message: string, context?: Record<string, any>) {
+  info(message: string, context?: Record<string, unknown>) {
     this.log('info', message, context)
   }
 
-  warn(message: string, context?: Record<string, any>, error?: Error) {
+  warn(message: string, context?: Record<string, unknown>, error?: Error) {
     this.log('warn', message, context, error)
   }
 
-  error(message: string, context?: Record<string, any>, error?: Error) {
+  error(message: string, context?: Record<string, unknown>, error?: Error) {
     this.log('error', message, context, error)
   }
 }
