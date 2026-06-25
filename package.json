@@ -115,7 +115,7 @@
     "ts-morph": "^27.0.0",
     "ts-node": "10.9.2",
     "tsx": "^4.20.3",
-    "typescript": "^5.8.3",
+    "typescript": "^6.0.0",
     "vitest": "^3.2.4",
     "webpack-bundle-analyzer": "^5.0.0"
   },
