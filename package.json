@@ -59,7 +59,7 @@
     "@opentelemetry/instrumentation-http": "^0.219.0",
     "@opentelemetry/instrumentation-pg": "^0.71.0",
     "@opentelemetry/resources": "^2.1.0",
-    "@opentelemetry/sdk-node": "^0.205.0",
+    "@opentelemetry/sdk-node": "^0.217.0",
     "@opentelemetry/semantic-conventions": "^1.37.0",
     "@types/ms": "^2.1.0",
     "@types/pg": "^8.15.4",
