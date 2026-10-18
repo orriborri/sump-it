@@ -34,11 +34,17 @@ export interface ListParams {
   limit?: number;
 }
 
-/** Extra filters accepted by the session list endpoint. */
+/** Extra filters accepted by the session list endpoint (ticket #146). */
 export interface SessionListParams extends ListParams {
+  offset?: number;
   beanOrigin?: string;
-  ratingMin?: number;
+  roastDateFrom?: string;
+  roastDateTo?: string;
+  grinderType?: string;
   brewingMethod?: string;
+  ratingMin?: number;
+  /** Free-text search across bean name, origin, grinder brand, tasting notes. */
+  q?: string;
 }
 
 /** Body accepted when writing brew feedback for a session. */
@@ -168,9 +174,14 @@ export const coffeeBrewerClient = {
         `/sessions${buildQuery({
           page: params?.page,
           limit: params?.limit,
+          offset: params?.offset,
           beanOrigin: params?.beanOrigin,
-          ratingMin: params?.ratingMin,
+          roastDateFrom: params?.roastDateFrom,
+          roastDateTo: params?.roastDateTo,
+          grinderType: params?.grinderType,
           brewingMethod: params?.brewingMethod,
+          ratingMin: params?.ratingMin,
+          q: params?.q,
         })}`
       ),
 
@@ -197,9 +208,6 @@ export const coffeeBrewerClient = {
       apiFetch<BrewingSession>(`/sessions/${id}/duplicate`, {
         method: 'POST',
       }),
-
-    search: (query: string) =>
-      apiFetch<BrewingSession[]>(`/sessions/search?q=${encodeURIComponent(query)}`),
   },
 
   feedback: {

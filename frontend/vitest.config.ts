@@ -52,6 +52,10 @@ export default defineConfig({
         'app/brew/BeanSelector.tsx',
         'app/brew/IntegratedVerticalStepper.tsx',
         'app/brew/page.tsx',
+        // Ticket #146: session history (list / filter / search / duplicate).
+        'lib/sessions/history.ts',
+        'app/sessions/SessionHistory.tsx',
+        'app/sessions/page.tsx',
       ],
       // The ONLY config-level (path-based) exclusion: ts-rs generated types.
       // These are produced by the backend build (`cargo test export_bindings`)

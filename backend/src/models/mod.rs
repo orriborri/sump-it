@@ -353,7 +353,21 @@ impl BrewingSession {
         self.rating.map_or(false, |r| r >= 7.0)
     }
     
-    /// Creates a new brewing session for duplication (from rustyCoffy)
+    /// Builds the request that duplicates this session (ticket #146).
+    ///
+    /// A duplicate re-brews the SAME recipe, so only the brewing PARAMETERS are
+    /// carried over (bean, grinder, method, grind setting, coffee/water grams,
+    /// temperature, time). The subjective RESULTS of the original brew are
+    /// explicitly dropped so the copy starts clean: `rating`, `tasting_notes`,
+    /// `feedback` and `suggestions` are set to `None`, and `is_template` is
+    /// reset to `false` (a duplicate is a fresh brew to be logged and rated,
+    /// not a template).
+    ///
+    /// This is a pure field mapping with no I/O, so it lives in the library and
+    /// is unit tested to completion. The returned request is fed through the
+    /// exact same `recipe::validate` + transactional inventory path as a brand
+    /// new brew (see `SessionService::duplicate`), so duplicating also
+    /// decrements the bean inventory and can fail on insufficient quantity.
     pub fn to_duplicate_request(&self) -> CreateBrewingSessionRequest {
         CreateBrewingSessionRequest {
             bean_id: self.bean_id,
@@ -364,11 +378,13 @@ impl BrewingSession {
             brew_time_seconds: self.brew_time_seconds,
             coffee_grams: self.coffee_grams,
             water_grams: self.water_grams,
-            tasting_notes: None, // Don't copy tasting notes
-            rating: None, // Don't copy rating
+            // Results are NOT copied: a duplicate is a fresh brew.
+            tasting_notes: None,
+            rating: None,
             feedback: None,
             suggestions: None,
-            is_template: self.is_template,
+            // A duplicate is a concrete brew to log, never a template.
+            is_template: false,
         }
     }
     
@@ -934,17 +950,30 @@ mod tests {
 
     #[test]
     fn session_to_duplicate_request() {
-        let session = sample_session(20.0, 320.0);
+        // Start from a template session with a rating and full notes so the
+        // drop-behaviour is actually exercised.
+        let mut session = sample_session(20.0, 320.0);
+        session.is_template = true;
         let dup = session.to_duplicate_request();
+
+        // Every brewing PARAMETER is carried over verbatim.
         assert_eq!(dup.bean_id, session.bean_id);
         assert_eq!(dup.grinder_id, session.grinder_id);
         assert_eq!(dup.brewing_method, session.brewing_method);
+        assert_eq!(dup.grind_setting, session.grind_setting);
+        assert_eq!(dup.water_temp_celsius, session.water_temp_celsius);
+        assert_eq!(dup.brew_time_seconds, session.brew_time_seconds);
         assert_eq!(dup.coffee_grams, session.coffee_grams);
-        // Rating and notes are intentionally dropped when duplicating.
+        assert_eq!(dup.water_grams, session.water_grams);
+
+        // The subjective RESULTS are intentionally dropped when duplicating.
         assert!(dup.rating.is_none());
         assert!(dup.tasting_notes.is_none());
         assert!(dup.feedback.is_none());
         assert!(dup.suggestions.is_none());
+        // A duplicate is a fresh brew, never a template, even if the original
+        // was one.
+        assert!(!dup.is_template);
     }
 
     #[test]

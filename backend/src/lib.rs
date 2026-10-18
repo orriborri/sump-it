@@ -19,4 +19,5 @@
 
 pub mod models;
 pub mod recipe;
+pub mod session_query;
 pub mod validation;

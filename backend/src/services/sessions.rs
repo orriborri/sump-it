@@ -12,8 +12,11 @@ use anyhow::{Context, Result};
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::models::{apply_notes_to_session, BrewingSession, CreateBrewingSessionRequest, Grinder};
+use crate::models::{
+    apply_notes_to_session, BrewingSession, CreateBrewingSessionRequest, Grinder, SessionFilter,
+};
 use crate::recipe;
+use crate::session_query::{self, QueryBind};
 use crate::validation::ValidationErrorType;
 
 /// Why a save failed. The API layer maps each case to an HTTP status and an
@@ -25,6 +28,8 @@ pub enum SaveError {
     GrinderNotFound,
     /// The selected bean does not exist (or is inactive).
     BeanNotFound,
+    /// The session to duplicate does not exist.
+    SessionNotFound,
     /// A per-method recipe rule (or the grind-vs-grinder range) was violated.
     Recipe(ValidationErrorType),
     /// The tracked bean does not have enough coffee for this brew. Carries the
@@ -194,17 +199,9 @@ impl<'a> SessionService<'a> {
         Ok(inserted)
     }
 
-    /// Lists the most recent brewing sessions, newest first. Used by the
-    /// stepper to show previous brews.
-    pub async fn list_recent(&self, limit: Option<i32>) -> Result<(Vec<BrewingSession>, i64)> {
-        let limit = limit.unwrap_or(5).clamp(1, 100);
-
-        let total: i64 = sqlx::query_scalar(r#"SELECT COUNT(*) FROM brewing_sessions"#)
-            .fetch_one(self.pool)
-            .await
-            .context("Failed to count sessions")?;
-
-        let sessions = sqlx::query_as::<_, BrewingSession>(
+    /// Loads a single brewing session by id.
+    pub async fn get_session(&self, id: Uuid) -> Result<Option<BrewingSession>> {
+        let session = sqlx::query_as::<_, BrewingSession>(
             r#"
             SELECT
                 id, bean_id, grinder_id, brewing_method, grind_setting,
@@ -212,14 +209,70 @@ impl<'a> SessionService<'a> {
                 rating, tasting_notes, feedback, suggestions, is_template,
                 coffee_ratio, created_at, updated_at
             FROM brewing_sessions
-            ORDER BY created_at DESC
-            LIMIT $1
+            WHERE id = $1
             "#,
         )
-        .bind(limit as i64)
-        .fetch_all(self.pool)
+        .bind(id)
+        .fetch_optional(self.pool)
         .await
-        .context("Failed to fetch recent sessions")?;
+        .context("Failed to fetch session")?;
+
+        Ok(session)
+    }
+
+    /// Duplicates an existing session (ticket #146).
+    ///
+    /// The duplicate re-brews the SAME recipe, so it goes through the EXACT
+    /// same path as a brand new brew: load the original, build a
+    /// [`CreateBrewingSessionRequest`] from its PARAMETERS ONLY (dropping
+    /// rating, tasting notes, feedback, suggestions and the template flag via
+    /// [`BrewingSession::to_duplicate_request`]), then hand it to
+    /// [`Self::log_brew`]. That means duplicating also runs `recipe::validate`
+    /// and the transactional inventory decrement, and can fail with
+    /// [`SaveError::InsufficientQuantity`] exactly like a new brew. The
+    /// original row is never copy-inserted directly.
+    pub async fn duplicate(
+        &self,
+        id: Uuid,
+    ) -> std::result::Result<BrewingSession, SaveError> {
+        let original = self
+            .get_session(id)
+            .await
+            .map_err(SaveError::Database)?
+            .ok_or(SaveError::SessionNotFound)?;
+
+        let request = original.to_duplicate_request();
+        self.log_brew(request).await
+    }
+
+    /// Lists brewing sessions newest-first with paging, applying the given
+    /// filters and optional case-insensitive text search (ticket #146).
+    ///
+    /// The SQL text, placeholder numbering and pagination clamping are built by
+    /// the pure [`crate::session_query`] helpers (unit tested without a DB);
+    /// this method only binds the parameters and runs the queries. Every user
+    /// value travels as a bound parameter, so there is no SQL injection
+    /// surface. Returns the page of sessions plus the TOTAL match count.
+    pub async fn list_filtered(
+        &self,
+        filter: &SessionFilter,
+        search: Option<&str>,
+    ) -> Result<(Vec<BrewingSession>, i64)> {
+        let count_query = session_query::count_sessions_sql(filter, search);
+        let count_builder = sqlx::query_scalar::<_, i64>(&count_query.sql);
+        let count_builder = bind_all_scalar(count_builder, &count_query.binds);
+        let total = count_builder
+            .fetch_one(self.pool)
+            .await
+            .context("Failed to count filtered sessions")?;
+
+        let list_query = session_query::list_sessions_sql(filter, search);
+        let list_builder = sqlx::query_as::<_, BrewingSession>(&list_query.sql);
+        let list_builder = bind_all(list_builder, &list_query.binds);
+        let sessions = list_builder
+            .fetch_all(self.pool)
+            .await
+            .context("Failed to fetch filtered sessions")?;
 
         Ok((sessions, total))
     }
@@ -243,4 +296,49 @@ impl<'a> SessionService<'a> {
 
         Ok(grinder)
     }
+}
+
+/// Binds every [`QueryBind`], in order, to a `query_as` builder.
+///
+/// `QueryBind` keeps each value typed, so the driver encodes it as a real bind
+/// parameter (no string interpolation). The match is exhaustive over the enum,
+/// so adding a new bind kind forces an update here.
+fn bind_all<'q, O>(
+    query: sqlx::query::QueryAs<'q, sqlx::Postgres, O, sqlx::postgres::PgArguments>,
+    binds: &'q [QueryBind],
+) -> sqlx::query::QueryAs<'q, sqlx::Postgres, O, sqlx::postgres::PgArguments> {
+    let mut query = query;
+    for bind in binds {
+        query = match bind {
+            QueryBind::Text(value) => query.bind(value),
+            QueryBind::Date(value) => query.bind(value),
+            QueryBind::Grinder(value) => query.bind(value),
+            QueryBind::Method(value) => query.bind(value),
+            QueryBind::Float(value) => query.bind(value),
+            QueryBind::Pattern(value) => query.bind(value),
+            QueryBind::Int(value) => query.bind(value),
+        };
+    }
+    query
+}
+
+/// Binds every [`QueryBind`], in order, to a `query_scalar` builder (used for
+/// the `COUNT(*)`). Mirrors [`bind_all`] for the scalar query type.
+fn bind_all_scalar<'q, O>(
+    query: sqlx::query::QueryScalar<'q, sqlx::Postgres, O, sqlx::postgres::PgArguments>,
+    binds: &'q [QueryBind],
+) -> sqlx::query::QueryScalar<'q, sqlx::Postgres, O, sqlx::postgres::PgArguments> {
+    let mut query = query;
+    for bind in binds {
+        query = match bind {
+            QueryBind::Text(value) => query.bind(value),
+            QueryBind::Date(value) => query.bind(value),
+            QueryBind::Grinder(value) => query.bind(value),
+            QueryBind::Method(value) => query.bind(value),
+            QueryBind::Float(value) => query.bind(value),
+            QueryBind::Pattern(value) => query.bind(value),
+            QueryBind::Int(value) => query.bind(value),
+        };
+    }
+    query
 }
