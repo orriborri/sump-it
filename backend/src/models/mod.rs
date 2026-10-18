@@ -263,7 +263,8 @@ impl GrinderType {
 ///
 /// Variants serialize using their Rust names (e.g. `V60`, `FrenchPress`) to
 /// match the `brewing_method` Postgres enum text values in the migration.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, TS)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, sqlx::Type, TS)]
+#[sqlx(type_name = "brewing_method")]
 #[ts(export)]
 pub enum BrewingMethod {
     V60,
@@ -308,7 +309,7 @@ impl BrewingMethod {
 }
 
 /// Brewing session - comprehensive tracking (from all three applications)
-#[derive(Debug, Clone, Serialize, Deserialize, Validate, TS)]
+#[derive(Debug, Clone, Serialize, Deserialize, Validate, sqlx::FromRow, TS)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
 pub struct BrewingSession {
@@ -423,7 +424,18 @@ impl BrewingSession {
     }
 }
 
-/// Request for creating a new brewing session
+/// Request for creating a new brewing session.
+///
+/// The old global `#[validate(range)]` bounds (coffee 10 to 100 g, water 150
+/// to 1700 g, temperature 60 to 100 C, brew time 30 to 480 s) were REMOVED in
+/// ticket #145: they conflicted with the per-method recipes introduced by
+/// ticket #144 and silently rejected legal Espresso, Moka and Cold Brew
+/// recipes before they could ever reach [`crate::recipe::validate`]. The
+/// per-method recipe table is now the single source of truth for every
+/// amount/temperature/time rule, so the only request-level bound kept is the
+/// physical invariant `grind_setting >= 0` (grind settings are never negative,
+/// independent of method). All other values are checked, per method and
+/// against the selected grinder, inside [`crate::recipe::validate`].
 #[derive(Debug, Clone, Serialize, Deserialize, Validate, TS)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
@@ -431,27 +443,80 @@ pub struct CreateBrewingSessionRequest {
     pub bean_id: Uuid,
     pub grinder_id: Uuid,
     pub brewing_method: BrewingMethod,
-    
+
+    // A grind setting is a physical dial position and is never negative,
+    // regardless of method; the method-specific upper bound is the selected
+    // grinder's `max_setting`, enforced in `recipe::validate`.
     #[validate(range(min = 0))]
     pub grind_setting: i32,
-    
-    #[validate(range(min = 60, max = 100))]
+
+    // No global range: Espresso wants ~90 °C while Cold Brew wants ~20 °C, so
+    // the accepted temperature band is per method (recipe table).
     pub water_temp_celsius: Option<i32>,
-    
-    #[validate(range(min = 30, max = 480))]
+
+    // No global range: Cold Brew steeps for hours while Espresso pulls in
+    // seconds, so the accepted time band is per method (recipe table).
     pub brew_time_seconds: Option<i32>,
-    
-    #[validate(range(min = 10.0, max = 100.0))]
+
+    // No global range: Espresso doses ~18 g while Cold Brew doses 100 g+, so
+    // the accepted dose band is per method (recipe table).
     pub coffee_grams: f32,
-    
-    #[validate(range(min = 150.0, max = 1700.0))]
+
+    // No global range: Espresso uses ~36 g of water while a large Cold Brew
+    // uses 800 g+, so the accepted water band is per method (recipe table).
     pub water_grams: f32,
-    
+
     pub tasting_notes: Option<String>,
     pub rating: Option<f32>,
     pub feedback: Option<String>,
     pub suggestions: Option<String>,
     pub is_template: bool,
+}
+
+impl CreateBrewingSessionRequest {
+    /// Builds the pure [`crate::recipe::BrewParams`] this request proposes, so
+    /// the save path can route through [`crate::recipe::validate`] (the single
+    /// source of truth for per-method rules) instead of the superseded global
+    /// `validate_comprehensive` / `validate_coffee_ratio` checks.
+    ///
+    /// This is a pure field mapping with no I/O, so it lives in the library and
+    /// is unit tested to completion. `tasting_notes`, `feedback` and
+    /// `suggestions` are intentionally NOT part of `BrewParams` (the recipe
+    /// module stays free of free-text fields); they are applied to the built
+    /// session separately via [`apply_notes_to_session`].
+    pub fn to_brew_params(&self) -> crate::recipe::BrewParams {
+        crate::recipe::BrewParams {
+            bean_id: self.bean_id,
+            grinder_id: self.grinder_id,
+            brewing_method: self.brewing_method.clone(),
+            grind_setting: self.grind_setting,
+            coffee_grams: self.coffee_grams,
+            water_grams: self.water_grams,
+            water_temp_celsius: self.water_temp_celsius,
+            brew_time_seconds: self.brew_time_seconds,
+            rating: self.rating,
+        }
+    }
+}
+
+/// Copies the free-text and template fields the recipe module deliberately
+/// does not carry (`tasting_notes`, `feedback`, `suggestions`, `is_template`)
+/// from the originating request onto a session built by
+/// [`crate::recipe::ValidatedBrewParams::into_session`].
+///
+/// Keeping this as a small pure function (rather than widening `BrewParams`)
+/// lets the recipe module stay focused on numeric brewing rules while ticket
+/// #145 still persists the notes the UI collects. Returns the mutated session
+/// so callers can chain it in one expression.
+pub fn apply_notes_to_session(
+    mut session: BrewingSession,
+    request: &CreateBrewingSessionRequest,
+) -> BrewingSession {
+    session.tasting_notes = request.tasting_notes.clone();
+    session.feedback = request.feedback.clone();
+    session.suggestions = request.suggestions.clone();
+    session.is_template = request.is_template;
+    session
 }
 
 /// Brew feedback with detailed ratings (from sump-it)
@@ -959,5 +1024,95 @@ mod tests {
         );
         assert_eq!(detailed.error, "bad");
         assert_eq!(detailed.details.unwrap().len(), 1);
+    }
+
+    fn sample_create_request() -> CreateBrewingSessionRequest {
+        CreateBrewingSessionRequest {
+            bean_id: Uuid::new_v4(),
+            grinder_id: Uuid::new_v4(),
+            brewing_method: BrewingMethod::Espresso,
+            grind_setting: 12,
+            water_temp_celsius: Some(93),
+            brew_time_seconds: Some(30),
+            coffee_grams: 18.0,
+            water_grams: 36.0,
+            tasting_notes: Some("Syrupy, chocolate".to_string()),
+            rating: Some(8.5),
+            feedback: Some("Even extraction".to_string()),
+            suggestions: Some("Grind one step finer".to_string()),
+            is_template: true,
+        }
+    }
+
+    #[test]
+    fn create_request_to_brew_params_maps_every_field() {
+        let request = sample_create_request();
+        let params = request.to_brew_params();
+
+        // Numeric/equipment fields map one-to-one.
+        assert_eq!(params.bean_id, request.bean_id);
+        assert_eq!(params.grinder_id, request.grinder_id);
+        assert_eq!(params.brewing_method, BrewingMethod::Espresso);
+        assert_eq!(params.grind_setting, 12);
+        assert_eq!(params.coffee_grams, 18.0);
+        assert_eq!(params.water_grams, 36.0);
+        assert_eq!(params.water_temp_celsius, Some(93));
+        assert_eq!(params.brew_time_seconds, Some(30));
+        assert_eq!(params.rating, Some(8.5));
+    }
+
+    #[test]
+    fn create_request_to_brew_params_preserves_absent_optionals() {
+        // Absent optional temp/time/rating map straight through as None so the
+        // recipe module skips those checks.
+        let request = CreateBrewingSessionRequest {
+            water_temp_celsius: None,
+            brew_time_seconds: None,
+            rating: None,
+            ..sample_create_request()
+        };
+        let params = request.to_brew_params();
+        assert!(params.water_temp_celsius.is_none());
+        assert!(params.brew_time_seconds.is_none());
+        assert!(params.rating.is_none());
+    }
+
+    #[test]
+    fn apply_notes_copies_free_text_and_template_flag() {
+        let request = sample_create_request();
+        // A fresh session from into_session has no notes and is_template=false.
+        let base = sample_session(18.0, 36.0);
+        let base = BrewingSession {
+            tasting_notes: None,
+            feedback: None,
+            suggestions: None,
+            is_template: false,
+            ..base
+        };
+
+        let enriched = apply_notes_to_session(base, &request);
+        assert_eq!(enriched.tasting_notes.as_deref(), Some("Syrupy, chocolate"));
+        assert_eq!(enriched.feedback.as_deref(), Some("Even extraction"));
+        assert_eq!(enriched.suggestions.as_deref(), Some("Grind one step finer"));
+        assert!(enriched.is_template);
+    }
+
+    #[test]
+    fn apply_notes_handles_absent_free_text() {
+        // When the request omits notes, the session's fields become None and
+        // the template flag follows the request (here false).
+        let request = CreateBrewingSessionRequest {
+            tasting_notes: None,
+            feedback: None,
+            suggestions: None,
+            is_template: false,
+            ..sample_create_request()
+        };
+        let base = sample_session(18.0, 36.0); // starts with Some(..) notes
+        let enriched = apply_notes_to_session(base, &request);
+        assert!(enriched.tasting_notes.is_none());
+        assert!(enriched.feedback.is_none());
+        assert!(enriched.suggestions.is_none());
+        assert!(!enriched.is_template);
     }
 }

@@ -6,3 +6,4 @@
 
 pub mod beans;
 pub mod grinders;
+pub mod sessions;

@@ -15,7 +15,7 @@
 // crate so the coverage gate can enforce 100% line coverage over it with
 // `cargo llvm-cov --lib`. The binary re-exports those modules under the same
 // `crate::` paths the API and service layers already use.
-use coffee_brewer_backend::{models, validation};
+use coffee_brewer_backend::{models, recipe, validation};
 
 mod api;
 mod services;

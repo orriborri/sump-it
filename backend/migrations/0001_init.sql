@@ -82,14 +82,27 @@ CREATE TABLE brewing_sessions (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
-    -- Database-level validation
-    CHECK (coffee_grams >= 10.0 AND coffee_grams <= 100.0),
-    CHECK (water_grams >= 150.0 AND water_grams <= 1700.0),
-    CHECK ((water_grams / coffee_grams) >= 15.0 AND (water_grams / coffee_grams) <= 17.0),
-    CHECK (rating IS NULL OR (rating >= 1.0 AND rating <= 10.0)),
-    CHECK (water_temp_celsius IS NULL OR (water_temp_celsius >= 60 AND water_temp_celsius <= 100)),
-    CHECK (brew_time_seconds IS NULL OR (brew_time_seconds >= 30 AND brew_time_seconds <= 480)),
-    CHECK (grind_setting >= 0)
+    -- Database-level validation.
+    -- NOTE: the global amount/ratio/temperature/time bands below are the
+    -- original (ticket #138) method-agnostic bounds. Ticket #145 supersedes
+    -- them with per-method recipe rules (see migration 0002 and
+    -- backend/src/recipe.rs); they are named here so 0002 can drop exactly the
+    -- ones that conflict with per-method recipes. Only `grind_setting >= 0`
+    -- and the rating band survive as method-invariant guards.
+    CONSTRAINT brewing_sessions_coffee_grams_check
+        CHECK (coffee_grams >= 10.0 AND coffee_grams <= 100.0),
+    CONSTRAINT brewing_sessions_water_grams_check
+        CHECK (water_grams >= 150.0 AND water_grams <= 1700.0),
+    CONSTRAINT brewing_sessions_coffee_ratio_check
+        CHECK ((water_grams / coffee_grams) >= 15.0 AND (water_grams / coffee_grams) <= 17.0),
+    CONSTRAINT brewing_sessions_rating_check
+        CHECK (rating IS NULL OR (rating >= 1.0 AND rating <= 10.0)),
+    CONSTRAINT brewing_sessions_water_temp_check
+        CHECK (water_temp_celsius IS NULL OR (water_temp_celsius >= 60 AND water_temp_celsius <= 100)),
+    CONSTRAINT brewing_sessions_brew_time_check
+        CHECK (brew_time_seconds IS NULL OR (brew_time_seconds >= 30 AND brew_time_seconds <= 480)),
+    CONSTRAINT brewing_sessions_grind_setting_check
+        CHECK (grind_setting >= 0)
 );
 
 -- Brew feedback ---------------------------------------------------------------

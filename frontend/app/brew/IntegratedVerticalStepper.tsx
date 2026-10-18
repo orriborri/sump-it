@@ -212,34 +212,3 @@ export const IntegratedVerticalStepper: React.FC<IntegratedVerticalStepperProps>
   );
 };
 
-// Hook for managing step navigation
-export function useStepNavigation(
-  currentStep: number,
-  formData: any,
-  totalSteps: number
-) {
-  const canGoBack = currentStep > 0;
-  const canGoForward = currentStep < totalSteps - 1;
-  const isLastStep = currentStep === totalSteps - 1;
-
-  // Determine if we can proceed based on form validation
-  const canProceedToNext = () => {
-    switch (currentStep) {
-      case 0: // Equipment selection
-        return formData.beanId && formData.grinderId && formData.brewingMethod;
-      case 1: // Brewing parameters
-        return formData.coffeeGrams && formData.waterGrams && formData.grindSetting;
-      case 2: // Brew & rate
-        return true; // Always can proceed to submit
-      default:
-        return false;
-    }
-  };
-
-  return {
-    canGoBack,
-    canGoForward,
-    isLastStep,
-    canProceedToNext: canProceedToNext(),
-  };
-}

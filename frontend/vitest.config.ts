@@ -44,6 +44,14 @@ export default defineConfig({
         'lib/beans/inventory.ts',
         'app/beans/BeanManager.tsx',
         'app/beans/page.tsx',
+        // Ticket #145: brew-logging workflow and its pure helpers.
+        'lib/brew/recipe.ts',
+        'app/brew/BrewWorkflow.tsx',
+        'app/brew/BrewingParameters.tsx',
+        'app/brew/BrewFeedback.tsx',
+        'app/brew/BeanSelector.tsx',
+        'app/brew/IntegratedVerticalStepper.tsx',
+        'app/brew/page.tsx',
       ],
       // The ONLY config-level (path-based) exclusion: ts-rs generated types.
       // These are produced by the backend build (`cargo test export_bindings`)
