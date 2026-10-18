@@ -13,7 +13,6 @@ export type { GrinderType } from '../generated/GrinderType';
 export type { BrewingMethod } from '../generated/BrewingMethod';
 export type { BrewingSession } from '../generated/BrewingSession';
 export type { CreateBrewingSessionRequest } from '../generated/CreateBrewingSessionRequest';
-export type { BrewFeedback } from '../generated/BrewFeedback';
 export type { SessionFilter } from '../generated/SessionFilter';
 export type { PaginatedResponse } from '../generated/PaginatedResponse';
 export type { ErrorResponse } from '../generated/ErrorResponse';

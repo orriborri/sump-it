@@ -39,6 +39,7 @@ export default defineConfig({
       // left uncovered: it either gets tests or is added here deliberately.
       include: [
         'lib/format.ts',
+        'lib/trpc/client.ts',
         'lib/grinders/validation.ts',
         'app/grinders/GrinderManager.tsx',
         'lib/beans/inventory.ts',

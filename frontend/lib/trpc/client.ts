@@ -8,7 +8,6 @@
 
 import type {
   BeanUsageRecord,
-  BrewFeedback,
   BrewingSession,
   CoffeeBean,
   CreateBrewingSessionRequest,
@@ -47,16 +46,15 @@ export interface SessionListParams extends ListParams {
   q?: string;
 }
 
-/** Body accepted when writing brew feedback for a session. */
-export type BrewFeedbackInput = Omit<
-  BrewFeedback,
-  'id' | 'sessionId' | 'createdAt' | 'updatedAt'
->;
-
 function buildQuery(params?: Record<string, string | number | undefined>): string {
+  /* v8 ignore start -- coverage: defensive guard. Every caller (the `list`
+     methods) passes an explicit object, so `buildQuery()` with no argument is
+     unreachable through the public client; the guard only protects a future
+     caller. */
   if (!params) {
     return '';
   }
+  /* v8 ignore stop */
   const search = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
     if (value !== undefined) {
@@ -185,44 +183,15 @@ export const coffeeBrewerClient = {
         })}`
       ),
 
-    get: (id: string) => apiFetch<BrewingSession>(`/sessions/${id}`),
-
     create: (data: CreateBrewingSessionRequest) =>
       apiFetch<BrewingSession>('/sessions', {
         method: 'POST',
         body: JSON.stringify(data),
       }),
 
-    update: (id: string, data: CreateBrewingSessionRequest) =>
-      apiFetch<BrewingSession>(`/sessions/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify(data),
-      }),
-
-    delete: (id: string) =>
-      apiFetch<void>(`/sessions/${id}`, {
-        method: 'DELETE',
-      }),
-
     duplicate: (id: string) =>
       apiFetch<BrewingSession>(`/sessions/${id}/duplicate`, {
         method: 'POST',
-      }),
-  },
-
-  feedback: {
-    get: (sessionId: string) => apiFetch<BrewFeedback>(`/feedback/${sessionId}`),
-
-    create: (sessionId: string, data: BrewFeedbackInput) =>
-      apiFetch<BrewFeedback>(`/feedback/${sessionId}`, {
-        method: 'POST',
-        body: JSON.stringify(data),
-      }),
-
-    update: (sessionId: string, data: BrewFeedbackInput) =>
-      apiFetch<BrewFeedback>(`/feedback/${sessionId}`, {
-        method: 'PUT',
-        body: JSON.stringify(data),
       }),
   },
 };

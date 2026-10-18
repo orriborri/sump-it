@@ -4,7 +4,6 @@
 mod beans;
 mod grinders;
 mod sessions;
-mod feedback;
 
 use axum::Router;
 use sqlx::PgPool;
@@ -26,6 +25,5 @@ pub fn router(pool: PgPool) -> Router {
         .nest("/beans", beans::router())
         .nest("/grinders", grinders::router())
         .nest("/sessions", sessions::router())
-        .nest("/feedback", feedback::router())
         .with_state(state)
 }

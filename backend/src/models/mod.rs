@@ -438,33 +438,6 @@ pub fn apply_notes_to_session(
     session
 }
 
-/// Brew feedback with detailed ratings (from sump-it)
-#[derive(Debug, Clone, Serialize, Deserialize, Validate, TS)]
-#[serde(rename_all = "camelCase")]
-#[ts(export)]
-pub struct BrewFeedback {
-    pub id: Uuid,
-    pub session_id: Uuid,
-    pub grind_notes: Option<String>,
-    pub extraction_notes: Option<String>,
-    
-    #[validate(range(min = 1, max = 5))]
-    pub aroma_rating: Option<i32>,
-    
-    #[validate(range(min = 1, max = 5))]
-    pub acidity_rating: Option<i32>,
-    
-    #[validate(range(min = 1, max = 5))]
-    pub body_rating: Option<i32>,
-    
-    #[validate(range(min = 1, max = 5))]
-    pub aftertaste_rating: Option<i32>,
-    
-    // Timestamps
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-}
-
 /// Filter for brewing sessions (from rustyCoffy)
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
