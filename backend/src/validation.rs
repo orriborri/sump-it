@@ -53,6 +53,21 @@ pub enum ValidationErrorType {
         max: i32, 
         grinder: String 
     },
+
+    #[error("Coffee ratio {ratio:.1} outside range {min:.1}-{max:.1} for {method}")]
+    MethodCoffeeRatioInvalid { method: String, ratio: f32, min: f32, max: f32 },
+
+    #[error("Coffee amount {amount}g outside range {min}-{max}g for {method}")]
+    MethodCoffeeAmountInvalid { method: String, amount: f32, min: f32, max: f32 },
+
+    #[error("Water amount {amount}g outside range {min}-{max}g for {method}")]
+    MethodWaterAmountInvalid { method: String, amount: f32, min: f32, max: f32 },
+
+    #[error("Water temperature {temp}°C outside range {min}-{max}°C for {method}")]
+    MethodWaterTemperatureInvalid { method: String, temp: i32, min: i32, max: i32 },
+
+    #[error("Brew time {time}s outside range {min}-{max}s for {method}")]
+    MethodBrewTimeInvalid { method: String, time: i32, min: i32, max: i32 },
     
     #[error("Insufficient bean quantity: {available}g available, {required}g required")]
     InsufficientBeanQuantity { 
@@ -362,6 +377,11 @@ mod tests {
             ValidationErrorType::InvalidBrewTime { time: 10, min: BREW_TIME_MIN, max: BREW_TIME_MAX },
             ValidationErrorType::InvalidWaterTemperature { temp: 50, min: WATER_TEMP_MIN, max: WATER_TEMP_MAX },
             ValidationErrorType::GrindSettingOutOfRange { setting: 99, min: 0, max: 40, grinder: "C40".to_string() },
+            ValidationErrorType::MethodCoffeeRatioInvalid { method: "Espresso".to_string(), ratio: 10.0, min: 1.5, max: 3.0 },
+            ValidationErrorType::MethodCoffeeAmountInvalid { method: "Espresso".to_string(), amount: 5.0, min: 7.0, max: 25.0 },
+            ValidationErrorType::MethodWaterAmountInvalid { method: "Espresso".to_string(), amount: 5.0, min: 10.0, max: 75.0 },
+            ValidationErrorType::MethodWaterTemperatureInvalid { method: "Espresso".to_string(), temp: 50, min: 88, max: 96 },
+            ValidationErrorType::MethodBrewTimeInvalid { method: "Espresso".to_string(), time: 5, min: 15, max: 60 },
             ValidationErrorType::InsufficientBeanQuantity { available: 5.0, required: 20.0 },
             ValidationErrorType::BeanNameEmpty,
             ValidationErrorType::GrinderBrandEmpty,
