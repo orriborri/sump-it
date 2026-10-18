@@ -6,19 +6,19 @@ use axum::{
     http::StatusCode,
     response::IntoResponse,
     Json, Router,
-    routing::{get, post, put, delete},
+    routing::get,
 };
-use serde_json::json;
-use sqlx::PgPool;
 use uuid::Uuid;
+use validator::Validate;
 
 use crate::{
-    models::{CoffeeBean, CreateCoffeeBeanRequest, PaginatedResponse, ErrorResponse},
+    api::AppState,
+    models::{CreateCoffeeBeanRequest, PaginatedResponse, ErrorResponse},
     services::beans::BeanService,
     validation::{validate_bean_name, validation_errors_to_string},
 };
 
-pub fn router() -> Router<axum::extract::State<Arc<AppState>>> {
+pub fn router() -> Router<AppState> {
     Router::new()
         .route("/", get(list_beans).post(create_bean))
         .route("/:id", get(get_bean).put(update_bean).delete(delete_bean))
@@ -28,7 +28,7 @@ pub fn router() -> Router<axum::extract::State<Arc<AppState>>> {
 
 /// List all coffee beans with pagination
 async fn list_beans(
-    State(state): State<Arc<AppState>>,
+    State(state): State<AppState>,
     Query(params): Query<ListParams>,
 ) -> impl IntoResponse {
     let service = BeanService::new(&state.pool);
@@ -50,7 +50,7 @@ async fn list_beans(
 
 /// Create a new coffee bean
 async fn create_bean(
-    State(state): State<Arc<AppState>>,
+    State(state): State<AppState>,
     Json(payload): Json<CreateCoffeeBeanRequest>,
 ) -> impl IntoResponse {
     // Validate input
@@ -85,7 +85,7 @@ async fn create_bean(
 
 /// Get a specific coffee bean by ID
 async fn get_bean(
-    State(state): State<Arc<AppState>>,
+    State(state): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> impl IntoResponse {
     let service = BeanService::new(&state.pool);
@@ -105,7 +105,7 @@ async fn get_bean(
 
 /// Update a coffee bean
 async fn update_bean(
-    State(state): State<Arc<AppState>>,
+    State(state): State<AppState>,
     Path(id): Path<Uuid>,
     Json(payload): Json<CreateCoffeeBeanRequest>,
 ) -> impl IntoResponse {
@@ -137,7 +137,7 @@ async fn update_bean(
 
 /// Delete a coffee bean
 async fn delete_bean(
-    State(state): State<Arc<AppState>>,
+    State(state): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> impl IntoResponse {
     let service = BeanService::new(&state.pool);
@@ -157,7 +157,7 @@ async fn delete_bean(
 
 /// Get only active beans (with remaining quantity > 0)
 async fn get_active_beans(
-    State(state): State<Arc<AppState>>,
+    State(state): State<AppState>,
 ) -> impl IntoResponse {
     let service = BeanService::new(&state.pool);
     
@@ -172,7 +172,7 @@ async fn get_active_beans(
 
 /// Get usage history for a bean
 async fn get_bean_usage(
-    State(state): State<Arc<AppState>>,
+    State(state): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> impl IntoResponse {
     let service = BeanService::new(&state.pool);
@@ -202,10 +202,3 @@ impl Default for ListParams {
     }
 }
 
-/// Application state
-#[derive(Clone)]
-struct AppState {
-    pool: PgPool,
-}
-
-use std::sync::Arc;

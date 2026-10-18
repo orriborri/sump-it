@@ -11,12 +11,12 @@ use uuid::Uuid;
 use crate::validation::{
     validate_bean_name, validate_grinder_brand, validate_coffee_amount, 
     validate_water_amount, validate_rating, validate_water_temperature,
-    validate_brew_time, validate_grind_setting, validate_ratio_format,
+    validate_brew_time, validate_grind_setting,
     validate_bean_quantity, ValidationErrorType, COFFEE_RATIO_MIN, COFFEE_RATIO_MAX,
 };
 
 /// Coffee bean with inventory tracking (from rustyCoffy + BeanIt)
-#[derive(Debug, Clone, Serialize, Deserialize, Validate)]
+#[derive(Debug, Clone, Serialize, Deserialize, Validate, sqlx::FromRow)]
 #[serde(rename_all = "camelCase")]
 pub struct CoffeeBean {
     pub id: Uuid,
@@ -184,9 +184,11 @@ pub struct CreateGrinderRequest {
     pub description: Option<String>,
 }
 
-/// Grinder type enum (from rustyCoffy + BeanIt)
+/// Grinder type enum (from rustyCoffy + BeanIt).
+///
+/// Variants serialize using their Rust names (e.g. `BurrConical`) to match the
+/// `grinder_type` Postgres enum text values defined in the migration.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(rename_all = "camelCase")]
 pub enum GrinderType {
     BurrConical,
     BurrFlat,
@@ -220,9 +222,11 @@ impl GrinderType {
     }
 }
 
-/// Brewing method (from BeanIt + sump-it)
+/// Brewing method (from BeanIt + sump-it).
+///
+/// Variants serialize using their Rust names (e.g. `V60`, `FrenchPress`) to
+/// match the `brewing_method` Postgres enum text values in the migration.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(rename_all = "camelCase")]
 pub enum BrewingMethod {
     V60,
     Chemex,

@@ -3,10 +3,8 @@
 //! From BeanIt: Regex pattern validation for ratios
 //! From sump-it: Form field validation patterns
 
-use std::fmt;
-use regex::Regex;
 use thiserror::Error;
-use validator::{Validate, ValidationError, ValidationErrors};
+use validator::ValidationErrors;
 
 // Domain validation constants from rustyCoffy
 pub const COFFEE_RATIO_MIN: f32 = 15.0;
@@ -61,9 +59,6 @@ pub enum ValidationErrorType {
         available: f32, 
         required: f32 
     },
-    
-    #[error("Invalid coffee/water ratio format. Must be '1:15', '20:300', or '20g:300ml'")]
-    InvalidRatioFormat,
     
     #[error("Bean name cannot be empty")]
     BeanNameEmpty,
@@ -174,26 +169,6 @@ pub fn validate_grind_setting(
     Ok(())
 }
 
-/// Validates coffee/water ratio format (from BeanIt)
-pub fn validate_ratio_format(ratio: &str) -> Result<(), ValidationErrorType> {
-    if ratio.trim().is_empty() {
-        return Err(ValidationErrorType::InvalidRatioFormat);
-    }
-    
-    // Regex patterns from BeanIt
-    let ratio_patterns = [
-        Regex::new(r"^1:\d+(\.\d+)?$").unwrap(), // 1:15, 1:16.5
-        Regex::new(r"^\d+(\.\d+)?:\d+(\.\d+)?$").unwrap(), // 15:250, 20.5:300
-        Regex::new(r"^\d+(\.\d+)?g:\d+(\.\d+)?ml$").unwrap(), // 20g:300ml
-    ];
-    
-    if !ratio_patterns.iter().any(|pattern| pattern.is_match(ratio)) {
-        return Err(ValidationErrorType::InvalidRatioFormat);
-    }
-    
-    Ok(())
-}
-
 /// Validates bean quantity sufficiency (from rustyCoffy)
 pub fn validate_bean_quantity(
     available: Option<f32>, 
@@ -252,13 +227,17 @@ pub trait ComprehensiveValidate {
 /// Helper to convert validation errors to string
 pub fn validation_errors_to_string(errors: &ValidationErrors) -> String {
     let mut messages = Vec::new();
-    
+
     for (field, field_errors) in errors.field_errors() {
         for error in field_errors {
-            messages.push(format!("{}: {}", field, error.message.as_ref().unwrap_or(&"invalid".to_string())));
+            let message = error
+                .message
+                .as_deref()
+                .unwrap_or("invalid");
+            messages.push(format!("{}: {}", field, message));
         }
     }
-    
+
     messages.join(", ")
 }
 
@@ -290,22 +269,6 @@ mod tests {
         assert!(validate_rating(10.5).is_err()); // Above maximum
         assert!(validate_rating(5.3).is_err()); // Not in 0.5 increments
         assert!(validate_rating(5.7).is_err()); // Not in 0.5 increments
-    }
-
-    #[test]
-    fn test_validate_ratio_format() {
-        // Valid formats
-        assert!(validate_ratio_format("1:15").is_ok());
-        assert!(validate_ratio_format("1:16.5").is_ok());
-        assert!(validate_ratio_format("20:300").is_ok());
-        assert!(validate_ratio_format("20.5:300").is_ok());
-        assert!(validate_ratio_format("20g:300ml").is_ok());
-        
-        // Invalid formats
-        assert!(validate_ratio_format("").is_err());
-        assert!(validate_ratio_format("1:15:20").is_err()); // Too many colons
-        assert!(validate_ratio_format("abc:def").is_err()); // Non-numeric
-        assert!(validate_ratio_format("20g300ml").is_err()); // Missing colon
     }
 
     #[test]

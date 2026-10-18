@@ -1,8 +1,8 @@
 //! Bean service combining features from BeanIt and rustyCoffy
 //! Includes inventory management, validation, and comprehensive business logic
 
-use chrono::{Utc, NaiveDate};
-use sqlx::{PgPool, Row};
+use chrono::Utc;
+use sqlx::PgPool;
 use uuid::Uuid;
 use anyhow::{Result, Context};
 
@@ -261,7 +261,7 @@ impl<'a> BeanService<'a> {
 }
 
 /// Bean usage record for history tracking
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, serde::Serialize, sqlx::FromRow)]
 pub struct BeanUsageRecord {
     pub session_id: Uuid,
     pub brew_date: chrono::DateTime<Utc>,
