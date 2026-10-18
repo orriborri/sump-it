@@ -41,6 +41,9 @@ export default defineConfig({
         'lib/format.ts',
         'lib/grinders/validation.ts',
         'app/grinders/GrinderManager.tsx',
+        'lib/beans/inventory.ts',
+        'app/beans/BeanManager.tsx',
+        'app/beans/page.tsx',
       ],
       // The ONLY config-level (path-based) exclusion: ts-rs generated types.
       // These are produced by the backend build (`cargo test export_bindings`)

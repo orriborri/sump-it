@@ -15,14 +15,16 @@ use crate::{
     api::AppState,
     models::{CreateCoffeeBeanRequest, PaginatedResponse, ErrorResponse},
     services::beans::BeanService,
-    validation::{validate_bean_name, validation_errors_to_string},
+    validation::validation_errors_to_string,
 };
 
 pub fn router() -> Router<AppState> {
     Router::new()
         .route("/", get(list_beans).post(create_bean))
+        // The collection-level `/active` route must be registered before the
+        // `/:id` capture so it is not swallowed as an id segment.
+        .route("/active", get(get_active_beans))
         .route("/:id", get(get_bean).put(update_bean).delete(delete_bean))
-        .route("/:id/active", get(get_active_beans))
         .route("/:id/usage", get(get_bean_usage))
 }
 
@@ -64,8 +66,10 @@ async fn create_bean(
         ).into_response();
     }
     
-    // Additional validation
-    if let Err(e) = validate_bean_name(&payload.name) {
+    // Business-rule validation: non-empty name/origin, no future roast or
+    // purchase dates, and non-negative remaining grams. Each error names the
+    // offending field clearly.
+    if let Err(e) = payload.validate_comprehensive() {
         return (
             StatusCode::BAD_REQUEST,
             Json(ErrorResponse::new(e.to_string())),
@@ -117,6 +121,14 @@ async fn update_bean(
                 "Validation failed".to_string(),
                 vec![validation_errors_to_string(&validation_errors)],
             )),
+        ).into_response();
+    }
+
+    // Business-rule validation (same rules as create): clear, named errors.
+    if let Err(e) = payload.validate_comprehensive() {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse::new(e.to_string())),
         ).into_response();
     }
     

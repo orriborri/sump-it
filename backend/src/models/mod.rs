@@ -10,7 +10,8 @@ use uuid::Uuid;
 use ts_rs::TS;
 
 use crate::validation::{
-    validate_bean_name, validate_grinder_brand, validate_coffee_amount, 
+    validate_bean_name, validate_bean_origin, validate_remaining_grams,
+    validate_grinder_brand, validate_coffee_amount,
     validate_water_amount, validate_rating, validate_water_temperature,
     validate_brew_time, validate_grind_setting, validate_grinder_setting_range,
     validate_bean_quantity, ValidationErrorType, COFFEE_RATIO_MIN, COFFEE_RATIO_MAX,
@@ -70,24 +71,53 @@ impl CoffeeBean {
         Ok(())
     }
     
-    /// Validates bean data comprehensively
+    /// Validates bean data comprehensively.
+    ///
+    /// Rejects empty name/origin, future roast/purchase dates, and negative
+    /// remaining grams, each with a clearly named error. Shared with
+    /// [`CreateCoffeeBeanRequest::validate_comprehensive`] via
+    /// [`validate_bean_fields`].
     pub fn validate_comprehensive(&self) -> Result<(), ValidationErrorType> {
-        validate_bean_name(&self.name)?;
-        
-        if self.roast_date > Utc::now().naive_utc().date() {
-            return Err(ValidationErrorType::Validation(
-                "Roast date cannot be in the future".to_string()
-            ));
-        }
-        
-        if self.purchase_date > Utc::now().naive_utc().date() {
-            return Err(ValidationErrorType::Validation(
-                "Purchase date cannot be in the future".to_string()
-            ));
-        }
-        
-        Ok(())
+        validate_bean_fields(
+            &self.name,
+            &self.origin,
+            self.roast_date,
+            self.purchase_date,
+            self.remaining_grams,
+        )
     }
+}
+
+/// Validates the user-supplied fields shared by [`CoffeeBean`] and
+/// [`CreateCoffeeBeanRequest`].
+///
+/// This is the single source of truth for bean business rules: non-empty
+/// name and origin, no future roast/purchase dates, and non-negative remaining
+/// grams. Each failure returns a precise [`ValidationErrorType`] that names the
+/// offending field so the API can surface an actionable message.
+pub fn validate_bean_fields(
+    name: &str,
+    origin: &str,
+    roast_date: NaiveDate,
+    purchase_date: NaiveDate,
+    remaining_grams: Option<f32>,
+) -> Result<(), ValidationErrorType> {
+    validate_bean_name(name)?;
+    validate_bean_origin(origin)?;
+
+    let today = Utc::now().naive_utc().date();
+
+    if roast_date > today {
+        return Err(ValidationErrorType::RoastDateInFuture);
+    }
+
+    if purchase_date > today {
+        return Err(ValidationErrorType::PurchaseDateInFuture);
+    }
+
+    validate_remaining_grams(remaining_grams)?;
+
+    Ok(())
 }
 
 /// Request for creating a new coffee bean
@@ -106,6 +136,21 @@ pub struct CreateCoffeeBeanRequest {
     pub remaining_grams: Option<f32>,
     pub variety: Option<String>,
     pub processing_method: Option<String>,
+}
+
+impl CreateCoffeeBeanRequest {
+    /// Applies the shared bean business rules to an incoming create/update
+    /// request before it is persisted: non-empty name/origin, no future
+    /// roast/purchase dates, and non-negative remaining grams.
+    pub fn validate_comprehensive(&self) -> Result<(), ValidationErrorType> {
+        validate_bean_fields(
+            &self.name,
+            &self.origin,
+            self.roast_date,
+            self.purchase_date,
+            self.remaining_grams,
+        )
+    }
 }
 
 /// Grinder equipment with setting ranges (from rustyCoffy + BeanIt)
@@ -478,6 +523,24 @@ pub struct PaginatedResponse<T> {
     pub has_more: bool,
 }
 
+/// A single usage record for a coffee bean: one brewing session that consumed
+/// the bean, flattened for display in the bean's usage history.
+///
+/// Captures what the inventory UI needs per the spec: when the bean was brewed,
+/// how much was used, the resulting rating, and the grinder and method used.
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct BeanUsageRecord {
+    pub session_id: Uuid,
+    pub brew_date: DateTime<Utc>,
+    pub grams_used: f32,
+    pub rating: Option<f32>,
+    pub grinder_used: String,
+    pub brewing_method: String,
+    pub tasting_notes: Option<String>,
+}
+
 /// Error response
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
@@ -602,23 +665,125 @@ mod tests {
 
     #[test]
     fn coffee_bean_validate_comprehensive() {
+        use crate::validation::ValidationErrorType;
+
         let valid = sample_bean(Some(100.0), 5);
         assert!(valid.validate_comprehensive().is_ok());
+
+        // Untracked quantity (None) still validates.
+        let untracked = sample_bean(None, 5);
+        assert!(untracked.validate_comprehensive().is_ok());
+
+        // Zero remaining grams is acceptable (non-negative).
+        let empty_bag = sample_bean(Some(0.0), 5);
+        assert!(empty_bag.validate_comprehensive().is_ok());
 
         // Empty name is rejected.
         let mut bad_name = sample_bean(Some(100.0), 5);
         bad_name.name = "   ".to_string();
-        assert!(bad_name.validate_comprehensive().is_err());
+        assert!(matches!(
+            bad_name.validate_comprehensive(),
+            Err(ValidationErrorType::BeanNameEmpty)
+        ));
 
-        // Future roast date is rejected.
+        // Empty origin is rejected.
+        let mut bad_origin = sample_bean(Some(100.0), 5);
+        bad_origin.origin = "  ".to_string();
+        assert!(matches!(
+            bad_origin.validate_comprehensive(),
+            Err(ValidationErrorType::BeanOriginEmpty)
+        ));
+
+        // Future roast date is rejected with a named error.
         let mut future_roast = sample_bean(Some(100.0), 5);
         future_roast.roast_date = Utc::now().naive_utc().date() + Duration::days(1);
-        assert!(future_roast.validate_comprehensive().is_err());
+        assert!(matches!(
+            future_roast.validate_comprehensive(),
+            Err(ValidationErrorType::RoastDateInFuture)
+        ));
 
-        // Future purchase date is rejected.
+        // Future purchase date is rejected with a named error.
         let mut future_purchase = sample_bean(Some(100.0), 5);
         future_purchase.purchase_date = Utc::now().naive_utc().date() + Duration::days(1);
-        assert!(future_purchase.validate_comprehensive().is_err());
+        assert!(matches!(
+            future_purchase.validate_comprehensive(),
+            Err(ValidationErrorType::PurchaseDateInFuture)
+        ));
+
+        // Negative remaining grams is rejected with a named error.
+        let mut negative = sample_bean(Some(-1.0), 5);
+        negative.remaining_grams = Some(-1.0);
+        assert!(matches!(
+            negative.validate_comprehensive(),
+            Err(ValidationErrorType::NegativeRemainingGrams { .. })
+        ));
+    }
+
+    #[test]
+    fn create_bean_request_validate_comprehensive() {
+        use crate::validation::ValidationErrorType;
+
+        let today = Utc::now().naive_utc().date();
+        let base = CreateCoffeeBeanRequest {
+            name: "Ethiopia Yirgacheffe".to_string(),
+            origin: "Ethiopia".to_string(),
+            roast_date: today - Duration::days(5),
+            purchase_date: today - Duration::days(3),
+            remaining_grams: Some(250.0),
+            variety: Some("Heirloom".to_string()),
+            processing_method: Some("Washed".to_string()),
+        };
+
+        // A well-formed request validates.
+        assert!(base.validate_comprehensive().is_ok());
+
+        // Empty name rejected.
+        let bad_name = CreateCoffeeBeanRequest { name: "  ".to_string(), ..base.clone() };
+        assert!(matches!(
+            bad_name.validate_comprehensive(),
+            Err(ValidationErrorType::BeanNameEmpty)
+        ));
+
+        // Empty origin rejected.
+        let bad_origin = CreateCoffeeBeanRequest { origin: "".to_string(), ..base.clone() };
+        assert!(matches!(
+            bad_origin.validate_comprehensive(),
+            Err(ValidationErrorType::BeanOriginEmpty)
+        ));
+
+        // Future roast date rejected.
+        let future_roast = CreateCoffeeBeanRequest {
+            roast_date: today + Duration::days(1),
+            ..base.clone()
+        };
+        assert!(matches!(
+            future_roast.validate_comprehensive(),
+            Err(ValidationErrorType::RoastDateInFuture)
+        ));
+
+        // Future purchase date rejected.
+        let future_purchase = CreateCoffeeBeanRequest {
+            purchase_date: today + Duration::days(1),
+            ..base.clone()
+        };
+        assert!(matches!(
+            future_purchase.validate_comprehensive(),
+            Err(ValidationErrorType::PurchaseDateInFuture)
+        ));
+
+        // Negative remaining grams rejected.
+        let negative = CreateCoffeeBeanRequest {
+            remaining_grams: Some(-10.0),
+            ..base.clone()
+        };
+        assert!(matches!(
+            negative.validate_comprehensive(),
+            Err(ValidationErrorType::NegativeRemainingGrams { .. })
+        ));
+
+        // Untracked quantity validates.
+        let untracked = CreateCoffeeBeanRequest { remaining_grams: None, ..base.clone() };
+        assert!(untracked.validate_comprehensive().is_ok());
     }
 
     #[test]

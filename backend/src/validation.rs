@@ -77,6 +77,18 @@ pub enum ValidationErrorType {
     
     #[error("Bean name cannot be empty")]
     BeanNameEmpty,
+
+    #[error("Bean origin cannot be empty")]
+    BeanOriginEmpty,
+
+    #[error("Roast date cannot be in the future")]
+    RoastDateInFuture,
+
+    #[error("Purchase date cannot be in the future")]
+    PurchaseDateInFuture,
+
+    #[error("Remaining grams cannot be negative, got: {grams}")]
+    NegativeRemainingGrams { grams: f32 },
     
     #[error("Grinder brand cannot be empty")]
     GrinderBrandEmpty,
@@ -241,6 +253,39 @@ pub fn validate_grinder_setting_range(
     Ok(())
 }
 
+/// Validates bean origin (non-empty, length-bounded).
+///
+/// Mirrors [`validate_bean_name`]: origin is a required, human-entered field
+/// and an empty or whitespace-only value is a user error that must be named
+/// clearly rather than stored.
+pub fn validate_bean_origin(origin: &str) -> Result<(), ValidationErrorType> {
+    if origin.trim().is_empty() {
+        return Err(ValidationErrorType::BeanOriginEmpty);
+    }
+
+    if origin.len() > 100 {
+        return Err(ValidationErrorType::Validation(
+            "Bean origin must be 100 characters or less".to_string(),
+        ));
+    }
+
+    Ok(())
+}
+
+/// Validates an optional remaining-grams quantity.
+///
+/// Quantity tracking is optional (`None` means "not tracked"), but when a
+/// value is present it must be non-negative. A negative quantity is a user
+/// error reported with the offending value so the message is actionable.
+pub fn validate_remaining_grams(remaining_grams: Option<f32>) -> Result<(), ValidationErrorType> {
+    if let Some(grams) = remaining_grams {
+        if grams < 0.0 {
+            return Err(ValidationErrorType::NegativeRemainingGrams { grams });
+        }
+    }
+    Ok(())
+}
+
 /// Validates grinder brand (from sump-it patterns)
 pub fn validate_grinder_brand(brand: &str) -> Result<(), ValidationErrorType> {
     if brand.trim().is_empty() {
@@ -398,6 +443,27 @@ mod tests {
     }
 
     #[test]
+    fn test_validate_bean_origin() {
+        assert!(validate_bean_origin("Ethiopia").is_ok());
+        assert!(validate_bean_origin("   ").is_err()); // Empty after trim
+        assert!(validate_bean_origin("").is_err());
+        assert!(validate_bean_origin(&"x".repeat(101)).is_err()); // Too long
+        assert!(validate_bean_origin(&"x".repeat(100)).is_ok()); // Exactly max
+    }
+
+    #[test]
+    fn test_validate_remaining_grams() {
+        // Untracked quantity is always acceptable.
+        assert!(validate_remaining_grams(None).is_ok());
+        // Non-negative quantities pass, including zero.
+        assert!(validate_remaining_grams(Some(0.0)).is_ok());
+        assert!(validate_remaining_grams(Some(250.0)).is_ok());
+        // Negative quantities are rejected.
+        assert!(validate_remaining_grams(Some(-0.1)).is_err());
+        assert!(validate_remaining_grams(Some(-50.0)).is_err());
+    }
+
+    #[test]
     fn test_validate_grinder_brand() {
         assert!(validate_grinder_brand("Comandante").is_ok());
         assert!(validate_grinder_brand("  ").is_err()); // Empty after trim
@@ -425,6 +491,10 @@ mod tests {
             ValidationErrorType::MethodBrewTimeInvalid { method: "Espresso".to_string(), time: 5, min: 15, max: 60 },
             ValidationErrorType::InsufficientBeanQuantity { available: 5.0, required: 20.0 },
             ValidationErrorType::BeanNameEmpty,
+            ValidationErrorType::BeanOriginEmpty,
+            ValidationErrorType::RoastDateInFuture,
+            ValidationErrorType::PurchaseDateInFuture,
+            ValidationErrorType::NegativeRemainingGrams { grams: -5.0 },
             ValidationErrorType::GrinderBrandEmpty,
         ];
         for err in errors {
