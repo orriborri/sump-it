@@ -2,10 +2,10 @@
 //! Combines best practices from BeanIt, sump-it, and rustyCoffy
 
 // The domain models, validation helpers, and service methods are consolidated
-// up front but only the beans slice is wired into the API so far. The grinder,
-// session, and feedback slices are connected by later tickets (#142/#143 and
-// the feedback ticket), so allow dead code until those handlers land rather
-// than deleting functionality those tickets depend on.
+// up front. The beans and grinder slices are now fully wired into the API; the
+// session and feedback slices are connected by later tickets, so allow dead
+// code until those handlers land rather than deleting functionality those
+// tickets depend on.
 #![allow(dead_code)]
 // Enable `#[coverage(off)]` on the binary's bootstrap/wiring when the coverage
 // harness sets the `coverage_nightly` cfg. No effect on ordinary builds.

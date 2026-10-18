@@ -216,6 +216,31 @@ pub fn validate_bean_name(name: &str) -> Result<(), ValidationErrorType> {
     Ok(())
 }
 
+/// Validates a grinder's setting range: the minimum must be non-negative and
+/// the maximum must be strictly greater than the minimum. Mirrors the
+/// `CHECK (min_setting >= 0)` and `CHECK (max_setting > min_setting)`
+/// constraints in the database schema so the same rule is enforced before a
+/// row is ever written. Shared by the API handlers and `Grinder::validate_comprehensive`.
+pub fn validate_grinder_setting_range(
+    min_setting: i32,
+    max_setting: i32,
+) -> Result<(), ValidationErrorType> {
+    if min_setting < 0 {
+        return Err(ValidationErrorType::Validation(
+            "Minimum setting must be non-negative".to_string(),
+        ));
+    }
+
+    if max_setting <= min_setting {
+        return Err(ValidationErrorType::Validation(format!(
+            "Maximum setting ({}) must be greater than minimum setting ({})",
+            max_setting, min_setting
+        )));
+    }
+
+    Ok(())
+}
+
 /// Validates grinder brand (from sump-it patterns)
 pub fn validate_grinder_brand(brand: &str) -> Result<(), ValidationErrorType> {
     if brand.trim().is_empty() {
@@ -354,6 +379,22 @@ mod tests {
         assert!(validate_bean_name("").is_err());
         assert!(validate_bean_name(&"x".repeat(101)).is_err()); // Too long
         assert!(validate_bean_name(&"x".repeat(100)).is_ok()); // Exactly max
+    }
+
+    #[test]
+    fn test_validate_grinder_setting_range() {
+        // Valid ranges.
+        assert!(validate_grinder_setting_range(0, 40).is_ok());
+        assert!(validate_grinder_setting_range(5, 6).is_ok());
+
+        // Negative minimum is rejected.
+        assert!(validate_grinder_setting_range(-1, 40).is_err());
+
+        // Maximum equal to the minimum is rejected.
+        assert!(validate_grinder_setting_range(10, 10).is_err());
+
+        // Maximum below the minimum is rejected.
+        assert!(validate_grinder_setting_range(10, 5).is_err());
     }
 
     #[test]

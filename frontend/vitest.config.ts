@@ -2,6 +2,12 @@ import { defineConfig } from 'vitest/config';
 import { fileURLToPath } from 'node:url';
 
 export default defineConfig({
+  // Use the automatic JSX runtime so test and component files do not need an
+  // explicit `import React`. Matches Next.js's `jsx: preserve` + React 18
+  // automatic runtime behaviour.
+  esbuild: {
+    jsx: 'automatic',
+  },
   resolve: {
     alias: {
       // Mirror the `@/*` path alias from tsconfig.json so tests import the same
@@ -31,7 +37,11 @@ export default defineConfig({
       // gate. It grows as later tickets add tested modules (handlers, hooks,
       // components). Keeping it explicit means a new file is never silently
       // left uncovered: it either gets tests or is added here deliberately.
-      include: ['lib/format.ts'],
+      include: [
+        'lib/format.ts',
+        'lib/grinders/validation.ts',
+        'app/grinders/GrinderManager.tsx',
+      ],
       // The ONLY config-level (path-based) exclusion: ts-rs generated types.
       // These are produced by the backend build (`cargo test export_bindings`)
       // and must never be edited or tested by hand. Everything else is covered

@@ -12,7 +12,7 @@ use ts_rs::TS;
 use crate::validation::{
     validate_bean_name, validate_grinder_brand, validate_coffee_amount, 
     validate_water_amount, validate_rating, validate_water_temperature,
-    validate_brew_time, validate_grind_setting,
+    validate_brew_time, validate_grind_setting, validate_grinder_setting_range,
     validate_bean_quantity, ValidationErrorType, COFFEE_RATIO_MIN, COFFEE_RATIO_MAX,
 };
 
@@ -109,7 +109,7 @@ pub struct CreateCoffeeBeanRequest {
 }
 
 /// Grinder equipment with setting ranges (from rustyCoffy + BeanIt)
-#[derive(Debug, Clone, Serialize, Deserialize, Validate, TS)]
+#[derive(Debug, Clone, Serialize, Deserialize, Validate, sqlx::FromRow, TS)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
 pub struct Grinder {
@@ -151,22 +151,7 @@ impl Grinder {
     /// Comprehensive validation
     pub fn validate_comprehensive(&self) -> Result<(), ValidationErrorType> {
         validate_grinder_brand(&self.brand)?;
-        
-        if self.min_setting < 0 {
-            return Err(ValidationErrorType::Validation(
-                "Minimum setting must be non-negative".to_string()
-            ));
-        }
-        
-        if self.max_setting <= self.min_setting {
-            return Err(ValidationErrorType::Validation(
-                format!(
-                    "Maximum setting ({}) must be greater than minimum setting ({})",
-                    self.max_setting, self.min_setting
-                )
-            ));
-        }
-        
+        validate_grinder_setting_range(self.min_setting, self.max_setting)?;
         Ok(())
     }
 }
@@ -193,7 +178,8 @@ pub struct CreateGrinderRequest {
 ///
 /// Variants serialize using their Rust names (e.g. `BurrConical`) to match the
 /// `grinder_type` Postgres enum text values defined in the migration.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, TS)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, sqlx::Type, TS)]
+#[sqlx(type_name = "grinder_type")]
 #[ts(export)]
 pub enum GrinderType {
     BurrConical,
