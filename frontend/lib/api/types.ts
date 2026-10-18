@@ -6,6 +6,7 @@
 // this barrel so the rest of the frontend has one stable import path.
 export type { CoffeeBean } from '../generated/CoffeeBean';
 export type { CreateCoffeeBeanRequest } from '../generated/CreateCoffeeBeanRequest';
+export type { BeanUsageRecord } from '../generated/BeanUsageRecord';
 export type { Grinder } from '../generated/Grinder';
 export type { CreateGrinderRequest } from '../generated/CreateGrinderRequest';
 export type { GrinderType } from '../generated/GrinderType';

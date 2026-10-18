@@ -6,7 +6,7 @@ use sqlx::PgPool;
 use uuid::Uuid;
 use anyhow::{Result, Context};
 
-use crate::models::{CoffeeBean, CreateCoffeeBeanRequest};
+use crate::models::{BeanUsageRecord, CoffeeBean, CreateCoffeeBeanRequest};
 
 /// Service for managing coffee beans
 pub struct BeanService<'a> {
@@ -258,16 +258,4 @@ impl<'a> BeanService<'a> {
         
         Ok(beans)
     }
-}
-
-/// Bean usage record for history tracking
-#[derive(Debug, serde::Serialize, sqlx::FromRow)]
-pub struct BeanUsageRecord {
-    pub session_id: Uuid,
-    pub brew_date: chrono::DateTime<Utc>,
-    pub grams_used: f32,
-    pub rating: Option<f32>,
-    pub grinder_used: String,
-    pub brewing_method: String,
-    pub tasting_notes: Option<String>,
 }

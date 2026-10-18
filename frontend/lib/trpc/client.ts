@@ -7,6 +7,7 @@
 // those generated types end to end, so there is no `any` in the contract.
 
 import type {
+  BeanUsageRecord,
   BrewFeedback,
   BrewingSession,
   CoffeeBean,
@@ -132,7 +133,7 @@ export const coffeeBrewerClient = {
 
     getActive: () => apiFetch<CoffeeBean[]>('/beans/active'),
 
-    getUsage: (id: string) => apiFetch<BrewingSession[]>(`/beans/${id}/usage`),
+    getUsage: (id: string) => apiFetch<BeanUsageRecord[]>(`/beans/${id}/usage`),
   },
 
   grinders: {
