@@ -11,10 +11,7 @@ use ts_rs::TS;
 
 use crate::validation::{
     validate_bean_name, validate_bean_origin, validate_remaining_grams,
-    validate_grinder_brand, validate_coffee_amount,
-    validate_water_amount, validate_rating, validate_water_temperature,
-    validate_brew_time, validate_grind_setting, validate_grinder_setting_range,
-    validate_bean_quantity, ValidationErrorType, COFFEE_RATIO_MIN, COFFEE_RATIO_MAX,
+    validate_grinder_brand, validate_grinder_setting_range, ValidationErrorType,
 };
 
 /// Coffee bean with inventory tracking (from rustyCoffy + BeanIt)
@@ -43,34 +40,6 @@ pub struct CoffeeBean {
 }
 
 impl CoffeeBean {
-    /// Checks if there are sufficient beans for a brewing session (from rustyCoffy)
-    pub fn has_sufficient_quantity(&self, required_grams: f32) -> bool {
-        match self.remaining_grams {
-            Some(available) => available >= required_grams,
-            None => true, // If not tracking quantity, assume sufficient
-        }
-    }
-    
-    /// Gets the age of the beans in days since roast date (from rustyCoffy)
-    pub fn days_since_roast(&self) -> i64 {
-        let today = Utc::now().naive_utc().date();
-        (today - self.roast_date).num_days()
-    }
-    
-    /// Checks if beans are still fresh (within 30 days of roast) (from rustyCoffy)
-    pub fn is_fresh(&self) -> bool {
-        self.days_since_roast() <= 30
-    }
-    
-    /// Updates remaining quantity after use (from rustyCoffy)
-    pub fn use_beans(&mut self, grams_used: f32) -> Result<(), ValidationErrorType> {
-        if let Some(ref mut remaining) = self.remaining_grams {
-            validate_bean_quantity(Some(*remaining), grams_used)?;
-            *remaining -= grams_used;
-        }
-        Ok(())
-    }
-    
     /// Validates bean data comprehensively.
     ///
     /// Rejects empty name/origin, future roast/purchase dates, and negative
@@ -186,11 +155,6 @@ impl Grinder {
     /// Validates if a grind setting is within this grinder's range (from rustyCoffy)
     pub fn is_valid_setting(&self, setting: i32) -> bool {
         setting >= self.min_setting && setting <= self.max_setting
-    }
-    
-    /// Gets the range of valid settings for this grinder (from rustyCoffy)
-    pub fn setting_range(&self) -> std::ops::RangeInclusive<i32> {
-        self.min_setting..=self.max_setting
     }
     
     /// Comprehensive validation
@@ -343,16 +307,6 @@ pub struct BrewingSession {
 }
 
 impl BrewingSession {
-    /// Calculates the coffee to water ratio (from rustyCoffy)
-    pub fn calculate_coffee_ratio(&self) -> f32 {
-        self.water_grams / self.coffee_grams
-    }
-    
-    /// Checks if this session has a high rating (>= 7.0) (from rustyCoffy)
-    pub fn is_high_quality(&self) -> bool {
-        self.rating.map_or(false, |r| r >= 7.0)
-    }
-    
     /// Builds the request that duplicates this session (ticket #146).
     ///
     /// A duplicate re-brews the SAME recipe, so only the brewing PARAMETERS are
@@ -386,57 +340,6 @@ impl BrewingSession {
             // A duplicate is a concrete brew to log, never a template.
             is_template: false,
         }
-    }
-    
-    /// Comprehensive validation
-    pub fn validate_comprehensive(
-        &self,
-        grinder: &Grinder,
-        bean: &CoffeeBean,
-    ) -> Result<(), ValidationErrorType> {
-        // Validate coffee amount
-        validate_coffee_amount(self.coffee_grams)?;
-        
-        // Validate water amount
-        validate_water_amount(self.water_grams)?;
-        
-        // Validate coffee to water ratio
-        let ratio = self.calculate_coffee_ratio();
-        if ratio < COFFEE_RATIO_MIN || ratio > COFFEE_RATIO_MAX {
-            return Err(ValidationErrorType::CoffeeRatioInvalid {
-                ratio,
-                min: COFFEE_RATIO_MIN,
-                max: COFFEE_RATIO_MAX,
-            });
-        }
-        
-        // Validate grind setting
-        validate_grind_setting(
-            self.grind_setting,
-            grinder.min_setting,
-            grinder.max_setting,
-            &grinder.full_name(),
-        )?;
-        
-        // Validate bean quantity
-        validate_bean_quantity(bean.remaining_grams, self.coffee_grams)?;
-        
-        // Validate rating if provided
-        if let Some(rating) = self.rating {
-            validate_rating(rating)?;
-        }
-        
-        // Validate water temperature if provided
-        if let Some(water_temp) = self.water_temp_celsius {
-            validate_water_temperature(water_temp)?;
-        }
-        
-        // Validate brew time if provided
-        if let Some(brew_time) = self.brew_time_seconds {
-            validate_brew_time(brew_time)?;
-        }
-        
-        Ok(())
     }
 }
 
@@ -707,44 +610,6 @@ mod tests {
     }
 
     #[test]
-    fn coffee_bean_has_sufficient_quantity() {
-        let tracked = sample_bean(Some(30.0), 1);
-        assert!(tracked.has_sufficient_quantity(20.0));
-        assert!(tracked.has_sufficient_quantity(30.0));
-        assert!(!tracked.has_sufficient_quantity(40.0));
-
-        let untracked = sample_bean(None, 1);
-        assert!(untracked.has_sufficient_quantity(1000.0));
-    }
-
-    #[test]
-    fn coffee_bean_freshness() {
-        let fresh = sample_bean(Some(100.0), 10);
-        assert_eq!(fresh.days_since_roast(), 10);
-        assert!(fresh.is_fresh());
-
-        let stale = sample_bean(Some(100.0), 45);
-        assert_eq!(stale.days_since_roast(), 45);
-        assert!(!stale.is_fresh());
-    }
-
-    #[test]
-    fn coffee_bean_use_beans() {
-        let mut tracked = sample_bean(Some(30.0), 1);
-        tracked.use_beans(20.0).unwrap();
-        assert_eq!(tracked.remaining_grams, Some(10.0));
-
-        // Using more than available is rejected and leaves quantity untouched.
-        assert!(tracked.use_beans(50.0).is_err());
-        assert_eq!(tracked.remaining_grams, Some(10.0));
-
-        // Untracked beans succeed without changing anything.
-        let mut untracked = sample_bean(None, 1);
-        untracked.use_beans(20.0).unwrap();
-        assert_eq!(untracked.remaining_grams, None);
-    }
-
-    #[test]
     fn coffee_bean_validate_comprehensive() {
         use crate::validation::ValidationErrorType;
 
@@ -876,7 +741,6 @@ mod tests {
         assert!(grinder.is_valid_setting(40));
         assert!(!grinder.is_valid_setting(-1));
         assert!(!grinder.is_valid_setting(41));
-        assert_eq!(grinder.setting_range(), 0..=40);
     }
 
     #[test]
@@ -934,21 +798,6 @@ mod tests {
     }
 
     #[test]
-    fn session_calculate_ratio_and_quality() {
-        let session = sample_session(20.0, 320.0);
-        assert_eq!(session.calculate_coffee_ratio(), 16.0);
-        assert!(session.is_high_quality());
-
-        let mut low = sample_session(20.0, 320.0);
-        low.rating = Some(5.0);
-        assert!(!low.is_high_quality());
-
-        let mut unrated = sample_session(20.0, 320.0);
-        unrated.rating = None;
-        assert!(!unrated.is_high_quality());
-    }
-
-    #[test]
     fn session_to_duplicate_request() {
         // Start from a template session with a rating and full notes so the
         // drop-behaviour is actually exercised.
@@ -974,58 +823,6 @@ mod tests {
         // A duplicate is a fresh brew, never a template, even if the original
         // was one.
         assert!(!dup.is_template);
-    }
-
-    #[test]
-    fn session_validate_comprehensive() {
-        let grinder = sample_grinder(0, 40);
-        let bean = sample_bean(Some(100.0), 5);
-
-        let valid = sample_session(20.0, 320.0);
-        assert!(valid.validate_comprehensive(&grinder, &bean).is_ok());
-
-        // Coffee amount out of range.
-        let bad_coffee = sample_session(5.0, 320.0);
-        assert!(bad_coffee.validate_comprehensive(&grinder, &bean).is_err());
-
-        // Water amount out of range.
-        let bad_water = sample_session(20.0, 100.0);
-        assert!(bad_water.validate_comprehensive(&grinder, &bean).is_err());
-
-        // Ratio out of range (valid amounts but ratio below the accepted band).
-        let bad_ratio = sample_session(50.0, 320.0);
-        assert!(bad_ratio.validate_comprehensive(&grinder, &bean).is_err());
-
-        // Grind setting out of the grinder's range.
-        let mut bad_grind = sample_session(20.0, 320.0);
-        bad_grind.grind_setting = 999;
-        assert!(bad_grind.validate_comprehensive(&grinder, &bean).is_err());
-
-        // Insufficient bean quantity.
-        let low_bean = sample_bean(Some(5.0), 5);
-        assert!(valid.validate_comprehensive(&grinder, &low_bean).is_err());
-
-        // Invalid rating.
-        let mut bad_rating = sample_session(20.0, 320.0);
-        bad_rating.rating = Some(5.3);
-        assert!(bad_rating.validate_comprehensive(&grinder, &bean).is_err());
-
-        // Invalid water temperature.
-        let mut bad_temp = sample_session(20.0, 320.0);
-        bad_temp.water_temp_celsius = Some(10);
-        assert!(bad_temp.validate_comprehensive(&grinder, &bean).is_err());
-
-        // Invalid brew time.
-        let mut bad_time = sample_session(20.0, 320.0);
-        bad_time.brew_time_seconds = Some(5);
-        assert!(bad_time.validate_comprehensive(&grinder, &bean).is_err());
-
-        // Optional fields absent still validate.
-        let mut no_optionals = sample_session(20.0, 320.0);
-        no_optionals.rating = None;
-        no_optionals.water_temp_celsius = None;
-        no_optionals.brew_time_seconds = None;
-        assert!(no_optionals.validate_comprehensive(&grinder, &bean).is_ok());
     }
 
     #[test]

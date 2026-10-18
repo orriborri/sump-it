@@ -34,13 +34,3 @@ pub async fn init_pool() -> Result<PgPool> {
 
     Ok(pool)
 }
-
-/// Health check for database connection.
-pub async fn health_check(pool: &PgPool) -> Result<bool> {
-    let result: (i64,) = sqlx::query_as("SELECT 1")
-        .fetch_one(pool)
-        .await
-        .context("Database health check failed")?;
-
-    Ok(result.0 == 1)
-}

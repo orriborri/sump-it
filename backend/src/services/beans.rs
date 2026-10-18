@@ -213,49 +213,4 @@ impl<'a> BeanService<'a> {
         
         Ok(history)
     }
-    
-    /// Update bean quantity after brewing (from rustyCoffy)
-    pub async fn update_bean_quantity(&self, bean_id: Uuid, grams_used: f32) -> Result<bool> {
-        let result = sqlx::query(
-            r#"
-            UPDATE coffee_beans
-            SET 
-                remaining_grams = GREATEST(0, COALESCE(remaining_grams, 0) - $2),
-                updated_at = $3
-            WHERE id = $1 AND is_active = true
-            "#
-        )
-        .bind(bean_id)
-        .bind(grams_used)
-        .bind(Utc::now())
-        .execute(self.pool)
-        .await
-        .context("Failed to update bean quantity")?;
-        
-        Ok(result.rows_affected() > 0)
-    }
-    
-    /// Check if beans are fresh (within 30 days of roast) (from rustyCoffy)
-    pub async fn get_fresh_beans(&self) -> Result<Vec<CoffeeBean>> {
-        let thirty_days_ago = Utc::now().naive_utc().date() - chrono::Duration::days(30);
-        
-        let beans = sqlx::query_as::<_, CoffeeBean>(
-            r#"
-            SELECT 
-                id, name, origin, roast_date, purchase_date, 
-                remaining_grams, variety, processing_method, is_active,
-                created_at, updated_at
-            FROM coffee_beans
-            WHERE is_active = true 
-            AND roast_date >= $1
-            ORDER BY roast_date DESC
-            "#
-        )
-        .bind(thirty_days_ago)
-        .fetch_all(self.pool)
-        .await
-        .context("Failed to fetch fresh beans")?;
-        
-        Ok(beans)
-    }
 }
