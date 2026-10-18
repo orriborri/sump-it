@@ -36,14 +36,29 @@ A comprehensive coffee brewing tracker application combining the best features f
 3. Backend API: http://localhost:3001
 4. Database: PostgreSQL on port 5432
 
-## Agent Skills
-This repository has Matt Pocock's skills installed for improved engineering workflows. Available skills include:
-- `/grill-me` - For detailed requirements gathering
-- `/code-review` - For code quality checks
-- `/tdd` - For test-driven development
-- `/implement` - For implementation tasks
-- `/setup-matt-pocock-skills` - For configuring skills
-- And many more...
+## Agent skills
+
+### Issue tracker
+Issues are tracked in GitHub Issues at https://github.com/orriborri/sump-it/issues. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+Uses default triage label vocabulary: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+Single-context documentation with `GLOSSARY.md` at repo root and `docs/` directory for additional documentation. See `docs/agents/domain.md`.
+
+## Available Skills
+This repository has Matt Pocock's complete skill set installed (38 skills) including:
+- `/grill-me` - For detailed requirements gathering and alignment
+- `/code-review` - For comprehensive code quality checks
+- `/tdd` - For test-driven development workflows
+- `/implement` - For structured implementation tasks
+- `/setup-matt-pocock-skills` - For repository configuration
+- `/diagnosing-bugs` - For systematic bug diagnosis
+- `/domain-modeling` - For domain-driven design
+- `/handoff` - For smooth task handoffs
+- `/prototype` - For rapid prototyping
+- And 29 more engineering skills
 
 ## Issue Tracking
 - Uses GitHub Issues: https://github.com/orriborri/sump-it/issues
