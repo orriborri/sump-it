@@ -295,4 +295,101 @@ mod tests {
         assert!(validate_grind_setting(-1, 0, 40, "Comandante C40").is_err()); // Below min
         assert!(validate_grind_setting(41, 0, 40, "Comandante C40").is_err()); // Above max
     }
+
+    #[test]
+    fn test_validate_coffee_amount() {
+        assert!(validate_coffee_amount(COFFEE_AMOUNT_MIN).is_ok());
+        assert!(validate_coffee_amount(COFFEE_AMOUNT_MAX).is_ok());
+        assert!(validate_coffee_amount(50.0).is_ok());
+        assert!(validate_coffee_amount(COFFEE_AMOUNT_MIN - 0.1).is_err());
+        assert!(validate_coffee_amount(COFFEE_AMOUNT_MAX + 0.1).is_err());
+    }
+
+    #[test]
+    fn test_validate_water_amount() {
+        assert!(validate_water_amount(WATER_AMOUNT_MIN).is_ok());
+        assert!(validate_water_amount(WATER_AMOUNT_MAX).is_ok());
+        assert!(validate_water_amount(320.0).is_ok());
+        assert!(validate_water_amount(WATER_AMOUNT_MIN - 0.1).is_err());
+        assert!(validate_water_amount(WATER_AMOUNT_MAX + 0.1).is_err());
+    }
+
+    #[test]
+    fn test_validate_brew_time() {
+        assert!(validate_brew_time(BREW_TIME_MIN).is_ok());
+        assert!(validate_brew_time(BREW_TIME_MAX).is_ok());
+        assert!(validate_brew_time(180).is_ok());
+        assert!(validate_brew_time(BREW_TIME_MIN - 1).is_err());
+        assert!(validate_brew_time(BREW_TIME_MAX + 1).is_err());
+    }
+
+    #[test]
+    fn test_validate_water_temperature() {
+        assert!(validate_water_temperature(WATER_TEMP_MIN).is_ok());
+        assert!(validate_water_temperature(WATER_TEMP_MAX).is_ok());
+        assert!(validate_water_temperature(93).is_ok());
+        assert!(validate_water_temperature(WATER_TEMP_MIN - 1).is_err());
+        assert!(validate_water_temperature(WATER_TEMP_MAX + 1).is_err());
+    }
+
+    #[test]
+    fn test_validate_bean_name() {
+        assert!(validate_bean_name("Ethiopia Yirgacheffe").is_ok());
+        assert!(validate_bean_name("   ").is_err()); // Empty after trim
+        assert!(validate_bean_name("").is_err());
+        assert!(validate_bean_name(&"x".repeat(101)).is_err()); // Too long
+        assert!(validate_bean_name(&"x".repeat(100)).is_ok()); // Exactly max
+    }
+
+    #[test]
+    fn test_validate_grinder_brand() {
+        assert!(validate_grinder_brand("Comandante").is_ok());
+        assert!(validate_grinder_brand("  ").is_err()); // Empty after trim
+        assert!(validate_grinder_brand(&"x".repeat(101)).is_err()); // Too long
+        assert!(validate_grinder_brand(&"x".repeat(100)).is_ok()); // Exactly max
+    }
+
+    #[test]
+    fn test_error_display_messages() {
+        // Exercise the Display implementation for every error variant so the
+        // error-mapping formatting is covered.
+        let errors = vec![
+            ValidationErrorType::Validation("boom".to_string()),
+            ValidationErrorType::CoffeeRatioInvalid { ratio: 18.0, min: COFFEE_RATIO_MIN, max: COFFEE_RATIO_MAX },
+            ValidationErrorType::InvalidQualityRating { rating: 5.3, min: RATING_MIN, max: RATING_MAX },
+            ValidationErrorType::InvalidCoffeeAmount { amount: 5.0, min: COFFEE_AMOUNT_MIN, max: COFFEE_AMOUNT_MAX },
+            ValidationErrorType::InvalidWaterAmount { amount: 10.0, min: WATER_AMOUNT_MIN, max: WATER_AMOUNT_MAX },
+            ValidationErrorType::InvalidBrewTime { time: 10, min: BREW_TIME_MIN, max: BREW_TIME_MAX },
+            ValidationErrorType::InvalidWaterTemperature { temp: 50, min: WATER_TEMP_MIN, max: WATER_TEMP_MAX },
+            ValidationErrorType::GrindSettingOutOfRange { setting: 99, min: 0, max: 40, grinder: "C40".to_string() },
+            ValidationErrorType::InsufficientBeanQuantity { available: 5.0, required: 20.0 },
+            ValidationErrorType::BeanNameEmpty,
+            ValidationErrorType::GrinderBrandEmpty,
+        ];
+        for err in errors {
+            // Formatting must produce a non-empty message for each variant.
+            assert!(!err.to_string().is_empty());
+        }
+    }
+
+    #[test]
+    fn test_validation_errors_to_string() {
+        use validator::ValidationError;
+
+        // Empty errors collection yields an empty string.
+        let empty = ValidationErrors::new();
+        assert_eq!(validation_errors_to_string(&empty), "");
+
+        // A field error with a message is rendered as "field: message".
+        let mut with_message = ValidationErrors::new();
+        let mut msg_err = ValidationError::new("length");
+        msg_err.message = Some("too short".into());
+        with_message.add("name", msg_err);
+        assert_eq!(validation_errors_to_string(&with_message), "name: too short");
+
+        // A field error without a message falls back to "invalid".
+        let mut without_message = ValidationErrors::new();
+        without_message.add("origin", ValidationError::new("required"));
+        assert_eq!(validation_errors_to_string(&without_message), "origin: invalid");
+    }
 }

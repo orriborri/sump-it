@@ -516,3 +516,297 @@ impl ErrorResponse {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::Duration;
+
+    fn sample_bean(remaining: Option<f32>, roast_offset_days: i64) -> CoffeeBean {
+        let today = Utc::now().naive_utc().date();
+        CoffeeBean {
+            id: Uuid::new_v4(),
+            name: "Ethiopia Yirgacheffe".to_string(),
+            origin: "Ethiopia".to_string(),
+            roast_date: today - Duration::days(roast_offset_days),
+            purchase_date: today - Duration::days(roast_offset_days),
+            remaining_grams: remaining,
+            variety: Some("Heirloom".to_string()),
+            processing_method: Some("Washed".to_string()),
+            is_active: true,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        }
+    }
+
+    fn sample_grinder(min: i32, max: i32) -> Grinder {
+        Grinder {
+            id: Uuid::new_v4(),
+            brand: "Comandante".to_string(),
+            model: "C40".to_string(),
+            grinder_type: GrinderType::BurrConical,
+            min_setting: min,
+            max_setting: max,
+            scale_type: Some("step".to_string()),
+            description: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        }
+    }
+
+    fn sample_session(coffee: f32, water: f32) -> BrewingSession {
+        BrewingSession {
+            id: Uuid::new_v4(),
+            bean_id: Uuid::new_v4(),
+            grinder_id: Uuid::new_v4(),
+            brewing_method: BrewingMethod::V60,
+            grind_setting: 20,
+            water_temp_celsius: Some(93),
+            brew_time_seconds: Some(180),
+            coffee_grams: coffee,
+            water_grams: water,
+            rating: Some(8.0),
+            tasting_notes: Some("Floral".to_string()),
+            feedback: Some("Great".to_string()),
+            suggestions: Some("None".to_string()),
+            is_template: false,
+            coffee_ratio: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        }
+    }
+
+    #[test]
+    fn coffee_bean_has_sufficient_quantity() {
+        let tracked = sample_bean(Some(30.0), 1);
+        assert!(tracked.has_sufficient_quantity(20.0));
+        assert!(tracked.has_sufficient_quantity(30.0));
+        assert!(!tracked.has_sufficient_quantity(40.0));
+
+        let untracked = sample_bean(None, 1);
+        assert!(untracked.has_sufficient_quantity(1000.0));
+    }
+
+    #[test]
+    fn coffee_bean_freshness() {
+        let fresh = sample_bean(Some(100.0), 10);
+        assert_eq!(fresh.days_since_roast(), 10);
+        assert!(fresh.is_fresh());
+
+        let stale = sample_bean(Some(100.0), 45);
+        assert_eq!(stale.days_since_roast(), 45);
+        assert!(!stale.is_fresh());
+    }
+
+    #[test]
+    fn coffee_bean_use_beans() {
+        let mut tracked = sample_bean(Some(30.0), 1);
+        tracked.use_beans(20.0).unwrap();
+        assert_eq!(tracked.remaining_grams, Some(10.0));
+
+        // Using more than available is rejected and leaves quantity untouched.
+        assert!(tracked.use_beans(50.0).is_err());
+        assert_eq!(tracked.remaining_grams, Some(10.0));
+
+        // Untracked beans succeed without changing anything.
+        let mut untracked = sample_bean(None, 1);
+        untracked.use_beans(20.0).unwrap();
+        assert_eq!(untracked.remaining_grams, None);
+    }
+
+    #[test]
+    fn coffee_bean_validate_comprehensive() {
+        let valid = sample_bean(Some(100.0), 5);
+        assert!(valid.validate_comprehensive().is_ok());
+
+        // Empty name is rejected.
+        let mut bad_name = sample_bean(Some(100.0), 5);
+        bad_name.name = "   ".to_string();
+        assert!(bad_name.validate_comprehensive().is_err());
+
+        // Future roast date is rejected.
+        let mut future_roast = sample_bean(Some(100.0), 5);
+        future_roast.roast_date = Utc::now().naive_utc().date() + Duration::days(1);
+        assert!(future_roast.validate_comprehensive().is_err());
+
+        // Future purchase date is rejected.
+        let mut future_purchase = sample_bean(Some(100.0), 5);
+        future_purchase.purchase_date = Utc::now().naive_utc().date() + Duration::days(1);
+        assert!(future_purchase.validate_comprehensive().is_err());
+    }
+
+    #[test]
+    fn grinder_helpers() {
+        let grinder = sample_grinder(0, 40);
+        assert_eq!(grinder.full_name(), "Comandante C40");
+        assert!(grinder.is_valid_setting(20));
+        assert!(grinder.is_valid_setting(0));
+        assert!(grinder.is_valid_setting(40));
+        assert!(!grinder.is_valid_setting(-1));
+        assert!(!grinder.is_valid_setting(41));
+        assert_eq!(grinder.setting_range(), 0..=40);
+    }
+
+    #[test]
+    fn grinder_validate_comprehensive() {
+        let valid = sample_grinder(0, 40);
+        assert!(valid.validate_comprehensive().is_ok());
+
+        // Empty brand is rejected.
+        let mut bad_brand = sample_grinder(0, 40);
+        bad_brand.brand = "  ".to_string();
+        assert!(bad_brand.validate_comprehensive().is_err());
+
+        // Negative minimum setting is rejected.
+        let negative_min = sample_grinder(-1, 40);
+        assert!(negative_min.validate_comprehensive().is_err());
+
+        // Max not greater than min is rejected.
+        let inverted = sample_grinder(40, 40);
+        assert!(inverted.validate_comprehensive().is_err());
+    }
+
+    #[test]
+    fn grinder_type_round_trip() {
+        let all = [
+            (GrinderType::BurrConical, "BurrConical"),
+            (GrinderType::BurrFlat, "BurrFlat"),
+            (GrinderType::Blade, "Blade"),
+            (GrinderType::Manual, "Manual"),
+            (GrinderType::Electric, "Electric"),
+        ];
+        for (variant, text) in all {
+            assert_eq!(variant.to_string(), text);
+            assert_eq!(GrinderType::from_string(text).unwrap(), variant);
+        }
+        assert!(GrinderType::from_string("Nonsense").is_err());
+    }
+
+    #[test]
+    fn brewing_method_round_trip() {
+        let all = [
+            (BrewingMethod::V60, "V60"),
+            (BrewingMethod::Chemex, "Chemex"),
+            (BrewingMethod::FrenchPress, "FrenchPress"),
+            (BrewingMethod::AeroPress, "AeroPress"),
+            (BrewingMethod::Espresso, "Espresso"),
+            (BrewingMethod::Moka, "Moka"),
+            (BrewingMethod::ColdBrew, "ColdBrew"),
+            (BrewingMethod::Other, "Other"),
+        ];
+        for (variant, text) in all {
+            assert_eq!(variant.to_string(), text);
+            assert_eq!(BrewingMethod::from_string(text).unwrap(), variant);
+        }
+        assert!(BrewingMethod::from_string("Nonsense").is_err());
+    }
+
+    #[test]
+    fn session_calculate_ratio_and_quality() {
+        let session = sample_session(20.0, 320.0);
+        assert_eq!(session.calculate_coffee_ratio(), 16.0);
+        assert!(session.is_high_quality());
+
+        let mut low = sample_session(20.0, 320.0);
+        low.rating = Some(5.0);
+        assert!(!low.is_high_quality());
+
+        let mut unrated = sample_session(20.0, 320.0);
+        unrated.rating = None;
+        assert!(!unrated.is_high_quality());
+    }
+
+    #[test]
+    fn session_to_duplicate_request() {
+        let session = sample_session(20.0, 320.0);
+        let dup = session.to_duplicate_request();
+        assert_eq!(dup.bean_id, session.bean_id);
+        assert_eq!(dup.grinder_id, session.grinder_id);
+        assert_eq!(dup.brewing_method, session.brewing_method);
+        assert_eq!(dup.coffee_grams, session.coffee_grams);
+        // Rating and notes are intentionally dropped when duplicating.
+        assert!(dup.rating.is_none());
+        assert!(dup.tasting_notes.is_none());
+        assert!(dup.feedback.is_none());
+        assert!(dup.suggestions.is_none());
+    }
+
+    #[test]
+    fn session_validate_comprehensive() {
+        let grinder = sample_grinder(0, 40);
+        let bean = sample_bean(Some(100.0), 5);
+
+        let valid = sample_session(20.0, 320.0);
+        assert!(valid.validate_comprehensive(&grinder, &bean).is_ok());
+
+        // Coffee amount out of range.
+        let bad_coffee = sample_session(5.0, 320.0);
+        assert!(bad_coffee.validate_comprehensive(&grinder, &bean).is_err());
+
+        // Water amount out of range.
+        let bad_water = sample_session(20.0, 100.0);
+        assert!(bad_water.validate_comprehensive(&grinder, &bean).is_err());
+
+        // Ratio out of range (valid amounts but ratio below the accepted band).
+        let bad_ratio = sample_session(50.0, 320.0);
+        assert!(bad_ratio.validate_comprehensive(&grinder, &bean).is_err());
+
+        // Grind setting out of the grinder's range.
+        let mut bad_grind = sample_session(20.0, 320.0);
+        bad_grind.grind_setting = 999;
+        assert!(bad_grind.validate_comprehensive(&grinder, &bean).is_err());
+
+        // Insufficient bean quantity.
+        let low_bean = sample_bean(Some(5.0), 5);
+        assert!(valid.validate_comprehensive(&grinder, &low_bean).is_err());
+
+        // Invalid rating.
+        let mut bad_rating = sample_session(20.0, 320.0);
+        bad_rating.rating = Some(5.3);
+        assert!(bad_rating.validate_comprehensive(&grinder, &bean).is_err());
+
+        // Invalid water temperature.
+        let mut bad_temp = sample_session(20.0, 320.0);
+        bad_temp.water_temp_celsius = Some(10);
+        assert!(bad_temp.validate_comprehensive(&grinder, &bean).is_err());
+
+        // Invalid brew time.
+        let mut bad_time = sample_session(20.0, 320.0);
+        bad_time.brew_time_seconds = Some(5);
+        assert!(bad_time.validate_comprehensive(&grinder, &bean).is_err());
+
+        // Optional fields absent still validate.
+        let mut no_optionals = sample_session(20.0, 320.0);
+        no_optionals.rating = None;
+        no_optionals.water_temp_celsius = None;
+        no_optionals.brew_time_seconds = None;
+        assert!(no_optionals.validate_comprehensive(&grinder, &bean).is_ok());
+    }
+
+    #[test]
+    fn session_filter_default() {
+        let filter = SessionFilter::default();
+        assert_eq!(filter.limit, Some(50));
+        assert_eq!(filter.offset, Some(0));
+        assert!(filter.bean_origin.is_none());
+        assert!(filter.roast_date_from.is_none());
+        assert!(filter.roast_date_to.is_none());
+        assert!(filter.grinder_type.is_none());
+        assert!(filter.brewing_method.is_none());
+        assert!(filter.rating_min.is_none());
+    }
+
+    #[test]
+    fn error_response_constructors() {
+        let simple = ErrorResponse::new("boom".to_string());
+        assert_eq!(simple.error, "boom");
+        assert!(simple.details.is_none());
+
+        let detailed = ErrorResponse::with_details(
+            "bad".to_string(),
+            vec!["field: invalid".to_string()],
+        );
+        assert_eq!(detailed.error, "bad");
+        assert_eq!(detailed.details.unwrap().len(), 1);
+    }
+}

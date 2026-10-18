@@ -7,17 +7,28 @@
 // the feedback ticket), so allow dead code until those handlers land rather
 // than deleting functionality those tickets depend on.
 #![allow(dead_code)]
+// Enable `#[coverage(off)]` on the binary's bootstrap/wiring when the coverage
+// harness sets the `coverage_nightly` cfg. No effect on ordinary builds.
+#![cfg_attr(coverage_nightly, feature(coverage_attribute))]
+
+// The database-independent core (validation + models) lives in the library
+// crate so the coverage gate can enforce 100% line coverage over it with
+// `cargo llvm-cov --lib`. The binary re-exports those modules under the same
+// `crate::` paths the API and service layers already use.
+use coffee_brewer_backend::{models, validation};
 
 mod api;
-mod models;
 mod services;
 mod database;
-mod validation;
 
 use std::net::SocketAddr;
 use axum::{Router, routing::get, http::StatusCode};
 use tower_http::cors::CorsLayer;
 
+// coverage: process bootstrap - wires tracing, env loading, the database pool,
+// the router, and the TCP listener; exercised by running the server, not unit
+// tests. Excluded per docs/coverage.md (process bootstrap/wiring).
+#[cfg_attr(coverage_nightly, coverage(off))]
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     // Initialize tracing

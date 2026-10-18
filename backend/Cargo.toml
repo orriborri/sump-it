@@ -33,3 +33,10 @@ rstest = "0.18"
 [features]
 default = []
 test-utils = []
+
+# `coverage_nightly` is a custom cfg set by the coverage harness (see
+# `docs/coverage.md` and the `coverage` npm/make target). Registering it here
+# keeps `cargo build`/`clippy` free of `unexpected_cfgs` warnings while the cfg
+# stays off for ordinary builds.
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage_nightly)'] }
