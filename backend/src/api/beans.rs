@@ -1,0 +1,211 @@
+//! Beans API endpoints
+//! Combines features from BeanIt and rustyCoffy
+
+use axum::{
+    extract::{Path, Query, State},
+    http::StatusCode,
+    response::IntoResponse,
+    Json, Router,
+    routing::{get, post, put, delete},
+};
+use serde_json::json;
+use sqlx::PgPool;
+use uuid::Uuid;
+
+use crate::{
+    models::{CoffeeBean, CreateCoffeeBeanRequest, PaginatedResponse, ErrorResponse},
+    services::beans::BeanService,
+    validation::{validate_bean_name, validation_errors_to_string},
+};
+
+pub fn router() -> Router<axum::extract::State<Arc<AppState>>> {
+    Router::new()
+        .route("/", get(list_beans).post(create_bean))
+        .route("/:id", get(get_bean).put(update_bean).delete(delete_bean))
+        .route("/:id/active", get(get_active_beans))
+        .route("/:id/usage", get(get_bean_usage))
+}
+
+/// List all coffee beans with pagination
+async fn list_beans(
+    State(state): State<Arc<AppState>>,
+    Query(params): Query<ListParams>,
+) -> impl IntoResponse {
+    let service = BeanService::new(&state.pool);
+    
+    match service.list_beans(params.page, params.limit).await {
+        Ok((beans, total)) => Json(PaginatedResponse {
+            items: beans,
+            total,
+            page: params.page.unwrap_or(1),
+            page_size: params.limit.unwrap_or(50),
+            has_more: total > (params.page.unwrap_or(1) * params.limit.unwrap_or(50)) as i64,
+        }).into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ErrorResponse::new(format!("Failed to list beans: {}", e))),
+        ).into_response(),
+    }
+}
+
+/// Create a new coffee bean
+async fn create_bean(
+    State(state): State<Arc<AppState>>,
+    Json(payload): Json<CreateCoffeeBeanRequest>,
+) -> impl IntoResponse {
+    // Validate input
+    if let Err(validation_errors) = payload.validate() {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse::with_details(
+                "Validation failed".to_string(),
+                vec![validation_errors_to_string(&validation_errors)],
+            )),
+        ).into_response();
+    }
+    
+    // Additional validation
+    if let Err(e) = validate_bean_name(&payload.name) {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse::new(e.to_string())),
+        ).into_response();
+    }
+    
+    let service = BeanService::new(&state.pool);
+    
+    match service.create_bean(payload).await {
+        Ok(bean) => (StatusCode::CREATED, Json(bean)).into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ErrorResponse::new(format!("Failed to create bean: {}", e))),
+        ).into_response(),
+    }
+}
+
+/// Get a specific coffee bean by ID
+async fn get_bean(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<Uuid>,
+) -> impl IntoResponse {
+    let service = BeanService::new(&state.pool);
+    
+    match service.get_bean(id).await {
+        Ok(Some(bean)) => Json(bean).into_response(),
+        Ok(None) => (
+            StatusCode::NOT_FOUND,
+            Json(ErrorResponse::new("Coffee bean not found".to_string())),
+        ).into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ErrorResponse::new(format!("Failed to get bean: {}", e))),
+        ).into_response(),
+    }
+}
+
+/// Update a coffee bean
+async fn update_bean(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<Uuid>,
+    Json(payload): Json<CreateCoffeeBeanRequest>,
+) -> impl IntoResponse {
+    // Validate input
+    if let Err(validation_errors) = payload.validate() {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse::with_details(
+                "Validation failed".to_string(),
+                vec![validation_errors_to_string(&validation_errors)],
+            )),
+        ).into_response();
+    }
+    
+    let service = BeanService::new(&state.pool);
+    
+    match service.update_bean(id, payload).await {
+        Ok(Some(bean)) => Json(bean).into_response(),
+        Ok(None) => (
+            StatusCode::NOT_FOUND,
+            Json(ErrorResponse::new("Coffee bean not found".to_string())),
+        ).into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ErrorResponse::new(format!("Failed to update bean: {}", e))),
+        ).into_response(),
+    }
+}
+
+/// Delete a coffee bean
+async fn delete_bean(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<Uuid>,
+) -> impl IntoResponse {
+    let service = BeanService::new(&state.pool);
+    
+    match service.delete_bean(id).await {
+        Ok(true) => (StatusCode::NO_CONTENT, ()).into_response(),
+        Ok(false) => (
+            StatusCode::NOT_FOUND,
+            Json(ErrorResponse::new("Coffee bean not found".to_string())),
+        ).into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ErrorResponse::new(format!("Failed to delete bean: {}", e))),
+        ).into_response(),
+    }
+}
+
+/// Get only active beans (with remaining quantity > 0)
+async fn get_active_beans(
+    State(state): State<Arc<AppState>>,
+) -> impl IntoResponse {
+    let service = BeanService::new(&state.pool);
+    
+    match service.get_active_beans().await {
+        Ok(beans) => Json(beans).into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ErrorResponse::new(format!("Failed to get active beans: {}", e))),
+        ).into_response(),
+    }
+}
+
+/// Get usage history for a bean
+async fn get_bean_usage(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<Uuid>,
+) -> impl IntoResponse {
+    let service = BeanService::new(&state.pool);
+    
+    match service.get_bean_usage_history(id).await {
+        Ok(history) => Json(history).into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ErrorResponse::new(format!("Failed to get bean usage: {}", e))),
+        ).into_response(),
+    }
+}
+
+/// Query parameters for listing beans
+#[derive(Debug, serde::Deserialize)]
+struct ListParams {
+    page: Option<i32>,
+    limit: Option<i32>,
+}
+
+impl Default for ListParams {
+    fn default() -> Self {
+        Self {
+            page: Some(1),
+            limit: Some(50),
+        }
+    }
+}
+
+/// Application state
+#[derive(Clone)]
+struct AppState {
+    pool: PgPool,
+}
+
+use std::sync::Arc;
