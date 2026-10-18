@@ -7,6 +7,7 @@ use chrono::{DateTime, Utc, NaiveDate};
 use serde::{Deserialize, Serialize};
 use validator::Validate;
 use uuid::Uuid;
+use ts_rs::TS;
 
 use crate::validation::{
     validate_bean_name, validate_grinder_brand, validate_coffee_amount, 
@@ -16,8 +17,9 @@ use crate::validation::{
 };
 
 /// Coffee bean with inventory tracking (from rustyCoffy + BeanIt)
-#[derive(Debug, Clone, Serialize, Deserialize, Validate, sqlx::FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize, Validate, sqlx::FromRow, TS)]
 #[serde(rename_all = "camelCase")]
+#[ts(export)]
 pub struct CoffeeBean {
     pub id: Uuid,
     
@@ -89,8 +91,9 @@ impl CoffeeBean {
 }
 
 /// Request for creating a new coffee bean
-#[derive(Debug, Clone, Serialize, Deserialize, Validate)]
+#[derive(Debug, Clone, Serialize, Deserialize, Validate, TS)]
 #[serde(rename_all = "camelCase")]
+#[ts(export)]
 pub struct CreateCoffeeBeanRequest {
     #[validate(length(min = 1, max = 100))]
     pub name: String,
@@ -106,8 +109,9 @@ pub struct CreateCoffeeBeanRequest {
 }
 
 /// Grinder equipment with setting ranges (from rustyCoffy + BeanIt)
-#[derive(Debug, Clone, Serialize, Deserialize, Validate)]
+#[derive(Debug, Clone, Serialize, Deserialize, Validate, TS)]
 #[serde(rename_all = "camelCase")]
+#[ts(export)]
 pub struct Grinder {
     pub id: Uuid,
     
@@ -168,8 +172,9 @@ impl Grinder {
 }
 
 /// Request for creating a new grinder
-#[derive(Debug, Clone, Serialize, Deserialize, Validate)]
+#[derive(Debug, Clone, Serialize, Deserialize, Validate, TS)]
 #[serde(rename_all = "camelCase")]
+#[ts(export)]
 pub struct CreateGrinderRequest {
     #[validate(length(min = 1, max = 100))]
     pub brand: String,
@@ -188,7 +193,8 @@ pub struct CreateGrinderRequest {
 ///
 /// Variants serialize using their Rust names (e.g. `BurrConical`) to match the
 /// `grinder_type` Postgres enum text values defined in the migration.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, TS)]
+#[ts(export)]
 pub enum GrinderType {
     BurrConical,
     BurrFlat,
@@ -226,7 +232,8 @@ impl GrinderType {
 ///
 /// Variants serialize using their Rust names (e.g. `V60`, `FrenchPress`) to
 /// match the `brewing_method` Postgres enum text values in the migration.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, TS)]
+#[ts(export)]
 pub enum BrewingMethod {
     V60,
     Chemex,
@@ -270,8 +277,9 @@ impl BrewingMethod {
 }
 
 /// Brewing session - comprehensive tracking (from all three applications)
-#[derive(Debug, Clone, Serialize, Deserialize, Validate)]
+#[derive(Debug, Clone, Serialize, Deserialize, Validate, TS)]
 #[serde(rename_all = "camelCase")]
+#[ts(export)]
 pub struct BrewingSession {
     pub id: Uuid,
     
@@ -385,8 +393,9 @@ impl BrewingSession {
 }
 
 /// Request for creating a new brewing session
-#[derive(Debug, Clone, Serialize, Deserialize, Validate)]
+#[derive(Debug, Clone, Serialize, Deserialize, Validate, TS)]
 #[serde(rename_all = "camelCase")]
+#[ts(export)]
 pub struct CreateBrewingSessionRequest {
     pub bean_id: Uuid,
     pub grinder_id: Uuid,
@@ -415,8 +424,9 @@ pub struct CreateBrewingSessionRequest {
 }
 
 /// Brew feedback with detailed ratings (from sump-it)
-#[derive(Debug, Clone, Serialize, Deserialize, Validate)]
+#[derive(Debug, Clone, Serialize, Deserialize, Validate, TS)]
 #[serde(rename_all = "camelCase")]
+#[ts(export)]
 pub struct BrewFeedback {
     pub id: Uuid,
     pub session_id: Uuid,
@@ -441,8 +451,9 @@ pub struct BrewFeedback {
 }
 
 /// Filter for brewing sessions (from rustyCoffy)
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
+#[ts(export)]
 pub struct SessionFilter {
     pub bean_origin: Option<String>,
     pub roast_date_from: Option<NaiveDate>,
@@ -470,8 +481,9 @@ impl Default for SessionFilter {
 }
 
 /// Response for paginated results
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
+#[ts(export)]
 pub struct PaginatedResponse<T> {
     pub items: Vec<T>,
     pub total: i64,
@@ -481,8 +493,9 @@ pub struct PaginatedResponse<T> {
 }
 
 /// Error response
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
+#[ts(export)]
 pub struct ErrorResponse {
     pub error: String,
     pub details: Option<Vec<String>>,

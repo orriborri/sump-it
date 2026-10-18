@@ -1,25 +1,70 @@
-// tRPC client setup for type-safe API calls
-// This creates a tRPC client that communicates with our Rust backend
-// The Rust backend exposes REST endpoints that we can call directly
+// Thin, fully typed REST client for the Rust backend.
+//
+// The backend is a plain REST service (Axum), not a tRPC/Node server, so there
+// is no router to infer types from. Instead the request/response types are
+// generated from the Rust models by ts-rs (see `lib/generated/` and the
+// backend `cargo test export_bindings`). This client wraps `fetch` and uses
+// those generated types end to end, so there is no `any` in the contract.
 
-import { createTRPCReact } from '@trpc/react-query';
-import type { AppRouter } from './router';
-
-export const trpc = createTRPCReact<AppRouter>();
-
-// We'll create a custom client since our backend is Rust, not a tRPC Node.js server
-// This is a wrapper around fetch calls with type safety
-
-import superjson from 'superjson';
+import type {
+  BrewFeedback,
+  BrewingSession,
+  CoffeeBean,
+  CreateBrewingSessionRequest,
+  CreateCoffeeBeanRequest,
+  CreateGrinderRequest,
+  ErrorResponse,
+  Grinder,
+  PaginatedResponse,
+} from '../api/types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
+/** Discriminated result wrapper returned by every client call. */
 export type ApiResponse<T> = {
   data?: T;
   error?: string;
   details?: string[];
 };
 
+/** Query parameters accepted by the list endpoints. */
+export interface ListParams {
+  page?: number;
+  limit?: number;
+}
+
+/** Extra filters accepted by the session list endpoint. */
+export interface SessionListParams extends ListParams {
+  beanOrigin?: string;
+  ratingMin?: number;
+  brewingMethod?: string;
+}
+
+/** Body accepted when writing brew feedback for a session. */
+export type BrewFeedbackInput = Omit<
+  BrewFeedback,
+  'id' | 'sessionId' | 'createdAt' | 'updatedAt'
+>;
+
+function buildQuery(params?: Record<string, string | number | undefined>): string {
+  if (!params) {
+    return '';
+  }
+  const search = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined) {
+      search.set(key, String(value));
+    }
+  }
+  const query = search.toString();
+  return query ? `?${query}` : '';
+}
+
+/**
+ * Perform a typed request against the backend. The caller declares the success
+ * payload type `T`; errors are surfaced through the `error`/`details` fields
+ * (shaped like the generated `ErrorResponse`) rather than thrown.
+ */
 export async function apiFetch<T>(
   endpoint: string,
   options?: RequestInit
@@ -35,14 +80,21 @@ export async function apiFetch<T>(
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
+      const errorData = (await response
+        .json()
+        .catch(() => ({}))) as Partial<ErrorResponse>;
       return {
-        error: errorData.error || `HTTP ${response.status}: ${response.statusText}`,
-        details: errorData.details,
+        error: errorData.error ?? `HTTP ${response.status}: ${response.statusText}`,
+        details: errorData.details ?? undefined,
       };
     }
 
-    const data = await response.json();
+    // 204 No Content (e.g. DELETE) has no body to parse.
+    if (response.status === 204) {
+      return { data: undefined };
+    }
+
+    const data = (await response.json()) as T;
     return { data };
   } catch (error) {
     return {
@@ -51,135 +103,115 @@ export async function apiFetch<T>(
   }
 }
 
-// Custom tRPC-like client for our Rust backend
+/** Typed client grouped by resource. Mirrors the backend REST routes. */
 export const coffeeBrewerClient = {
   beans: {
-    list: (params?: { page?: number; limit?: number }) =>
-      apiFetch<{
-        items: any[];
-        total: number;
-        page: number;
-        pageSize: number;
-        hasMore: boolean;
-      }>(`/beans?${new URLSearchParams(params as any)}`),
-    
-    get: (id: string) => apiFetch<any>(`/beans/${id}`),
-    
-    create: (data: any) =>
-      apiFetch<any>('/beans', {
+    list: (params?: ListParams) =>
+      apiFetch<PaginatedResponse<CoffeeBean>>(
+        `/beans${buildQuery({ page: params?.page, limit: params?.limit })}`
+      ),
+
+    get: (id: string) => apiFetch<CoffeeBean>(`/beans/${id}`),
+
+    create: (data: CreateCoffeeBeanRequest) =>
+      apiFetch<CoffeeBean>('/beans', {
         method: 'POST',
         body: JSON.stringify(data),
       }),
-    
-    update: (id: string, data: any) =>
-      apiFetch<any>(`/beans/${id}`, {
+
+    update: (id: string, data: CreateCoffeeBeanRequest) =>
+      apiFetch<CoffeeBean>(`/beans/${id}`, {
         method: 'PUT',
         body: JSON.stringify(data),
       }),
-    
+
     delete: (id: string) =>
       apiFetch<void>(`/beans/${id}`, {
         method: 'DELETE',
       }),
-    
-    getActive: () => apiFetch<any[]>('/beans/active'),
-    
-    getUsage: (id: string) => apiFetch<any[]>(`/beans/${id}/usage`),
+
+    getActive: () => apiFetch<CoffeeBean[]>('/beans/active'),
+
+    getUsage: (id: string) => apiFetch<BrewingSession[]>(`/beans/${id}/usage`),
   },
-  
+
   grinders: {
-    list: (params?: { page?: number; limit?: number }) =>
-      apiFetch<{
-        items: any[];
-        total: number;
-        page: number;
-        pageSize: number;
-        hasMore: boolean;
-      }>(`/grinders?${new URLSearchParams(params as any)}`),
-    
-    get: (id: string) => apiFetch<any>(`/grinders/${id}`),
-    
-    create: (data: any) =>
-      apiFetch<any>('/grinders', {
+    list: (params?: ListParams) =>
+      apiFetch<PaginatedResponse<Grinder>>(
+        `/grinders${buildQuery({ page: params?.page, limit: params?.limit })}`
+      ),
+
+    get: (id: string) => apiFetch<Grinder>(`/grinders/${id}`),
+
+    create: (data: CreateGrinderRequest) =>
+      apiFetch<Grinder>('/grinders', {
         method: 'POST',
         body: JSON.stringify(data),
       }),
-    
-    update: (id: string, data: any) =>
-      apiFetch<any>(`/grinders/${id}`, {
+
+    update: (id: string, data: CreateGrinderRequest) =>
+      apiFetch<Grinder>(`/grinders/${id}`, {
         method: 'PUT',
         body: JSON.stringify(data),
       }),
-    
+
     delete: (id: string) =>
       apiFetch<void>(`/grinders/${id}`, {
         method: 'DELETE',
       }),
   },
-  
+
   sessions: {
-    list: (params?: { 
-      page?: number; 
-      limit?: number;
-      beanOrigin?: string;
-      ratingMin?: number;
-      brewingMethod?: string;
-    }) => {
-      const queryParams = new URLSearchParams();
-      if (params?.page) queryParams.set('page', params.page.toString());
-      if (params?.limit) queryParams.set('limit', params.limit.toString());
-      if (params?.beanOrigin) queryParams.set('beanOrigin', params.beanOrigin);
-      if (params?.ratingMin) queryParams.set('ratingMin', params.ratingMin.toString());
-      if (params?.brewingMethod) queryParams.set('brewingMethod', params.brewingMethod);
-      
-      return apiFetch<{
-        items: any[];
-        total: number;
-        page: number;
-        pageSize: number;
-        hasMore: boolean;
-      }>(`/sessions?${queryParams}`);
-    },
-    
-    get: (id: string) => apiFetch<any>(`/sessions/${id}`),
-    
-    create: (data: any) =>
-      apiFetch<any>('/sessions', {
+    list: (params?: SessionListParams) =>
+      apiFetch<PaginatedResponse<BrewingSession>>(
+        `/sessions${buildQuery({
+          page: params?.page,
+          limit: params?.limit,
+          beanOrigin: params?.beanOrigin,
+          ratingMin: params?.ratingMin,
+          brewingMethod: params?.brewingMethod,
+        })}`
+      ),
+
+    get: (id: string) => apiFetch<BrewingSession>(`/sessions/${id}`),
+
+    create: (data: CreateBrewingSessionRequest) =>
+      apiFetch<BrewingSession>('/sessions', {
         method: 'POST',
         body: JSON.stringify(data),
       }),
-    
-    update: (id: string, data: any) =>
-      apiFetch<any>(`/sessions/${id}`, {
+
+    update: (id: string, data: CreateBrewingSessionRequest) =>
+      apiFetch<BrewingSession>(`/sessions/${id}`, {
         method: 'PUT',
         body: JSON.stringify(data),
       }),
-    
+
     delete: (id: string) =>
       apiFetch<void>(`/sessions/${id}`, {
         method: 'DELETE',
       }),
-    
+
     duplicate: (id: string) =>
-      apiFetch<any>(`/sessions/${id}/duplicate`, {
+      apiFetch<BrewingSession>(`/sessions/${id}/duplicate`, {
         method: 'POST',
       }),
-    
+
     search: (query: string) =>
-      apiFetch<any[]>(`/sessions/search?q=${encodeURIComponent(query)}`),
+      apiFetch<BrewingSession[]>(`/sessions/search?q=${encodeURIComponent(query)}`),
   },
-  
+
   feedback: {
-    get: (sessionId: string) => apiFetch<any>(`/feedback/${sessionId}`),
-    
-    create: (sessionId: string, data: any) =>
-      apiFetch<any>(`/feedback/${sessionId}`, {
+    get: (sessionId: string) => apiFetch<BrewFeedback>(`/feedback/${sessionId}`),
+
+    create: (sessionId: string, data: BrewFeedbackInput) =>
+      apiFetch<BrewFeedback>(`/feedback/${sessionId}`, {
         method: 'POST',
         body: JSON.stringify(data),
       }),
-    
-    update: (sessionId: string, data: any) =>
-      apiFetch<any>(`/feedback/${sessionId}`, {
+
+    update: (sessionId: string, data: BrewFeedbackInput) =>
+      apiFetch<BrewFeedback>(`/feedback/${sessionId}`, {
         method: 'PUT',
         body: JSON.stringify(data),
       }),

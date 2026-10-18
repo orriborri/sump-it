@@ -2,15 +2,15 @@
   "name": "coffee-brewer-frontend",
   "version": "0.1.0",
   "private": true,
-  "description": "Next.js frontend for consolidated coffee brewing application with tRPC",
+  "description": "Next.js frontend for consolidated coffee brewing application (typed REST client over the Rust backend)",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
     "type-check": "tsc --noEmit",
-    "generate-types": "openapi-typescript http://localhost:3001/api/openapi.json --output ./lib/types/api.d.ts",
-    "generate-trpc": "tsx ./scripts/generate-trpc.ts"
+    "generate-types": "cd ../backend && cargo test export_bindings",
+    "check-types-fresh": "npm run generate-types && git diff --exit-code -- lib/generated"
   },
   "dependencies": {
     "@mui/material": "^6.1.3",
@@ -18,15 +18,10 @@
     "@emotion/styled": "^11.11.5",
     "@mui/icons-material": "^6.1.3",
     "@tanstack/react-query": "^4.36.1",
-    "@trpc/client": "^10.45.0",
-    "@trpc/next": "^10.45.0",
-    "@trpc/react-query": "^10.45.0",
-    "@trpc/server": "^10.45.0",
     "next": "15.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "zod": "^3.22.4",
-    "superjson": "^2.2.1"
+    "zod": "^3.22.4"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
@@ -38,8 +33,7 @@
     "postcss": "^8.0.0",
     "tailwindcss": "^3.0.0",
     "typescript": "^5.0.0",
-    "tsx": "^4.0.0",
-    "openapi-typescript": "^6.0.0"
+    "tsx": "^4.0.0"
   },
   "engines": {
     "node": ">=18.0.0"

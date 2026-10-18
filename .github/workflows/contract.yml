@@ -1,0 +1,57 @@
+name: Contract (types + type-check)
+
+# Verifies the TypeScript<->Rust contract:
+#   1. Regenerate the TS types from the Rust models (ts-rs) and fail if the
+#      checked-in files under frontend/lib/generated are stale.
+#   2. Run a strict frontend type-check (tsc --noEmit).
+# No secrets are used by this workflow.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            backend/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('backend/Cargo.lock') }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci --legacy-peer-deps
+
+      - name: Regenerate TypeScript types from Rust
+        working-directory: backend
+        run: cargo test export_bindings
+
+      - name: Fail on stale generated types
+        run: |
+          if ! git diff --exit-code -- frontend/lib/generated; then
+            echo "::error::Generated TS types are stale. Run 'cargo test export_bindings' in backend/ and commit the result."
+            exit 1
+          fi
+
+      - name: Strict frontend type-check
+        working-directory: frontend
+        run: npx tsc --noEmit

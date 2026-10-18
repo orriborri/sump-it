@@ -2,7 +2,7 @@
 name = "coffee-brewer-backend"
 version = "0.1.0"
 edition = "2021"
-description = "Rust backend for consolidated coffee brewing application with tRPC"
+description = "Rust backend for consolidated coffee brewing application (REST)"
 
 [dependencies]
 axum = { version = "0.7", features = ["macros"] }
@@ -19,6 +19,10 @@ anyhow = "1.0"
 thiserror = "1.0"
 validator = { version = "0.18", features = ["derive"] }
 dotenv = "0.15"
+# Generates TypeScript types from the Rust request/response models so the
+# frontend consumes a single source of truth. `chrono-impl`/`uuid-impl` teach
+# ts-rs how to render the chrono and uuid types used by the models.
+ts-rs = { version = "12.0", features = ["chrono-impl", "uuid-impl"] }
 
 # Development dependencies
 [dev-dependencies]

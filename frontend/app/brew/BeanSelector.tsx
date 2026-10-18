@@ -17,12 +17,15 @@ import {
   Alert,
 } from '@mui/material';
 
+// Accepts the generated CoffeeBean/Grinder shapes (nullable fields) plus the
+// UI-only `isFresh` hint. Kept structural so the generated types from
+// `@/lib/api/types` assign without conversion.
 interface Bean {
   id: string;
   name: string;
   origin: string;
   roastDate: string;
-  remainingGrams?: number;
+  remainingGrams?: number | null;
   isFresh?: boolean;
 }
 
@@ -134,7 +137,7 @@ export function BeanSelector({
                 size="small"
                 sx={{ mr: 1 }}
               />
-              {selectedBean.remainingGrams !== undefined && (
+              {selectedBean.remainingGrams != null && (
                 <Chip
                   label={`${selectedBean.remainingGrams}g remaining`}
                   color={selectedBean.remainingGrams > 0 ? 'info' : 'error'}

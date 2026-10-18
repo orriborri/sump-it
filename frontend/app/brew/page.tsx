@@ -19,6 +19,7 @@ import { BeanSelector } from './BeanSelector';
 import { BrewingParameters } from './BrewingParameters';
 import { BrewFeedback } from './BrewFeedback';
 import { coffeeBrewerClient } from '@/lib/trpc/client';
+import type { BrewingMethod, CreateBrewingSessionRequest } from '@/lib/api/types';
 
 // Form state interface
 interface BrewFormData {
@@ -147,20 +148,23 @@ export default function BrewPage() {
   // Submit brewing session
   async function handleSubmit() {
     try {
-      // Convert form data to API request format
-      const sessionData = {
+      // Convert form data to the generated API request type. The form keeps
+      // brewingMethod as a plain string for the select; narrow it to the
+      // generated BrewingMethod union here. Optional fields map to `null` to
+      // match the Rust `Option<T>` serialization.
+      const sessionData: CreateBrewingSessionRequest = {
         beanId: formData.beanId,
         grinderId: formData.grinderId,
-        brewingMethod: formData.brewingMethod,
+        brewingMethod: formData.brewingMethod as BrewingMethod,
         grindSetting: formData.grindSetting,
-        waterTempCelsius: formData.waterTempCelsius,
-        brewTimeSeconds: formData.brewTimeSeconds,
+        waterTempCelsius: formData.waterTempCelsius ?? null,
+        brewTimeSeconds: formData.brewTimeSeconds ?? null,
         coffeeGrams: formData.coffeeGrams,
         waterGrams: formData.waterGrams,
-        rating: formData.rating,
-        tastingNotes: formData.tastingNotes,
-        feedback: formData.feedback,
-        suggestions: formData.suggestions,
+        rating: formData.rating ?? null,
+        tastingNotes: formData.tastingNotes ?? null,
+        feedback: formData.feedback ?? null,
+        suggestions: formData.suggestions ?? null,
         isTemplate: false,
       };
 
