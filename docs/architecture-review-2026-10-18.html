@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Architecture review for orriborri/sump-it (consolidated)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script type="module">
+    import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+    mermaid.initialize({ startOnLoad: true, theme: "neutral", securityLevel: "loose" });
+  </script>
+  <style>
+    .seam { border-style: dashed; }
+    .deep { background: linear-gradient(135deg, #0f172a, #1e293b); color: #f8fafc; }
+    .lbl { font-size: .7rem; text-transform: uppercase; letter-spacing: .08em; }
+  </style>
+</head>
+<body class="bg-stone-50 text-slate-900 font-sans">
+<main class="max-w-5xl mx-auto px-6 py-12 space-y-12">
+
+<header class="space-y-3">
+  <h1 class="font-serif text-3xl">Architecture review: orriborri/sump-it (consolidated)</h1>
+  <p class="text-sm text-slate-500">2026-10-18 · commit a698653 · skills: improve-codebase-architecture + codebase-design</p>
+  <div class="flex gap-6 text-xs text-slate-600">
+    <span><span class="inline-block w-4 h-3 border border-slate-500 align-middle"></span> module</span>
+    <span><span class="inline-block w-4 h-3 border border-dashed border-slate-500 align-middle"></span> seam</span>
+    <span><span class="inline-block w-4 h-0.5 bg-red-600 align-middle"></span> leakage</span>
+    <span><span class="inline-block w-4 h-3 deep align-middle"></span> deep module</span>
+  </div>
+</header>
+
+<section class="rounded-lg border-2 border-red-600 bg-red-50 p-5 space-y-2">
+  <h2 class="font-semibold text-red-800">Blocker: nothing here runs yet</h2>
+  <ul class="list-disc ml-5 text-sm text-red-900 space-y-1">
+    <li><b>Backend:</b> <code>cargo check</code> → 17 errors. Missing modules (<code>services/mod.rs</code>, <code>api/grinders|sessions|feedback</code>), no <code>regex</code> dependency, <code>axum::Server</code> was removed in axum 0.7, and there are two different <code>AppState</code> types. More errors will show up after these are fixed (no <code>FromRow</code> on any model).</li>
+  <li><b>Frontend:</b> <code>tsc</code> → 6 errors. <code>BrewingParameters</code>, <code>BrewFeedback</code> and <code>lib/trpc/router</code> don't exist.</li>
+    <li><b>There is no tRPC.</b> The <code>@trpc/*</code> packages are installed but nothing uses them. <code>Cargo.toml</code> pulls in <code>tarpc</code>, which is an unrelated Rust RPC library.</li>
+    <li><b>The working sump-it app was overwritten.</b> <code>main</code> was force-pushed from <code>25e84eb</code>. That commit is still in your local clone at <code>/projects/sandbox/sump-it</code>, so it can be recovered.</li>
+  </ul>
+</section>
+
+<section id="candidates" class="space-y-10">
+
+<!-- A -->
+<article id="seam" class="rounded-xl bg-white border border-slate-200 p-6 space-y-4">
+  <h2 class="font-serif text-2xl">A. Give the frontend ↔ backend seam a real contract</h2>
+  <div class="flex gap-2"><span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 text-xs font-semibold">Strong</span><span class="px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-xs">ports &amp; adapters</span></div>
+  <p class="font-mono text-sm text-slate-600">frontend/lib/trpc/client.ts · backend/src/api/* · backend/src/models/mod.rs · Cargo.toml (tarpc)</p>
+  <div class="grid md:grid-cols-2 gap-4">
+    <div class="rounded-lg border border-slate-200 p-4"><p class="lbl text-slate-500 mb-2">Before</p>
+<pre class="mermaid">
+flowchart LR
+  P[brew/page.tsx] --> C["client.ts<br/>hand-written, any"]
+  C -. "URL strings" .-> H[axum handlers]
+  H --> M[Rust models]
+  R["trpc.ts imports ./router<br/>(missing)"]
+  T[tarpc crate - unused]
+  classDef leak stroke:#dc2626,stroke-width:2px;
+  class C,R,T leak
+</pre></div>
+    <div class="rounded-lg border border-slate-200 p-4"><p class="lbl text-slate-500 mb-2">After</p>
+<pre class="mermaid">
+flowchart LR
+  P[brew/page.tsx] --> S{{"typed seam<br/>generated from Rust"}}
+  S --> D["Brewing module<br/>(Rust)"]
+  classDef deep fill:#0f172a,color:#fff;
+  class D deep
+</pre></div>
+  </div>
+  <p><b>Problem:</b> The interface between frontend and backend exists only as URL strings and <code>any</code>, so every Rust change can silently break the UI.</p>
+  <p><b>Solution:</b> Pick one way to generate the TypeScript side of the seam from the Rust types, and delete the tRPC/tarpc leftovers that aren't used.</p>
+  <ul class="list-disc ml-5 text-sm"><li>Leverage: one contract, every call site typed</li><li>Locality: breaking changes fail at compile time</li><li>Delete 3 unused dependencies</li></ul>
+  <div class="rounded bg-amber-50 border border-amber-200 px-3 py-2 text-sm">Decision needed: tRPC needs a TypeScript server, so it can't run directly on a Rust backend. The options are a tRPC-style Rust library (rspc), generated types plus typed fetch (BeanIt already used ts-rs + OpenAPI), or a thin TypeScript tRPC layer in front of Rust.</div>
+</article>
+
+<!-- B -->
+<article class="rounded-xl bg-white border border-slate-200 p-6 space-y-4">
+  <h2 class="font-serif text-2xl">B. Collapse brew-recipe rules into one Brew recipe module</h2>
+  <div class="flex gap-2"><span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 text-xs font-semibold">Strong</span><span class="px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-xs">in-process</span></div>
+  <p class="font-mono text-sm text-slate-600">backend/src/validation.rs · backend/src/models/mod.rs · backend/src/database.rs (CHECKs) · backend/prisma/schema.prisma (@@check)</p>
+  <div class="grid md:grid-cols-2 gap-4">
+    <div class="rounded-lg border border-slate-200 p-4 h-64 flex flex-col gap-1.5"><p class="lbl text-slate-500">Before: the same "ratio 15–17" rule appears in 4 places</p>
+      <div class="h-9 border-l-4 border-red-500 bg-red-50 px-2 flex items-center text-xs">validation.rs · validate_coffee_ratio</div>
+      <div class="h-9 border-l-4 border-red-500 bg-red-50 px-2 flex items-center text-xs">models · BrewingSession::validate_comprehensive</div>
+      <div class="h-9 border-l-4 border-red-500 bg-red-50 px-2 flex items-center text-xs">models · #[validate(range)] attributes</div>
+      <div class="h-9 border-l-4 border-red-500 bg-red-50 px-2 flex items-center text-xs">database.rs · CHECK constraint</div>
+      <div class="h-9 border-l-4 border-red-500 bg-red-50 px-2 flex items-center text-xs">schema.prisma · @@check (invalid syntax)</div>
+    </div>
+    <div class="rounded-lg border border-slate-200 p-4 h-64 flex flex-col justify-center"><p class="lbl text-slate-500 mb-2">After</p>
+      <div class="deep rounded-lg p-5 border-4 border-slate-900"><p class="lbl text-slate-300">Brew recipe module</p><p class="text-xs text-slate-400 mt-2">per-method ratio · dose · water · temp · time · grind range</p><p class="text-xs text-slate-500 mt-1">An invalid recipe can't be constructed</p></div>
+    </div>
+  </div>
+  <p><b>Problem:</b> The recipe rules are spread across four modules. They're also wrong for half the brewing methods: a 15–17 ratio and a 150 g water minimum make Espresso (about 1:2), Moka and ColdBrew impossible to log.</p>
+  <p><b>Solution:</b> Put all recipe rules, keyed by brewing method, behind one module. The database checks only the invariants that can never vary.</p>
+  <ul class="list-disc ml-5 text-sm"><li>Locality: rule changes happen once</li><li>Tests hit one interface</li><li>Fixes the Espresso/ColdBrew bug</li></ul>
+</article>
+
+<!-- C -->
+<article class="rounded-xl bg-white border border-slate-200 p-6 space-y-4">
+  <h2 class="font-serif text-2xl">C. Make "log a brew" one atomic operation</h2>
+  <div class="flex gap-2"><span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 text-xs font-semibold">Strong</span><span class="px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-xs">local-substitutable</span></div>
+  <p class="font-mono text-sm text-slate-600">models::CoffeeBean::use_beans · services/beans.rs::update_bean_quantity · (sessions module, missing)</p>
+  <div class="grid md:grid-cols-2 gap-4">
+    <div class="rounded-lg border border-slate-200 p-4"><p class="lbl text-slate-500 mb-2">Before</p>
+<pre class="mermaid">
+sequenceDiagram
+  participant H as handler
+  participant B as CoffeeBean
+  participant S as BeanService
+  participant DB
+  H->>B: use_beans() errors if short
+  H->>DB: insert session
+  H->>S: update_bean_quantity()
+  S->>DB: GREATEST(0, …) clamps silently
+  Note over H,DB: no transaction · two rules disagree
+</pre></div>
+    <div class="rounded-lg border border-slate-200 p-4"><p class="lbl text-slate-500 mb-2">After</p>
+<pre class="mermaid">
+sequenceDiagram
+  participant H as handler
+  participant L as Brew log module
+  participant DB
+  H->>L: log brew
+  L->>DB: one transaction: check stock, insert, decrement
+  L-->>H: logged brew or error
+</pre></div>
+  </div>
+  <p><b>Problem:</b> Bean inventory is enforced twice with opposite behaviour. The in-memory check rejects a short bag, while the SQL clamps to 0. Nothing ties the insert and the decrement into one transaction.</p>
+  <p><b>Solution:</b> One module owns logging a brew, including the stock check and the decrement, and does both in one transaction.</p>
+  <ul class="list-disc ml-5 text-sm"><li>Locality: inventory bugs live in one place</li><li>Two adapters: Postgres and a test DB</li><li>Session duplication reuses it for free</li></ul>
+</article>
+
+<!-- D -->
+<article class="rounded-xl bg-white border border-slate-200 p-6 space-y-4">
+  <h2 class="font-serif text-2xl">D. One source of truth for the schema</h2>
+  <div class="flex gap-2"><span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 text-xs font-semibold">Strong</span><span class="px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-xs">in-process</span></div>
+  <p class="font-mono text-sm text-slate-600">backend/prisma/schema.prisma · backend/src/database.rs · backend/src/models/mod.rs</p>
+  <div class="grid md:grid-cols-2 gap-4">
+    <div class="rounded-lg border border-slate-200 p-4"><p class="lbl text-slate-500 mb-2">Before: three schemas, none agree</p>
+<pre class="mermaid">
+flowchart TB
+  A["schema.prisma<br/>prisma-client-rs, @@check<br/>not valid Prisma"]
+  B["database.rs<br/>DDL run on every boot"]
+  C["Rust structs<br/>no FromRow / sqlx::Type"]
+  A -.drift.- B -.drift.- C
+  classDef leak stroke:#dc2626,stroke-width:2px;
+  class A,B,C leak
+</pre></div>
+    <div class="rounded-lg border border-slate-200 p-4"><p class="lbl text-slate-500 mb-2">After</p>
+<pre class="mermaid">
+flowchart TB
+  M["sqlx migrations/"] --> Q["compile-checked queries"] --> C[Rust structs]
+  classDef deep fill:#0f172a,color:#fff;
+  class M deep
+</pre></div>
+  </div>
+  <p><b>Problem:</b> Prisma, inline DDL and the structs each define the tables differently. For example, the Rust enums serialise as <code>burrConical</code> while Postgres stores <code>BurrConical</code>, and the DB adds a <code>roast_date &lt;= purchase_date</code> rule that the models don't know about.</p>
+  <p><b>Solution:</b> Delete Prisma and the boot-time DDL. Make sqlx migrations the single schema, and check the structs against it at compile time.</p>
+  <ul class="list-disc ml-5 text-sm"><li>Delete 2 of 3 schema copies</li><li>Drift fails the build</li></ul>
+</article>
+
+<!-- E -->
+<article class="rounded-xl bg-white border border-slate-200 p-6 space-y-4">
+  <h2 class="font-serif text-2xl">E. Shallow bean handlers and repository</h2>
+  <div class="flex gap-2"><span class="px-2 py-0.5 rounded bg-amber-100 text-amber-800 text-xs font-semibold">Worth exploring</span><span class="px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-xs">in-process</span></div>
+  <p class="font-mono text-sm text-slate-600">backend/src/api/beans.rs · backend/src/services/beans.rs</p>
+  <div class="grid md:grid-cols-2 gap-4">
+    <div class="rounded-lg border border-slate-200 p-4 flex gap-3 items-end h-48"><p class="lbl text-slate-500 self-start w-16">Before</p>
+      <div class="flex-1 flex gap-2 items-end"><div class="w-1/2 bg-red-200 h-36 flex items-end justify-center lbl pb-1">interface</div><div class="w-1/2 bg-slate-300 h-40 flex items-end justify-center lbl pb-1">impl</div></div></div>
+    <div class="rounded-lg border border-slate-200 p-4 flex gap-3 items-end h-48"><p class="lbl text-slate-500 self-start w-16">After</p>
+      <div class="flex-1 flex gap-2 items-end"><div class="w-1/2 bg-emerald-200 h-10 flex items-end justify-center lbl pb-1">interface</div><div class="w-1/2 deep h-40 flex items-end justify-center lbl pb-1">impl</div></div></div>
+  </div>
+  <p><b>Problem:</b> Seven handlers repeat the same match-on-Result-to-status-code block, and the repository has one method per SQL query. Under the deletion test, both just move complexity around rather than concentrate it.</p>
+  <p><b>Solution:</b> Use one error type that maps itself to HTTP and one shared state type, so handlers shrink to a single line.</p>
+  <ul class="list-disc ml-5 text-sm"><li>Interface shrinks; error mapping centralised</li><li>Fixes the duplicate-AppState compile error</li></ul>
+</article>
+
+<!-- F -->
+<article class="rounded-xl bg-white border border-slate-200 p-6 space-y-4">
+  <h2 class="font-serif text-2xl">F. Let each brewing step own its completeness</h2>
+  <div class="flex gap-2"><span class="px-2 py-0.5 rounded bg-slate-200 text-slate-700 text-xs font-semibold">Speculative</span><span class="px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-xs">in-process</span></div>
+  <p class="font-mono text-sm text-slate-600">frontend/app/brew/IntegratedVerticalStepper.tsx (useStepNavigation) · frontend/app/brew/page.tsx</p>
+  <div class="grid md:grid-cols-2 gap-4">
+    <div class="rounded-lg border border-slate-200 p-4"><p class="lbl text-slate-500 mb-2">Before</p>
+<pre class="mermaid">
+flowchart LR
+  Page[page.tsx step list] --> Stepper
+  Nav["useStepNavigation<br/>switch(index) knows fields"] -.leak.-> Page
+  classDef leak stroke:#dc2626,stroke-width:2px;
+  class Nav leak
+</pre></div>
+    <div class="rounded-lg border border-slate-200 p-4"><p class="lbl text-slate-500 mb-2">After</p>
+<pre class="mermaid">
+flowchart LR
+  Page --> Steps["Brewing steps module<br/>each step: content + isComplete"]
+  Steps --> Stepper[presentational stepper]
+  classDef deep fill:#0f172a,color:#fff;
+  class Steps deep
+</pre></div>
+  </div>
+  <p><b>Problem:</b> The stepper's navigation hook decides which form fields each step needs by index, so reordering or adding a step breaks it silently.</p>
+  <p><b>Solution:</b> Each step declares its own "complete" rule, and the stepper stays purely presentational.</p>
+  <ul class="list-disc ml-5 text-sm"><li>Locality: step rules live with step</li><li>Stepper becomes reusable</li></ul>
+</article>
+</section>
+
+<section id="top-recommendation" class="rounded-xl deep p-8 space-y-2">
+  <p class="lbl text-slate-400">Top recommendation</p>
+  <h2 class="font-serif text-2xl"><a href="#seam" class="underline">A. Give the frontend ↔ backend seam a real contract</a></h2>
+  <p class="text-slate-300 text-sm">The type-safe seam between TypeScript and Rust was the main reason for the consolidation, and right now it doesn't exist. How it's generated decides where the Brew recipe (B) and Brew log (C) types live, so settle it first. D is a cheap deletion that can happen alongside it.</p>
+</section>
+
+</main>
+</body>
+</html>
