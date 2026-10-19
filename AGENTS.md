@@ -7,7 +7,7 @@ Consolidated coffee brewing application combining three repositories:
 3. **BeanIt**: Type-safe APIs and modern architecture
 
 ## Available Skills
-This workspace has 38 Matt Pocock engineering skills installed in `.kiro/skills/`:
+This workspace has 38 Matt Pocock engineering skills installed in `.kiro/skills/`, plus the repository-specific `kiro-web-github-automation` skill:
 
 ### Core Engineering Skills
 - **`grill-me`** - Requirements gathering and alignment
@@ -31,6 +31,13 @@ This workspace has 38 Matt Pocock engineering skills installed in `.kiro/skills/
 - **`setup-matt-pocock-skills`** - Repository configuration
 - **`setup-pre-commit`** - Pre-commit hook setup
 - **`setup-ts-deep-modules`** - TypeScript module configuration
+
+### Kiro Web Automation
+- **`kiro-web-github-automation`** - GitHub issue triggers, `kiro` labels, `/kiro` comments, and scheduled Kiro Web Automations
+- Native Kiro invocation uses the `kiro` label or `/kiro` in an issue comment; `@kiro` is not documented as a trigger
+- Use `ready-for-agent` for project triage, and add `kiro` when work should start immediately
+- Scheduled frontier selection belongs in Kiro Web Automations, not `.kiro/hooks`
+- Kiro opens pull requests; humans review and merge them
 
 ## Domain-Specific Guidance
 

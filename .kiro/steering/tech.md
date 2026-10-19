@@ -36,7 +36,8 @@
 - **Version Control**: Git with conventional commits
 - **Package Managers**: npm (frontend), Cargo (backend)
 - **Containerization**: Docker with multi-stage builds
-- **CI/CD**: GitHub Actions (planned)
+- **CI/CD**: GitHub Actions and Kiro Web Automations
+- **Agent workflow**: `ready-for-agent` for triage, `kiro` label or `/kiro` comment for immediate implementation, scheduled Automations for frontier polling
 - **Testing**: Jest (frontend), cargo test (backend), Playwright (E2E)
 - **Linting**: ESLint, Clippy, Prettier, rustfmt
 
@@ -49,6 +50,13 @@
 
 ## Dependencies
 See `package.json` (frontend) and `Cargo.toml` (backend) for complete dependency lists.
+
+## Kiro Web Automation Rules
+- Kiro Web's native GitHub triggers are the `kiro` label and `/kiro` issue comments; `@kiro` is not a documented trigger.
+- Scheduled repository polling uses Kiro Web Automations, not `.kiro/hooks`.
+- An automation must select the oldest open `ready-for-agent` issue whose `Blocked by` issues are closed.
+- Automations may create pull requests but must not merge them automatically.
+- See `.kiro/skills/kiro-web-github-automation/SKILL.md` for the operational prompt and official documentation links.
 
 ## Performance Considerations
 - Connection pooling for database
