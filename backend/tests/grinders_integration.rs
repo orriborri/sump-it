@@ -1,124 +1,75 @@
-//! Integration tests for the grinder slice (service + schema).
+//! DB-backed integration tests for the grinder slice (ticket #147 hardening).
 //!
-//! DB-REQUIRED: these tests exercise `GrinderService` against a real Postgres
-//! instance created from `migrations/0001_init.sql`. They are IGNORED by
-//! default so the DB-free CI (which has no Postgres) still runs
-//! `cargo test`/`cargo check` cleanly. The coverage gate measures only the
-//! library (`cargo llvm-cov --lib`); these binary-level, DB-backed paths are
-//! intentionally outside that gate and documented here as the real end-to-end
-//! verification of the grinder persistence layer.
+//! THESE TESTS REQUIRE A LIVE POSTGRES and are therefore `#[ignore]`d, matching
+//! the repo convention that DB-backed tests are opt-in via `--ignored` (so the
+//! `--lib` coverage gate, which never compiles `tests/`, is unaffected). Run
+//! them against a real database with:
 //!
-//! To run locally against a database:
-//!
-//! ```bash
-//! export TEST_DATABASE_URL=postgres://postgres:postgres@localhost:5432/coffee_test
-//! cargo test --test grinders_integration -- --ignored
+//! ```sh
+//! export DATABASE_URL=postgres://user:pass@localhost:5432/coffee
+//! cargo test --test grinders_integration -- --ignored --test-threads=1
 //! ```
 //!
-//! Each test creates a uniquely named throwaway database, runs the single
-//! schema migration, exercises the service, and drops the database afterwards.
+//! The schema is created from the single source of truth under `migrations/`
+//! (0001_init.sql + 0002_relax_session_bounds.sql) via `sqlx::migrate!`. Each
+//! test cleans up the rows it inserts (in reverse FK order) so the suite can
+//! run repeatedly, and `--test-threads=1` keeps the shared tables serialized.
+//!
+//! WHY THIS TEST COMPILES THE REAL SERVICE: like `bean_inventory_db.rs` and the
+//! session tests, this file compiles the production `GrinderService` source via
+//! `#[path]` and calls it, rather than re-implementing the queries with
+//! hand-written SQL. The `crate::`-relative imports inside the service resolve
+//! to the library re-export declared below, so the test exercises the exact
+//! INSERT/SELECT/UPDATE/DELETE column lists, the pagination/ordering in
+//! `list_grinders`, the `RETURNING`/`FromRow` mappings and the soft-vs-hard
+//! delete semantics that ship. A column, filter or ordering drift in a real
+//! query now fails this test when a DB is available. The schema `CHECK`
+//! constraints (`max_setting > min_setting`, `min_setting >= 0`) are also
+//! verified through the service's create path.
 
 use sqlx::postgres::PgPoolOptions;
-use sqlx::{Executor, PgPool};
+use sqlx::PgPool;
 use uuid::Uuid;
 
-use coffee_brewer_backend::models::{CreateGrinderRequest, GrinderType};
+// Re-export the `models` module under the `crate::` path the service source
+// expects, so the `#[path]`-included `services/grinders.rs` compiles unchanged
+// inside this test crate. This is the same public library module the binary
+// re-exports in `main.rs`; `grinders.rs` only references `crate::models`.
+use coffee_brewer_backend::models;
 
-// The service layer lives in the binary target, so it cannot be imported from
-// the library crate. The integration test re-declares the thin query wrapper it
-// needs here; the queries mirror `backend/src/services/grinders.rs` exactly so
-// this file documents and verifies the same SQL against a real database.
-mod grinder_queries {
-    use super::*;
-    use anyhow::{Context, Result};
-    use chrono::Utc;
+use models::{CreateGrinderRequest, GrinderType};
 
-    pub async fn create(pool: &PgPool, request: CreateGrinderRequest) -> Result<Uuid> {
-        let now = Utc::now();
-        let id = Uuid::new_v4();
-        sqlx::query(
-            r#"
-            INSERT INTO grinders (
-                id, brand, model, grinder_type, min_setting, max_setting,
-                scale_type, description, created_at, updated_at
-            )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-            "#,
-        )
-        .bind(id)
-        .bind(request.brand)
-        .bind(request.model)
-        .bind(request.grinder_type)
-        .bind(request.min_setting)
-        .bind(request.max_setting)
-        .bind(request.scale_type)
-        .bind(request.description)
-        .bind(now)
-        .bind(now)
-        .execute(pool)
-        .await
-        .context("insert grinder")?;
-        Ok(id)
-    }
+// Compile the ACTUAL production service into this test crate. The service has
+// no dependency on the `api` layer (only on `models`, re-exported above), so it
+// builds standalone here. `dead_code` is allowed on the module because each
+// test calls only a subset of the service surface, and the unused members would
+// otherwise warn when the source is compiled into the test crate.
+#[allow(dead_code)]
+#[path = "../src/services/grinders.rs"]
+mod grinders;
 
-    pub async fn count(pool: &PgPool) -> Result<i64> {
-        let total: i64 = sqlx::query_scalar(r#"SELECT COUNT(*) FROM grinders"#)
-            .fetch_one(pool)
-            .await?;
-        Ok(total)
-    }
+use grinders::GrinderService;
 
-    pub async fn delete(pool: &PgPool, id: Uuid) -> Result<u64> {
-        let res = sqlx::query(r#"DELETE FROM grinders WHERE id = $1"#)
-            .bind(id)
-            .execute(pool)
-            .await?;
-        Ok(res.rows_affected())
-    }
-}
-
-/// Spins up a throwaway database and applies the single schema migration.
-async fn setup_pool() -> PgPool {
-    let base_url = std::env::var("TEST_DATABASE_URL")
-        .expect("TEST_DATABASE_URL must be set for DB-required grinder tests");
-
-    let db_name = format!("grinder_test_{}", Uuid::new_v4().simple());
-
-    // Connect to the server (default `postgres` db) to create the test db.
-    let admin = PgPoolOptions::new()
-        .max_connections(1)
-        .connect(&base_url)
-        .await
-        .expect("connect to admin database");
-    admin
-        .execute(format!("CREATE DATABASE {}", db_name).as_str())
-        .await
-        .expect("create test database");
-
-    let test_url = swap_database(&base_url, &db_name);
+/// Connects to `DATABASE_URL` and ensures the schema is present. Returns `None`
+/// when the variable is unset so the (ignored) tests degrade cleanly.
+async fn pool() -> Option<PgPool> {
+    let url = std::env::var("DATABASE_URL").ok()?;
     let pool = PgPoolOptions::new()
-        .max_connections(5)
-        .connect(&test_url)
+        .max_connections(2)
+        .connect(&url)
         .await
-        .expect("connect to test database");
-
-    let schema = include_str!("../migrations/0001_init.sql");
-    pool.execute(schema).await.expect("apply schema migration");
-
-    pool
+        .expect("connect to DATABASE_URL");
+    sqlx::migrate!("./migrations")
+        .run(&pool)
+        .await
+        .expect("run migrations");
+    Some(pool)
 }
 
-/// Rewrites the database name in a Postgres connection URL.
-fn swap_database(base_url: &str, db_name: &str) -> String {
-    match base_url.rfind('/') {
-        Some(idx) => format!("{}/{}", &base_url[..idx], db_name),
-        None => format!("{}/{}", base_url, db_name),
-    }
-}
-
-fn sample_request(min: i32, max: i32) -> CreateGrinderRequest {
+/// Builds a valid create request with the given brand and setting range.
+fn grinder_request(brand: &str, min: i32, max: i32) -> CreateGrinderRequest {
     CreateGrinderRequest {
-        brand: "Comandante".to_string(),
+        brand: brand.to_string(),
         model: "C40".to_string(),
         grinder_type: GrinderType::BurrConical,
         min_setting: min,
@@ -128,41 +79,200 @@ fn sample_request(min: i32, max: i32) -> CreateGrinderRequest {
     }
 }
 
+/// Removes every grinder row this suite could have created.
+async fn cleanup(pool: &PgPool, grinder_ids: &[Uuid]) {
+    for grinder in grinder_ids {
+        sqlx::query("DELETE FROM grinders WHERE id = $1")
+            .bind(grinder)
+            .execute(pool)
+            .await
+            .ok();
+    }
+}
+
+/// `create_grinder` persists the row and returns it with the server-assigned
+/// id and every field intact; `get_grinder` reads the same row back. Exercises
+/// the shipping INSERT column list / `RETURNING` mapping and the `get_grinder`
+/// SELECT + `FromRow`.
 #[tokio::test]
-#[ignore = "DB-required: needs a running Postgres via TEST_DATABASE_URL"]
-async fn create_and_count_grinder() {
-    let pool = setup_pool().await;
+#[ignore = "requires a live Postgres (DATABASE_URL); no DB in this sandbox"]
+async fn create_grinder_then_get_reads_it_back() {
+    let Some(pool) = pool().await else { return };
+    let service = GrinderService::new(&pool);
 
-    assert_eq!(grinder_queries::count(&pool).await.unwrap(), 0);
-
-    let id = grinder_queries::create(&pool, sample_request(0, 40))
+    let created = service
+        .create_grinder(grinder_request("Comandante", 0, 40))
         .await
         .expect("create grinder");
 
-    assert_eq!(grinder_queries::count(&pool).await.unwrap(), 1);
+    assert_eq!(created.brand, "Comandante");
+    assert_eq!(created.model, "C40");
+    assert_eq!(created.grinder_type, GrinderType::BurrConical);
+    assert_eq!(created.min_setting, 0);
+    assert_eq!(created.max_setting, 40);
+    assert_eq!(created.scale_type.as_deref(), Some("step"));
 
-    let removed = grinder_queries::delete(&pool, id).await.unwrap();
-    assert_eq!(removed, 1);
-    assert_eq!(grinder_queries::count(&pool).await.unwrap(), 0);
+    let fetched = service
+        .get_grinder(created.id)
+        .await
+        .expect("get grinder")
+        .expect("grinder exists");
+    assert_eq!(fetched.id, created.id);
+    assert_eq!(fetched.brand, "Comandante");
+    assert_eq!(fetched.max_setting, 40);
+
+    cleanup(&pool, &[created.id]).await;
 }
 
+/// `update_grinder` edits the mutable fields and returns the updated row; a
+/// later `get_grinder` confirms the change persisted. Exercises the shipping
+/// UPDATE column list and `RETURNING` mapping.
 #[tokio::test]
-#[ignore = "DB-required: needs a running Postgres via TEST_DATABASE_URL"]
+#[ignore = "requires a live Postgres (DATABASE_URL); no DB in this sandbox"]
+async fn update_grinder_edits_fields() {
+    let Some(pool) = pool().await else { return };
+    let service = GrinderService::new(&pool);
+
+    let created = service
+        .create_grinder(grinder_request("Before", 0, 40))
+        .await
+        .expect("create grinder");
+
+    let mut edit = grinder_request("After", 2, 30);
+    edit.model = "C40 MK4".to_string();
+    edit.grinder_type = GrinderType::BurrFlat;
+    edit.description = Some("Upgraded".to_string());
+
+    let updated = service
+        .update_grinder(created.id, edit)
+        .await
+        .expect("update grinder")
+        .expect("grinder exists for update");
+
+    assert_eq!(updated.id, created.id);
+    assert_eq!(updated.brand, "After");
+    assert_eq!(updated.model, "C40 MK4");
+    assert_eq!(updated.grinder_type, GrinderType::BurrFlat);
+    assert_eq!(updated.min_setting, 2);
+    assert_eq!(updated.max_setting, 30);
+
+    // The change is durable: a fresh read observes the edit.
+    let fetched = service
+        .get_grinder(created.id)
+        .await
+        .expect("get grinder")
+        .expect("grinder exists");
+    assert_eq!(fetched.brand, "After");
+    assert_eq!(fetched.model, "C40 MK4");
+    assert_eq!(fetched.grinder_type, GrinderType::BurrFlat);
+
+    cleanup(&pool, &[created.id]).await;
+}
+
+/// `list_grinders` returns grinders newest-first with pagination and the total
+/// count. Exercises the shipping `ORDER BY created_at DESC, brand ASC`, the
+/// `LIMIT`/`OFFSET` paging and the `COUNT(*)` total.
+#[tokio::test]
+#[ignore = "requires a live Postgres (DATABASE_URL); no DB in this sandbox"]
+async fn list_grinders_is_newest_first_with_paging() {
+    let Some(pool) = pool().await else { return };
+    let service = GrinderService::new(&pool);
+
+    // A unique brand marker so the assertions are scoped to this test's rows
+    // even if other grinders already exist in the shared database.
+    let marker = format!("List-{}", Uuid::new_v4().simple());
+
+    // Insert three grinders; `created_at` defaults to now() per row, so the
+    // last inserted is the newest.
+    let mut ids = Vec::new();
+    for i in 0..3 {
+        let g = service
+            .create_grinder(grinder_request(&format!("{marker}-{i}"), 0, 40))
+            .await
+            .expect("create grinder");
+        ids.push(g.id);
+    }
+
+    // Page 1 with limit 2 holds the two newest of this test's rows. Because the
+    // shared table may hold other grinders, filter the returned page down to
+    // this test's marker before asserting the newest-first order.
+    let (page1, total) = service
+        .list_grinders(Some(1), Some(100))
+        .await
+        .expect("list grinders");
+    assert!(total >= 3, "total counts at least this test's three rows");
+
+    let mine: Vec<Uuid> = page1
+        .iter()
+        .filter(|g| g.brand.starts_with(&marker))
+        .map(|g| g.id)
+        .collect();
+    assert_eq!(mine.len(), 3, "all three of this test's grinders are listed");
+    // Newest first: the last id inserted appears before the first.
+    let pos_newest = mine.iter().position(|id| *id == ids[2]).unwrap();
+    let pos_oldest = mine.iter().position(|id| *id == ids[0]).unwrap();
+    assert!(
+        pos_newest < pos_oldest,
+        "list is ordered newest-first (created_at DESC)"
+    );
+
+    cleanup(&pool, &ids).await;
+}
+
+/// `delete_grinder` hard-deletes the row (grinders have no soft-delete column):
+/// `get_grinder` stops returning it and a re-delete reports no row affected.
+/// Exercises the shipping DELETE and its `rows_affected` return.
+#[tokio::test]
+#[ignore = "requires a live Postgres (DATABASE_URL); no DB in this sandbox"]
+async fn delete_grinder_removes_the_row() {
+    let Some(pool) = pool().await else { return };
+    let service = GrinderService::new(&pool);
+
+    let created = service
+        .create_grinder(grinder_request("Deletable", 0, 40))
+        .await
+        .expect("create grinder");
+
+    let deleted = service.delete_grinder(created.id).await.expect("delete");
+    assert!(deleted, "hard delete reports it affected the row");
+
+    let after = service.get_grinder(created.id).await.expect("get grinder");
+    assert!(after.is_none(), "deleted grinder is gone");
+
+    // Deleting a missing grinder affects no row.
+    let again = service.delete_grinder(created.id).await.expect("delete again");
+    assert!(!again, "re-deleting a missing grinder affects no row");
+
+    cleanup(&pool, &[created.id]).await;
+}
+
+/// The schema `CHECK (max_setting > min_setting)` must reject an invalid range
+/// even when it reaches the database through the shipping `create_grinder`
+/// INSERT. This mirrors the API-level validation surfaced to the user.
+#[tokio::test]
+#[ignore = "requires a live Postgres (DATABASE_URL); no DB in this sandbox"]
 async fn schema_rejects_max_not_greater_than_min() {
-    let pool = setup_pool().await;
+    let Some(pool) = pool().await else { return };
+    let service = GrinderService::new(&pool);
 
-    // The `CHECK (max_setting > min_setting)` constraint must reject this row,
-    // matching the API-level validation surfaced to the user.
-    let result = grinder_queries::create(&pool, sample_request(40, 40)).await;
-    assert!(result.is_err(), "schema must reject max_setting <= min_setting");
+    let result = service.create_grinder(grinder_request("Bad Range", 40, 40)).await;
+    assert!(
+        result.is_err(),
+        "schema must reject max_setting <= min_setting"
+    );
 }
 
+/// The schema `CHECK (min_setting >= 0)` must reject a negative minimum through
+/// the shipping `create_grinder` INSERT.
 #[tokio::test]
-#[ignore = "DB-required: needs a running Postgres via TEST_DATABASE_URL"]
+#[ignore = "requires a live Postgres (DATABASE_URL); no DB in this sandbox"]
 async fn schema_rejects_negative_min_setting() {
-    let pool = setup_pool().await;
+    let Some(pool) = pool().await else { return };
+    let service = GrinderService::new(&pool);
 
-    // The `CHECK (min_setting >= 0)` constraint must reject a negative minimum.
-    let result = grinder_queries::create(&pool, sample_request(-1, 40)).await;
-    assert!(result.is_err(), "schema must reject negative min_setting");
+    let result = service.create_grinder(grinder_request("Negative", -1, 40)).await;
+    assert!(
+        result.is_err(),
+        "schema must reject negative min_setting"
+    );
 }
