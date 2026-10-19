@@ -1,10 +1,11 @@
 //! Library crate for the consolidated coffee brewing backend.
 //!
 //! This crate exposes the database-independent, unit-testable core of the
-//! backend: domain validation (`validation`) and the domain models with their
-//! pure business logic (`models`). The binary target (`main.rs`) depends on
-//! this library and adds the process wiring (HTTP server, database pool) and
-//! the database-backed API handlers and services.
+//! backend: domain validation (`validation`), the domain models with their
+//! pure business logic (`models`), and the recipe and session-query helpers
+//! (`recipe`, `session_query`). The binary target (`main.rs`) depends on this
+//! library and adds the process wiring (HTTP server, database pool) and the
+//! database-backed API handlers and services.
 //!
 //! Coverage policy (see `docs/coverage.md`): the coverage gate for this crate
 //! runs against the library (`cargo llvm-cov --lib`) and enforces 100% line

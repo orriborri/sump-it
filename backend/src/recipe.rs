@@ -430,32 +430,16 @@ mod tests {
 
             // The in-band waters must also sit inside the water-amount range for
             // this assertion to isolate the ratio check; all chosen doses do.
-            assert!(
-                validate(valid_params(method.clone(), coffee, water_low_ok), &g).is_ok(),
-                "{:?}: ratio just above min should pass",
-                method
-            );
-            assert!(
-                validate(valid_params(method.clone(), coffee, water_high_ok), &g).is_ok(),
-                "{:?}: ratio just below max should pass",
-                method
-            );
+            let low_ok = validate(valid_params(method.clone(), coffee, water_low_ok), &g);
+            assert!(low_ok.is_ok(), "{method:?}: ratio just above min should pass");
+            let high_ok = validate(valid_params(method.clone(), coffee, water_high_ok), &g);
+            assert!(high_ok.is_ok(), "{method:?}: ratio just below max should pass");
 
             let below = validate(valid_params(method.clone(), coffee, water_low_bad), &g);
-            assert!(
-                matches!(below, Err(ValidationErrorType::MethodCoffeeRatioInvalid { .. })),
-                "{:?}: ratio below min should fail with ratio error, got {:?}",
-                method,
-                below
-            );
+            assert!(matches!(below, Err(ValidationErrorType::MethodCoffeeRatioInvalid { .. })), "{method:?}: ratio below min should fail with ratio error, got {below:?}");
 
             let above = validate(valid_params(method.clone(), coffee, water_high_bad), &g);
-            assert!(
-                matches!(above, Err(ValidationErrorType::MethodCoffeeRatioInvalid { .. })),
-                "{:?}: ratio above max should fail with ratio error, got {:?}",
-                method,
-                above
-            );
+            assert!(matches!(above, Err(ValidationErrorType::MethodCoffeeRatioInvalid { .. })), "{method:?}: ratio above max should fail with ratio error, got {above:?}");
         }
     }
 
@@ -481,38 +465,22 @@ mod tests {
             // Exactly at the min and max doses (inclusive) should pass.
             let min_coffee = rules.coffee_grams.min;
             let max_coffee = rules.coffee_grams.max;
-            assert!(
-                validate(valid_params(method.clone(), min_coffee, min_coffee * mid_ratio), &g).is_ok(),
-                "{:?}: min coffee dose should pass",
-                method
-            );
-            assert!(
-                validate(valid_params(method.clone(), max_coffee, max_coffee * mid_ratio), &g).is_ok(),
-                "{:?}: max coffee dose should pass",
-                method
-            );
+            let min_ok = validate(valid_params(method.clone(), min_coffee, min_coffee * mid_ratio), &g);
+            assert!(min_ok.is_ok(), "{method:?}: min coffee dose should pass");
+            let max_ok = validate(valid_params(method.clone(), max_coffee, max_coffee * mid_ratio), &g);
+            assert!(max_ok.is_ok(), "{method:?}: max coffee dose should pass");
 
             // Just below min and just above max should fail with the coffee-amount error.
             let under = validate(
                 valid_params(method.clone(), min_coffee - 0.1, (min_coffee - 0.1) * mid_ratio),
                 &g,
             );
-            assert!(
-                matches!(under, Err(ValidationErrorType::MethodCoffeeAmountInvalid { .. })),
-                "{:?}: coffee below min should fail, got {:?}",
-                method,
-                under
-            );
+            assert!(matches!(under, Err(ValidationErrorType::MethodCoffeeAmountInvalid { .. })), "{method:?}: coffee below min should fail, got {under:?}");
             let over = validate(
                 valid_params(method.clone(), max_coffee + 0.1, (max_coffee + 0.1) * mid_ratio),
                 &g,
             );
-            assert!(
-                matches!(over, Err(ValidationErrorType::MethodCoffeeAmountInvalid { .. })),
-                "{:?}: coffee above max should fail, got {:?}",
-                method,
-                over
-            );
+            assert!(matches!(over, Err(ValidationErrorType::MethodCoffeeAmountInvalid { .. })), "{method:?}: coffee above max should fail, got {over:?}");
         }
     }
 
@@ -746,11 +714,7 @@ mod tests {
             // Highest achievable ratio: max water over min coffee.
             let max_ratio = r.water_grams.max / r.coffee_grams.min;
             // The achievable ratio window must overlap the method's ratio band.
-            assert!(
-                min_ratio <= r.ratio.max && max_ratio >= r.ratio.min,
-                "{:?}: amount ranges cannot reach the ratio band",
-                method
-            );
+            assert!(min_ratio <= r.ratio.max && max_ratio >= r.ratio.min, "{method:?}: amount ranges cannot reach the ratio band");
             // Ranges must be well-formed.
             assert!(r.ratio.min <= r.ratio.max);
             assert!(r.coffee_grams.min <= r.coffee_grams.max);
