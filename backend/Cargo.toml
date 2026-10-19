@@ -29,6 +29,10 @@ ts-rs = { version = "12.0", features = ["chrono-impl", "uuid-impl"] }
 reqwest = { version = "0.11", features = ["json"] }
 testcontainers = "0.15"
 rstest = "0.18"
+# Drives the real Axum router in-process (ServiceExt::oneshot) for the HTTP
+# integration test, and collects the response body, without binding a socket.
+tower = { version = "0.4", features = ["util"] }
+http-body-util = "0.1"
 
 [features]
 default = []

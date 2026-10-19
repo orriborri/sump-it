@@ -116,13 +116,22 @@ async fn log_brew(
     rating: Option<f32>,
     notes: Option<&str>,
 ) -> Uuid {
+    // Pick a brew time that is inside the recipe's per-method band so the brew
+    // passes `recipe::validate`. Espresso pulls in seconds (15-60), while the
+    // pour-over methods used here steep for minutes; a flat 180 s would be
+    // rejected for Espresso. 93 C sits inside every method band used in these
+    // tests.
+    let brew_time_seconds = match method {
+        BrewingMethod::Espresso => 30,
+        _ => 180,
+    };
     let request = CreateBrewingSessionRequest {
         bean_id: bean,
         grinder_id: grinder,
         brewing_method: method,
         grind_setting: 20,
         water_temp_celsius: Some(93),
-        brew_time_seconds: Some(180),
+        brew_time_seconds: Some(brew_time_seconds),
         coffee_grams,
         water_grams,
         tasting_notes: notes.map(|n| n.to_string()),
@@ -212,7 +221,11 @@ async fn duplicate_rebrew_decrements_and_drops_results() {
 async fn list_is_newest_first_with_paging() {
     let Some(pool) = pool().await else { return };
     let grinder = insert_grinder(&pool, "Comandante", "BurrConical").await;
-    let bean = insert_bean(&pool, "Yirgacheffe", "Ethiopia", 5).await;
+    // A per-test unique origin scopes the `total` assertion to exactly the rows
+    // this test created, so the test is rerunnable and immune to any rows left
+    // behind by other tests that also brew "Ethiopia" beans.
+    let origin = format!("Ethiopia-{}", Uuid::new_v4());
+    let bean = insert_bean(&pool, "Yirgacheffe", &origin, 5).await;
     let service = SessionService::new(&pool);
 
     // Three sessions, logged oldest-to-newest so the last is the newest.
@@ -222,7 +235,7 @@ async fn list_is_newest_first_with_paging() {
 
     // Page size 2, offset 0 -> newest two in order.
     let filter = SessionFilter {
-        bean_origin: Some("Ethiopia".to_string()),
+        bean_origin: Some(origin.clone()),
         limit: Some(2),
         offset: Some(0),
         ..SessionFilter::default()
@@ -246,16 +259,20 @@ async fn filters_narrow_results() {
     let Some(pool) = pool().await else { return };
     let burr = insert_grinder(&pool, "Comandante", "BurrConical").await;
     let blade = insert_grinder(&pool, "Krups", "Blade").await;
-    let eth = insert_bean(&pool, "Yirgacheffe", "Ethiopia", 5).await;
-    let ken = insert_bean(&pool, "Nyeri", "Kenya", 40).await;
+    // Per-test unique origins scope the `total` assertion to this test's rows,
+    // so leftover "Ethiopia"/"Kenya" rows from other tests cannot inflate it.
+    let eth_origin = format!("Ethiopia-{}", Uuid::new_v4());
+    let ken_origin = format!("Kenya-{}", Uuid::new_v4());
+    let eth = insert_bean(&pool, "Yirgacheffe", &eth_origin, 5).await;
+    let ken = insert_bean(&pool, "Nyeri", &ken_origin, 40).await;
     let service = SessionService::new(&pool);
 
     let eth_v60 = log_brew(&service, eth, burr, BrewingMethod::V60, 20.0, 320.0, Some(9.0), None).await;
     log_brew(&service, ken, blade, BrewingMethod::Espresso, 18.0, 36.0, Some(4.0), None).await;
 
-    // Filter: Ethiopia + BurrConical + V60 + rating >= 8 -> only the first.
+    // Filter: this Ethiopia origin + BurrConical + V60 + rating >= 8 -> only the first.
     let filter = SessionFilter {
-        bean_origin: Some("Ethiopia".to_string()),
+        bean_origin: Some(eth_origin.clone()),
         grinder_type: Some(GrinderType::BurrConical),
         brewing_method: Some(BrewingMethod::V60),
         rating_min: Some(8.0),
@@ -278,7 +295,7 @@ async fn filters_narrow_results() {
 #[ignore = "requires a live Postgres (DATABASE_URL); no DB in this sandbox"]
 async fn search_matches_across_four_columns() {
     let Some(pool) = pool().await else { return };
-    let grinder = insert_grinder(&pool, "Niche", "Zero").await;
+    let grinder = insert_grinder(&pool, "Niche", "BurrFlat").await;
     let bean = insert_bean(&pool, "Geisha Lot 7", "Panama", 5).await;
     let service = SessionService::new(&pool);
 
