@@ -11,7 +11,7 @@ This runs two gates, both of which must stay at 100%:
 
 | Area     | Tool                     | Thresholds                                   | Scope today                                    |
 | -------- | ------------------------ | -------------------------------------------- | ---------------------------------------------- |
-| Backend  | `cargo-llvm-cov` (nightly) | `--fail-under-lines 100`                     | library crate: `validation` + `models`         |
+| Backend  | `cargo-llvm-cov` (nightly) | `--fail-under-lines 100`                     | library crate: `validation`, `models`, `recipe`, `session_query` |
 | Frontend | Vitest + `@vitest/coverage-v8` | 100% lines, branches, functions, statements | files listed in `vitest.config.ts` `include`   |
 
 `make coverage` is the only command you need; `make coverage-backend` and
@@ -20,10 +20,11 @@ This runs two gates, both of which must stay at 100%:
 ## Why the backend gate targets the library
 
 The backend is split into a library crate (`backend/src/lib.rs`, exposing
-`validation` and `models`) and a binary (`backend/src/main.rs`, plus `api`,
-`services`, `database`). The library holds the database-independent domain
-logic that is unit-testable without a running Postgres, so the gate runs with
-`cargo llvm-cov --lib` and holds that core at 100% line coverage.
+`validation`, `models`, `recipe`, and `session_query`) and a binary
+(`backend/src/main.rs`, plus `api`, `services`, `database`). The library holds
+the database-independent domain logic that is unit-testable without a running
+Postgres, so the gate runs with `cargo llvm-cov --lib` and holds that core at
+100% line coverage.
 
 The database-backed handlers, services, and the server bootstrap live in the
 binary. They are exercised by the integration-test tickets that introduce a
