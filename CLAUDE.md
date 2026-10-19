@@ -1,13 +1,13 @@
 # Coffee Brewer - Consolidated Application
 
 ## Project Overview
-A comprehensive coffee brewing tracker application combining the best features from three separate repositories into a unified TypeScript frontend + Rust backend with tRPC-like communication.
+A comprehensive coffee brewing tracker application combining the best features from three separate repositories into a unified TypeScript frontend + Rust backend with a typed REST contract (TypeScript types generated from the Rust models via ts-rs).
 
 ## Architecture
 - **Frontend**: Next.js 15 with TypeScript, Material-UI, React Query
 - **Backend**: Rust with Axum, SQLx, PostgreSQL
 - **Database**: PostgreSQL with custom enums and CHECK constraints
-- **Communication**: Type-safe API calls with tRPC-like client
+- **Communication**: Typed REST contract; TypeScript types generated from the Rust models via ts-rs and consumed by a thin typed fetch client
 - **DevOps**: Docker Compose for local development
 
 ## Key Features Consolidated

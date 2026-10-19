@@ -1,6 +1,6 @@
 # Coffee Brewer - Consolidated Application
 
-A comprehensive coffee brewing tracker application combining the best features from three separate repositories into a unified TypeScript frontend + Rust backend with tRPC.
+A comprehensive coffee brewing tracker application combining the best features from three separate repositories into a unified TypeScript frontend + Rust backend with a typed REST contract (TypeScript types generated from the Rust models via ts-rs).
 
 ## 🚀 Project Overview
 
@@ -13,9 +13,9 @@ This application consolidates three separate coffee brewing applications:
 
 ```
 coffee-brewer-consolidated/
-├── backend/              # Rust backend with tRPC
+├── backend/              # Rust backend (Axum REST API)
 │   ├── src/
-│   │   ├── api/         # tRPC router definitions
+│   │   ├── api/         # Axum route handlers
 │   │   ├── models/      # Domain models with validation
 │   │   ├── services/    # Business logic layer
 │   │   ├── database/    # Database operations
@@ -23,14 +23,14 @@ coffee-brewer-consolidated/
 │   ├── prisma/          # Database schema and migrations
 │   └── Cargo.toml
 │
-├── frontend/            # Next.js 15 frontend with tRPC
+├── frontend/            # Next.js 15 frontend (typed fetch client)
 │   ├── app/
 │   │   ├── brew/        # Vertical stepper brewing workflow
 │   │   ├── beans/       # Bean management
 │   │   ├── grinders/    # Grinder management
 │   │   └── sessions/    # Brew session history
 │   ├── lib/
-│   │   ├── trpc/        # tRPC client setup
+│   │   ├── trpc/        # Thin typed REST client (ts-rs generated types)
 │   │   └── utils/       # Shared utilities
 │   └── package.json
 │
@@ -60,7 +60,7 @@ coffee-brewer-consolidated/
 
 ### 🔧 From BeanIt
 - **Type Safety**: Full TypeScript/TypeScript type safety
-- **tRPC Integration**: End-to-end type-safe APIs
+- **Generated Type Contract**: End-to-end type-safe APIs via ts-rs-generated TypeScript types
 - **Modern Tooling**: Development with modern Rust/TypeScript stack
 - **OpenAPI Support**: Optional OpenAPI documentation generation
 
@@ -68,7 +68,7 @@ coffee-brewer-consolidated/
 
 ### Backend
 - **Rust** with Axum web framework
-- **tRPC** for type-safe API communication  
+- **ts-rs** to generate TypeScript types from the Rust models for a type-safe API contract  
 - **Prisma** ORM with PostgreSQL
 - **Docker** for containerization
 - **OpenTelemetry** for observability
@@ -76,7 +76,7 @@ coffee-brewer-consolidated/
 ### Frontend
 - **Next.js 15** with App Router
 - **TypeScript** for type safety
-- **tRPC Client** for type-safe API calls
+- **Thin typed fetch client** (`lib/trpc/client.ts`) for type-safe API calls using the ts-rs-generated types
 - **Material-UI** with custom coffee theme
 - **Zod** for form validation
 
@@ -166,7 +166,7 @@ The application uses PostgreSQL with:
 ## 🔄 Development Workflow
 
 1. **Type Safety**: All changes automatically validated by TypeScript and Rust
-2. **tRPC**: End-to-end type safety between frontend and backend
+2. **Typed Contract**: End-to-end type safety between frontend and backend via ts-rs-generated types consumed by a thin typed fetch client
 3. **Auto-generation**: TypeScript types generated from Rust models
 4. **Hot Reload**: Both frontend and backend support hot reload
 
