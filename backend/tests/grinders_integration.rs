@@ -21,9 +21,10 @@
 //! hand-written SQL. The `crate::`-relative imports inside the service resolve
 //! to the library re-export declared below, so the test exercises the exact
 //! INSERT/SELECT/UPDATE/DELETE column lists, the pagination/ordering in
-//! `list_grinders`, the `RETURNING`/`FromRow` mappings and the soft-vs-hard
-//! delete semantics that ship. A column, filter or ordering drift in a real
-//! query now fails this test when a DB is available. The schema `CHECK`
+//! `list_grinders`, the `RETURNING`/`FromRow` mappings and the hard delete
+//! that ships (grinders have no soft-delete column). A column, filter or
+//! ordering drift in a real query now fails this test when a DB is available.
+//! The schema `CHECK`
 //! constraints (`max_setting > min_setting`, `min_setting >= 0`) are also
 //! verified through the service's create path.
 
@@ -172,6 +173,14 @@ async fn update_grinder_edits_fields() {
 /// `list_grinders` returns grinders newest-first with pagination and the total
 /// count. Exercises the shipping `ORDER BY created_at DESC, brand ASC`, the
 /// `LIMIT`/`OFFSET` paging and the `COUNT(*)` total.
+///
+/// The paging is pinned at a real page boundary: with `limit = 2` across the
+/// shared table, this test walks every page, reassembles the full ordered id
+/// list, confirms its length equals the reported `COUNT(*)` total (so no row is
+/// skipped or double-counted at the `LIMIT`/`OFFSET` seam), and then checks
+/// this test's three marker rows come back newest-first in that sequence. A
+/// drift in the `LIMIT`/`OFFSET` arithmetic (an off-by-one page start, wrong
+/// limit, or a `total` that disagrees with the pages) now fails the test.
 #[tokio::test]
 #[ignore = "requires a live Postgres (DATABASE_URL); no DB in this sandbox"]
 async fn list_grinders_is_newest_first_with_paging() {
@@ -193,26 +202,64 @@ async fn list_grinders_is_newest_first_with_paging() {
         ids.push(g.id);
     }
 
-    // Page 1 with limit 2 holds the two newest of this test's rows. Because the
-    // shared table may hold other grinders, filter the returned page down to
-    // this test's marker before asserting the newest-first order.
+    // Walk the whole table one small page at a time so the `LIMIT`/`OFFSET`
+    // boundary is actually exercised. `page1` also gives us the authoritative
+    // `COUNT(*)` total to check the reassembled pages against.
+    const LIMIT: i32 = 2;
     let (page1, total) = service
-        .list_grinders(Some(1), Some(100))
+        .list_grinders(Some(1), Some(LIMIT))
         .await
         .expect("list grinders");
     assert!(total >= 3, "total counts at least this test's three rows");
+    assert!(
+        page1.len() <= LIMIT as usize,
+        "a page never exceeds the requested limit"
+    );
 
-    let mine: Vec<Uuid> = page1
+    // Number of pages needed to cover `total` rows at this limit (ceil div).
+    let pages = ((total + LIMIT as i64 - 1) / LIMIT as i64) as i32;
+    let mut all_ids: Vec<Uuid> = page1.iter().map(|g| g.id).collect();
+    for page in 2..=pages {
+        let (rows, page_total) = service
+            .list_grinders(Some(page), Some(LIMIT))
+            .await
+            .expect("list grinders page");
+        assert_eq!(page_total, total, "COUNT(*) total is stable across pages");
+        assert!(
+            rows.len() <= LIMIT as usize,
+            "a page never exceeds the requested limit"
+        );
+        all_ids.extend(rows.iter().map(|g| g.id));
+    }
+
+    // The paged walk reassembles exactly `total` rows with no duplicates: that
+    // is only true if every `OFFSET = (page - 1) * limit` lands on the right
+    // boundary. A drift in the arithmetic skips or repeats a row and breaks
+    // one of these two assertions.
+    assert_eq!(
+        all_ids.len() as i64,
+        total,
+        "paging through at limit {LIMIT} visits every row exactly once"
+    );
+    let mut unique = all_ids.clone();
+    unique.sort();
+    unique.dedup();
+    assert_eq!(
+        unique.len(),
+        all_ids.len(),
+        "no row is returned on two different pages"
+    );
+
+    // Within that reassembled order, this test's three rows are newest-first.
+    let mine: Vec<Uuid> = all_ids
         .iter()
-        .filter(|g| g.brand.starts_with(&marker))
-        .map(|g| g.id)
+        .copied()
+        .filter(|id| ids.contains(id))
         .collect();
     assert_eq!(mine.len(), 3, "all three of this test's grinders are listed");
-    // Newest first: the last id inserted appears before the first.
-    let pos_newest = mine.iter().position(|id| *id == ids[2]).unwrap();
-    let pos_oldest = mine.iter().position(|id| *id == ids[0]).unwrap();
-    assert!(
-        pos_newest < pos_oldest,
+    assert_eq!(
+        mine,
+        vec![ids[2], ids[1], ids[0]],
         "list is ordered newest-first (created_at DESC)"
     );
 
