@@ -2,7 +2,7 @@
 name = "coffee-brewer-backend"
 version = "0.1.0"
 edition = "2021"
-description = "Rust backend for consolidated coffee brewing application with tRPC"
+description = "Rust backend for consolidated coffee brewing application (REST)"
 
 [dependencies]
 axum = { version = "0.7", features = ["macros"] }
@@ -14,14 +14,15 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 chrono = { version = "0.4", features = ["serde"] }
 uuid = { version = "1.0", features = ["v4", "serde"] }
-sqlx = { version = "0.7", features = ["runtime-tokio-native-tls", "postgres", "macros", "chrono", "uuid"] }
+sqlx = { version = "0.7", features = ["runtime-tokio-native-tls", "postgres", "macros", "migrate", "chrono", "uuid"] }
 anyhow = "1.0"
 thiserror = "1.0"
 validator = { version = "0.18", features = ["derive"] }
-argon2 = "0.5"
-jsonwebtoken = "9.0"
 dotenv = "0.15"
-tarpc = { version = "0.32", features = ["full"] }
+# Generates TypeScript types from the Rust request/response models so the
+# frontend consumes a single source of truth. `chrono-impl`/`uuid-impl` teach
+# ts-rs how to render the chrono and uuid types used by the models.
+ts-rs = { version = "12.0", features = ["chrono-impl", "uuid-impl"] }
 
 # Development dependencies
 [dev-dependencies]
@@ -32,3 +33,10 @@ rstest = "0.18"
 [features]
 default = []
 test-utils = []
+
+# `coverage_nightly` is a custom cfg set by the coverage harness (see
+# `docs/coverage.md` and the `coverage` npm/make target). Registering it here
+# keeps `cargo build`/`clippy` free of `unexpected_cfgs` warnings while the cfg
+# stays off for ordinary builds.
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage_nightly)'] }

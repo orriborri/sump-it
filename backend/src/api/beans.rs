@@ -6,29 +6,31 @@ use axum::{
     http::StatusCode,
     response::IntoResponse,
     Json, Router,
-    routing::{get, post, put, delete},
+    routing::get,
 };
-use serde_json::json;
-use sqlx::PgPool;
 use uuid::Uuid;
+use validator::Validate;
 
 use crate::{
-    models::{CoffeeBean, CreateCoffeeBeanRequest, PaginatedResponse, ErrorResponse},
+    api::AppState,
+    models::{CreateCoffeeBeanRequest, PaginatedResponse, ErrorResponse},
     services::beans::BeanService,
-    validation::{validate_bean_name, validation_errors_to_string},
+    validation::validation_errors_to_string,
 };
 
-pub fn router() -> Router<axum::extract::State<Arc<AppState>>> {
+pub fn router() -> Router<AppState> {
     Router::new()
         .route("/", get(list_beans).post(create_bean))
+        // The collection-level `/active` route must be registered before the
+        // `/:id` capture so it is not swallowed as an id segment.
+        .route("/active", get(get_active_beans))
         .route("/:id", get(get_bean).put(update_bean).delete(delete_bean))
-        .route("/:id/active", get(get_active_beans))
         .route("/:id/usage", get(get_bean_usage))
 }
 
 /// List all coffee beans with pagination
 async fn list_beans(
-    State(state): State<Arc<AppState>>,
+    State(state): State<AppState>,
     Query(params): Query<ListParams>,
 ) -> impl IntoResponse {
     let service = BeanService::new(&state.pool);
@@ -50,7 +52,7 @@ async fn list_beans(
 
 /// Create a new coffee bean
 async fn create_bean(
-    State(state): State<Arc<AppState>>,
+    State(state): State<AppState>,
     Json(payload): Json<CreateCoffeeBeanRequest>,
 ) -> impl IntoResponse {
     // Validate input
@@ -64,8 +66,10 @@ async fn create_bean(
         ).into_response();
     }
     
-    // Additional validation
-    if let Err(e) = validate_bean_name(&payload.name) {
+    // Business-rule validation: non-empty name/origin, no future roast or
+    // purchase dates, and non-negative remaining grams. Each error names the
+    // offending field clearly.
+    if let Err(e) = payload.validate_comprehensive() {
         return (
             StatusCode::BAD_REQUEST,
             Json(ErrorResponse::new(e.to_string())),
@@ -85,7 +89,7 @@ async fn create_bean(
 
 /// Get a specific coffee bean by ID
 async fn get_bean(
-    State(state): State<Arc<AppState>>,
+    State(state): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> impl IntoResponse {
     let service = BeanService::new(&state.pool);
@@ -105,7 +109,7 @@ async fn get_bean(
 
 /// Update a coffee bean
 async fn update_bean(
-    State(state): State<Arc<AppState>>,
+    State(state): State<AppState>,
     Path(id): Path<Uuid>,
     Json(payload): Json<CreateCoffeeBeanRequest>,
 ) -> impl IntoResponse {
@@ -117,6 +121,14 @@ async fn update_bean(
                 "Validation failed".to_string(),
                 vec![validation_errors_to_string(&validation_errors)],
             )),
+        ).into_response();
+    }
+
+    // Business-rule validation (same rules as create): clear, named errors.
+    if let Err(e) = payload.validate_comprehensive() {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse::new(e.to_string())),
         ).into_response();
     }
     
@@ -137,7 +149,7 @@ async fn update_bean(
 
 /// Delete a coffee bean
 async fn delete_bean(
-    State(state): State<Arc<AppState>>,
+    State(state): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> impl IntoResponse {
     let service = BeanService::new(&state.pool);
@@ -157,7 +169,7 @@ async fn delete_bean(
 
 /// Get only active beans (with remaining quantity > 0)
 async fn get_active_beans(
-    State(state): State<Arc<AppState>>,
+    State(state): State<AppState>,
 ) -> impl IntoResponse {
     let service = BeanService::new(&state.pool);
     
@@ -172,7 +184,7 @@ async fn get_active_beans(
 
 /// Get usage history for a bean
 async fn get_bean_usage(
-    State(state): State<Arc<AppState>>,
+    State(state): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> impl IntoResponse {
     let service = BeanService::new(&state.pool);
@@ -202,10 +214,3 @@ impl Default for ListParams {
     }
 }
 
-/// Application state
-#[derive(Clone)]
-struct AppState {
-    pool: PgPool,
-}
-
-use std::sync::Arc;

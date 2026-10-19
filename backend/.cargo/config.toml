@@ -1,0 +1,9 @@
+# ts-rs configuration: generated TypeScript bindings are written straight into
+# the frontend so the contract has a single source of truth (the Rust models).
+# The path is relative to this backend crate root. Regenerate with:
+#   cargo test export_bindings
+[env]
+TS_RS_EXPORT_DIR = { value = "../frontend/lib/generated", relative = true }
+# Render i64/u64 as `number` (our ids are UUID strings and counts fit in a JS
+# number); the default would emit `bigint` which the frontend does not use.
+TS_RS_LARGE_INT = "number"
