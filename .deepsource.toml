@@ -1,0 +1,17 @@
+version = 1
+
+exclude_patterns = [
+  "**/node_modules/**",
+  "frontend/.next/**",
+  "frontend/coverage/**",
+  "**/lib/generated/**",
+  "backend/target/**"
+]
+
+[[analyzers]]
+name = "javascript"
+
+  [analyzers.meta]
+  plugins = ["react"]
+  environment = ["nodejs"]
+  dialect = "typescript"
