@@ -20,9 +20,10 @@ RUST_NIGHTLY ?= nightly-2025-10-01
 coverage: coverage-backend coverage-frontend
 	@echo "All coverage gates passed."
 
-# Backend: cargo-llvm-cov on the DB-free library (validation + models),
-# enforcing 100% line coverage. RUSTFLAGS sets the `coverage_nightly` cfg so
-# the `#[cfg_attr(coverage_nightly, coverage(off))]` bootstrap exclusions apply.
+# Backend: cargo-llvm-cov on the DB-free library (validation, models, recipe,
+# session_query), enforcing 100% line coverage. RUSTFLAGS sets the
+# `coverage_nightly` cfg so the `#[cfg_attr(coverage_nightly, coverage(off))]`
+# bootstrap exclusions apply.
 coverage-backend:
 	cd backend && RUSTFLAGS="--cfg coverage_nightly" \
 		cargo +$(RUST_NIGHTLY) llvm-cov --lib --fail-under-lines 100
