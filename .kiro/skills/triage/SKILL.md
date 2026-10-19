@@ -43,6 +43,19 @@ These are canonical role names. The actual label strings used in the issue track
 
 State transitions: an unlabeled issue normally goes to `needs-triage` first; from there it moves to `needs-info`, `ready-for-agent`, `ready-for-human`, or `wontfix`. `needs-info` returns to `needs-triage` once the reporter replies. The maintainer can override at any time; flag transitions that look unusual and ask before proceeding.
 
+## Kiro Web invocation
+
+`ready-for-agent` is the project state label. When an issue is fully specified, unblocked, and approved for autonomous implementation, also add the separate `kiro` trigger label. The two labels have different meanings:
+
+- `ready-for-agent`: triage state; the issue is ready to be worked.
+- `kiro`: native Kiro Web trigger; adding it starts Kiro autonomous work through the Kiro Agent GitHub App.
+
+Do not add `kiro` to an issue whose `Blocked by` issues are open. Do not add it to an issue that has already been implemented or merged. For a scheduled frontier workflow, a Kiro Web Automation should select the oldest open `ready-for-agent` issue whose blockers are closed, then add `kiro` or invoke the issue through the documented automation prompt.
+
+The documented immediate comment trigger is `/kiro`; `@kiro` is not a documented trigger. Kiro Web Automations, rather than `.kiro/hooks`, provide scheduled polling.
+
+See `../skills/kiro-web-github-automation/SKILL.md` and the official [Kiro Web GitHub integration](https://kiro.dev/docs/web/github.md).
+
 ## Invocation
 
 The maintainer invokes `/triage` and describes what they want in natural language. Interpret the request and act. Examples:
@@ -75,7 +88,7 @@ Show counts and a one-line summary per item. Let the maintainer pick.
 4. **Grill (if needed).** If the request needs fleshing out, call the Skill tool twice, for "grilling" and "domain-modeling", and grill it into shape a round of questions at a time, sharpening domain terms and updating `GLOSSARY.md`/ADRs inline as decisions land.
 
 5. **Apply the outcome:**
-   - `ready-for-agent`: post an agent brief comment ([AGENT-BRIEF.md](AGENT-BRIEF.md)).
+   - `ready-for-agent`: post an agent brief comment ([AGENT-BRIEF.md](AGENT-BRIEF.md)) and, when the issue is unblocked and approved for autonomous implementation, add the separate `kiro` trigger label. Do not add `kiro` to blocked or already-completed work.
    - `ready-for-human`: same structure as an agent brief, but note why it can't be delegated (judgment calls, external access, design decisions, manual testing).
    - `needs-info`: post triage notes (template below).
    - For `wontfix`, close the issue, with the comment depending on *why*:

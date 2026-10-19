@@ -9,6 +9,10 @@ This repository uses the default triage label vocabulary:
 - **`ready-for-human`**: Issue requires human intervention or review
 - **`wontfix`**: Issue will not be addressed (with reason in comments)
 
+## Kiro Web Trigger Label
+
+- **`kiro`**: Native Kiro Web trigger label. Add only after `ready-for-agent` triage is complete, the issue is unblocked, and autonomous implementation is intended. This is a trigger label, not one of the five triage state roles.
+
 ## Label Usage
 These labels are applied during the triage process to indicate the current state of each issue. The `triage` skill uses these labels to categorize and prioritize work.
 
