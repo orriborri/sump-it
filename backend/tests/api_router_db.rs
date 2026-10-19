@@ -541,8 +541,9 @@ async fn session_create_list_duplicate_through_router() {
     assert_eq!(body["page"], 1);
 
     // Every filter field at once, plus a search term, so the service's
-    // `bind_all` / `bind_all_scalar` exercise ALL `QueryBind` variants (Text,
-    // Date, Grinder, Method, Float, Pattern, Int) in one query pair.
+    // `bind_all` binder exercises ALL `QueryBind` variants (Text, Date,
+    // Grinder, Method, Float, Pattern, Int) across the shared list + count
+    // query pair.
     let (status, body) = send(
         &pool,
         "GET",
