@@ -1,9 +1,20 @@
-name: Contract (types + type-check)
+name: Contract + coverage gates
 
-# Verifies the TypeScript<->Rust contract:
-#   1. Regenerate the TS types from the Rust models (ts-rs) and fail if the
-#      checked-in files under frontend/lib/generated are stale.
-#   2. Run a strict frontend type-check (tsc --noEmit).
+# Enforces the full spec in CI:
+#   contract          - regenerate the TS types from the Rust models (ts-rs) and
+#                       fail on a stale diff under frontend/lib/generated (US38),
+#                       then run a strict frontend type-check (tsc --noEmit).
+#   backend-coverage  - run the whole backend (DB-free library core + DB-backed
+#                       services/handlers + axum router) under cargo-llvm-cov at
+#                       100% line coverage against a REAL Postgres (US43, US45).
+#                       The `#[ignore]`d DB integration tests are included so the
+#                       shipping SQL runs against the service database.
+#   frontend-coverage - run the Vitest v8 coverage gate at 100%
+#                       lines/branches/functions/statements (US43).
+#
+# The backend/frontend gates run the SAME commands as `make coverage` locally
+# (see the root Makefile and docs/coverage.md) so CI and local never drift.
+# RUST_NIGHTLY is pinned to the same dated nightly the Makefile uses.
 # No secrets are used by this workflow.
 
 on:
@@ -14,7 +25,15 @@ on:
 permissions:
   contents: read
 
+env:
+  # Keep in sync with the Makefile's RUST_NIGHTLY default. cargo-llvm-cov needs
+  # a nightly (for the `coverage_nightly` cfg / `#[coverage(off)]` and
+  # llvm-tools); this dated nightly compiles the full dependency tree (newer
+  # `nightly` currently fails to build sqlx-postgres 0.7.4). See docs/coverage.md.
+  RUST_NIGHTLY: nightly-2025-10-01
+
 jobs:
+  # US38: the generated TS contract stays fresh and the frontend type-checks.
   contract:
     runs-on: ubuntu-latest
     steps:
@@ -55,3 +74,75 @@ jobs:
       - name: Strict frontend type-check
         working-directory: frontend
         run: npx tsc --noEmit
+
+  # US43 + US45: the whole backend at 100% line coverage against a real Postgres.
+  # Mirrors `make coverage-backend` (and thus `make coverage`).
+  backend-coverage:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: coffee_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      # The DB-backed gate and integration tests connect here; the service above
+      # exposes Postgres 16 on localhost:5432.
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/coffee_test
+      TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/coffee_test
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust nightly + llvm-tools-preview
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUST_NIGHTLY }}
+          components: llvm-tools-preview
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            backend/target
+          key: ${{ runner.os }}-cargo-nightly-${{ hashFiles('backend/Cargo.lock') }}
+
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-llvm-cov
+
+      # Same command as `make coverage-backend` (root Makefile): the whole
+      # application under one 100%-line gate, with the #[ignore]d DB tests run
+      # serially against the service Postgres named by DATABASE_URL.
+      - name: Backend coverage gate (whole app, 100% lines)
+        run: make coverage-backend RUST_NIGHTLY=${{ env.RUST_NIGHTLY }}
+
+  # US43: the frontend Vitest v8 coverage gate at 100%.
+  # Mirrors `make coverage-frontend` (and thus `make coverage`).
+  frontend-coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci --legacy-peer-deps
+
+      # Same command as `make coverage-frontend` (root Makefile).
+      - name: Frontend coverage gate (100%)
+        run: make coverage-frontend
