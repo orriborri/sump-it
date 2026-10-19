@@ -22,7 +22,7 @@ coffee-brewer-consolidated/
 │   │   ├── grinders/       # Grinder management
 │   │   └── sessions/       # Brew session history
 │   ├── lib/
-│   │   ├── trpc/           # Type-safe API client
+│   │   ├── trpc/           # Thin typed REST client (ts-rs generated types)
 │   │   └── utils/          # Shared utilities
 │   └── package.json
 ├── docs/                    # Documentation

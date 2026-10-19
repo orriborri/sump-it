@@ -1,7 +1,7 @@
 # Coffee Brewer Application - Consolidation Summary
 
 ## Overview
-Successfully consolidated three separate coffee brewing applications into a single, unified TypeScript frontend + Rust backend application with tRPC-like communication.
+Successfully consolidated three separate coffee brewing applications into a single, unified TypeScript frontend + Rust backend application with a typed REST contract (TypeScript types generated from the Rust models via ts-rs and consumed by a thin typed fetch client).
 
 ## 📁 Project Structure Created
 
@@ -20,7 +20,7 @@ coffee-brewer-consolidated/
 ├── frontend/                  # Next.js 15 frontend
 │   ├── app/
 │   │   └── brew/             # Vertical stepper brewing workflow
-│   ├── lib/trpc/             # Type-safe API client
+│   ├── lib/trpc/             # Thin typed REST client (ts-rs generated types)
 │   └── package.json
 │
 ├── shared/                    # Shared types (planned)
@@ -67,7 +67,7 @@ coffee-brewer-consolidated/
 - **App Router** for modern routing
 - **Material-UI** with custom coffee theme
 - **React Query** for data fetching and caching
-- **Type-safe API client** with tRPC-like interface
+- **Thin typed fetch client** using ts-rs-generated types
 - **Vertical stepper component** preserved from sump-it
 - **Responsive design** for all device sizes
 
@@ -161,7 +161,7 @@ The consolidated application maintains compatibility with:
 ## 🎯 Success Criteria Achieved
 
 ✅ **TypeScript frontend + Rust backend** architecture
-✅ **tRPC-like type-safe communication**
+✅ **Type-safe communication via ts-rs-generated types + thin typed fetch client**
 ✅ **Vertical stepper UI from sump-it preserved**
 ✅ **Comprehensive validation from rustyCoffy integrated**
 ✅ **Modern API design from BeanIt implemented**

@@ -4,7 +4,7 @@
 - **Frontend**: Next.js 15 with TypeScript, Material-UI, React Query
 - **Backend**: Rust with Axum, SQLx, PostgreSQL
 - **Database**: PostgreSQL with custom enums and CHECK constraints
-- **Communication**: Type-safe API calls with tRPC-like client
+- **Communication**: Typed REST contract; TypeScript types generated from the Rust models via ts-rs and consumed by a thin typed fetch client
 - **DevOps**: Docker Compose for local development
 
 ## Frontend Stack
@@ -14,7 +14,7 @@
 - **State Management**: React Query for server state
 - **Styling**: Emotion with CSS-in-JS
 - **Form Handling**: React Hook Form with Zod validation
-- **API Client**: Custom tRPC-like client with type safety
+- **API Client**: Thin typed fetch client (`lib/trpc/client.ts`) using ts-rs-generated types
 
 ## Backend Stack
 - **Language**: Rust 2021 edition

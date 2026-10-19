@@ -16,6 +16,7 @@ import {
   Chip,
   Alert,
 } from '@mui/material';
+import { type BrewFormData } from '@/lib/brew/recipe';
 
 // Accepts the generated CoffeeBean/Grinder shapes (nullable fields) plus the
 // UI-only `isFresh` hint. Kept structural so the generated types from
@@ -44,7 +45,7 @@ interface BeanSelectorProps {
     grinderId: string;
     brewingMethod: string;
   };
-  updateFormData: (updates: any) => void;
+  updateFormData: (updates: Partial<BrewFormData>) => void;
   beans: Bean[];
   grinders: Grinder[];
   isLoading: boolean;
