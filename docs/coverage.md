@@ -11,26 +11,73 @@ This runs two gates, both of which must stay at 100%:
 
 | Area     | Tool                     | Thresholds                                   | Scope today                                    |
 | -------- | ------------------------ | -------------------------------------------- | ---------------------------------------------- |
-| Backend  | `cargo-llvm-cov` (nightly) | `--fail-under-lines 100`                     | library crate: `validation`, `models`, `recipe`, `session_query` |
+| Backend  | `cargo-llvm-cov` (nightly) | `--fail-under-lines 100`                     | the WHOLE application: `validation`, `models`, `recipe`, `session_query` AND the DB-backed `services/*` and axum `api/*` |
 | Frontend | Vitest + `@vitest/coverage-v8` | 100% lines, branches, functions, statements | files listed in `vitest.config.ts` `include`   |
 
 `make coverage` is the only command you need; `make coverage-backend` and
 `make coverage-frontend` run the halves individually.
 
-## Why the backend gate targets the library
+> **The backend gate needs a live Postgres.** The DB-backed layers are measured
+> by the integration tests, which run against the database named by
+> `DATABASE_URL` (see "Running the backend gate" below). Export a reachable
+> `DATABASE_URL` before `make coverage` / `make coverage-backend`, or the
+> `#[ignore]`d DB tests cannot connect and the gate fails.
 
-The backend is split into a library crate (`backend/src/lib.rs`, exposing
-`validation`, `models`, `recipe`, and `session_query`) and a binary
-(`backend/src/main.rs`, plus `api`, `services`, `database`). The library holds
-the database-independent domain logic that is unit-testable without a running
-Postgres, so the gate runs with `cargo llvm-cov --lib` and holds that core at
-100% line coverage.
+## What the backend gate covers
 
-The database-backed handlers, services, and the server bootstrap live in the
-binary. They are exercised by the integration-test tickets that introduce a
-running database; those tickets extend the harness to the binary/integration
-layer. Nothing is excluded with a path filter on the Rust side — the split is
-structural, not a coverage opt-out.
+The backend is split into a library crate (`backend/src/lib.rs`) and a thin
+binary (`backend/src/main.rs`). To get the spec-mandated 100% line coverage over
+ALL non-bootstrap code in a single run, the library crate now exposes not only
+the database-independent core (`validation`, `models`, `recipe`,
+`session_query`) but also the DB-backed layers: the service layer
+(`services/*`, which owns the SQL and the brew transaction) and the axum API
+handlers (`api/*`, which map requests/responses and errors to HTTP). Only the
+process bootstrap lives in the binary: `main()` (server start, tracing, env,
+router/listener wiring) and `database::init_pool()` (pool creation + migrations).
+
+Because the handlers and services are in the library, one invocation,
+
+```sh
+cargo llvm-cov --lib --tests --fail-under-lines 100 -- --include-ignored --test-threads=1
+```
+
+measures the library unit tests AND the DB integration tests under
+`backend/tests/`, and gates the union at 100% lines. The integration tests drive
+the real code end to end against Postgres:
+
+- `tests/api_router_db.rs` builds HTTP requests and sends them through the REAL
+  `api::router` in-process (`tower::ServiceExt::oneshot`), asserting on status
+  and JSON. It covers every handler branch (success / validation / not-found /
+  conflict / server-error), the single `save_error_response` error-mapping site,
+  and the `Err(e) => 500` arms (forced by dropping tables so the service
+  queries fail).
+- `tests/session_logging_db.rs` and `tests/session_list_duplicate_db.rs` call
+  the real `services::sessions::SessionService` directly, exercising the
+  shipping INSERT/SELECT column lists, bind order and `FromRow` mapping.
+- `tests/bean_inventory_db.rs` and `tests/grinders_integration.rs` pin the
+  schema behaviour.
+
+Nothing is excluded with a path filter on the Rust side. The only coverage-off
+lines are inline-annotated bootstrap/wiring (`main`, `health_check`,
+`init_pool`) and a handful of defensive, by-construction-unreachable
+transaction branches in `services/sessions.rs` (opening/committing the brew
+transaction and the post-sufficiency-check inventory decrement), each with a
+`coverage:` reason.
+
+## Running the backend gate
+
+The DB tests are `#[ignore]`d (so `cargo test` is clean without a database) and
+read `DATABASE_URL` (falling back to `TEST_DATABASE_URL`). Point them at any
+reachable Postgres 16 and run the gate in the same shell, e.g.:
+
+```sh
+export DATABASE_URL=postgres://postgres@127.0.0.1:5433/coffee_test
+make coverage-backend            # or: make coverage
+```
+
+Each DB test either creates a uniquely named throwaway database or cleans up the
+rows it inserts, so the suite is isolated and repeatable. `--test-threads=1`
+keeps the shared-database suites deterministic.
 
 ## Exclusion convention
 
@@ -56,8 +103,10 @@ The `coverage_nightly` cfg is set by the coverage command
 crate roots enable the attribute with
 `#![cfg_attr(coverage_nightly, feature(coverage_attribute))]`.
 
-Real examples in the tree: `main()` (`backend/src/main.rs`) and
-`database::init_pool()` (`backend/src/database.rs`).
+Real examples in the tree: `main()` / `health_check()` (`backend/src/main.rs`),
+`database::init_pool()` (`backend/src/database.rs`), and the defensive
+transaction-wiring helpers `begin_tx` / `check_tx`
+(`backend/src/services/sessions.rs`).
 
 ### TypeScript
 
@@ -102,16 +151,18 @@ than excluding it.
 - **Frontend:** `vitest.config.ts` `coverage.include` is an explicit allow-list.
   When a ticket adds a tested module, add its path to `include` in the same PR
   so new code is never silently left uncovered.
-- **Backend:** as DB-backed code gains integration tests, extend the harness
-  (e.g. a `--bin`/integration profile with a test database) rather than
-  loosening the library gate.
+- **Backend:** new handlers/services belong in the library crate (not the
+  binary) and must ship with integration tests that drive them against Postgres,
+  so they are picked up by the existing `--lib --tests` gate. Keep the binary
+  limited to bootstrap/wiring.
 
 ## Sandbox / CI toolchain note
 
 `cargo-llvm-cov` requires a nightly toolchain with `llvm-tools-preview`, plus
 `cargo install cargo-llvm-cov`. The backend gate compiles the full dependency
-tree (including `sqlx`) even though it only measures the DB-free `--lib` core,
-so the nightly has to sit inside a compatibility window:
+tree (including `sqlx`) and measures the whole application (library core plus
+the DB-backed handlers/services via the integration tests), so the nightly has
+to sit inside a compatibility window:
 
 - A very recent nightly fails to compile `sqlx-postgres 0.7.4` (a Rust
   type-inference change around the `!` never type, rust-lang#148922).

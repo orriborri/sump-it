@@ -15,16 +15,15 @@
 //! (0001_init.sql + 0002_relax_session_bounds.sql) via `sqlx::migrate!`. Each
 //! test cleans up the rows it inserts so the suite can run repeatedly.
 //!
-//! WHY THIS TEST COMPILES THE REAL SERVICE: the production save path
+//! WHY THIS TEST CALLS THE REAL SERVICE: the production save path
 //! (`SessionService::log_brew` / `duplicate` / `list_filtered`) lives in the
-//! binary target, so it cannot be imported from the library crate. Rather than
-//! re-implement the transaction with hand-written SQL (which would validate the
-//! schema but never the shipping queries), this test compiles the actual
-//! service source via `#[path]` and calls it. The `crate::`-relative imports
-//! inside the service resolve to the library re-exports declared at the top of
-//! this file, so the test exercises the exact INSERT column list, bind order
-//! and `FromRow` mapping that ships. A bind-order or column drift in the real
-//! query now fails this test when a DB is available.
+//! library crate (`coffee_brewer_backend::services::sessions`), so this test
+//! imports and calls it directly rather than re-implementing the transaction
+//! with hand-written SQL (which would validate the schema but never the
+//! shipping queries). Because it exercises the SAME compiled service the binary
+//! and the coverage gate use, the exact INSERT column list, bind order and
+//! `FromRow` mapping that ships are tested. A bind-order or column drift in the
+//! real query now fails this test when a DB is available.
 //!
 //! Scope mirrors the ticket's acceptance criteria for the save path:
 //! - a brew insert and the grams decrement happen in ONE transaction,
@@ -39,26 +38,16 @@ use sqlx::postgres::PgPoolOptions;
 use sqlx::PgPool;
 use uuid::Uuid;
 
-// Re-export the library modules under the `crate::` paths the service source
-// expects, so the `#[path]`-included `services/sessions.rs` compiles unchanged
-// inside this test crate. These are the same public library modules the binary
-// re-exports in `main.rs`.
-use coffee_brewer_backend::{models, recipe, session_query, validation};
+// Use the models from the library crate.
+use coffee_brewer_backend::models::{BrewingMethod, CreateBrewingSessionRequest};
 
-use models::{BrewingMethod, CreateBrewingSessionRequest};
-
-// Compile the ACTUAL production service into this test crate. The service has
-// no dependency on the `api` layer (only on `models`/`recipe`/`session_query`/
-// `validation`, re-exported above), so it builds standalone here. `dead_code`
-// is allowed on the module because each test file calls only a subset of the
-// service surface (e.g. this file does not call `list_filtered`), and the
-// unused members would otherwise warn when the source is compiled into the
-// test crate rather than the binary.
-#[allow(dead_code)]
-#[path = "../src/services/sessions.rs"]
-mod sessions;
-
-use sessions::{SaveError, SessionService};
+// The production service now lives in the library crate (`services::sessions`),
+// so this test calls it directly rather than re-compiling the source via
+// `#[path]`. That means it exercises the SAME compiled service the binary and
+// the coverage gate measure - the shipping INSERT column list, bind order and
+// `BrewingSession` `FromRow` mapping - so a bind-order or column drift in the
+// real query still fails this test when a DB is available.
+use coffee_brewer_backend::services::sessions::{SaveError, SessionService};
 
 /// Connects to `DATABASE_URL` (falling back to `TEST_DATABASE_URL`) and ensures
 /// the schema is present. Returns `None` when neither variable is set so the

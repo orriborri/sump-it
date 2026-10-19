@@ -42,6 +42,7 @@ export default defineConfig({
         'lib/trpc/client.ts',
         'lib/grinders/validation.ts',
         'app/grinders/GrinderManager.tsx',
+        'app/grinders/page.tsx',
         'lib/beans/inventory.ts',
         'app/beans/BeanManager.tsx',
         'app/beans/page.tsx',

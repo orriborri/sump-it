@@ -12,8 +12,8 @@
 //! cargo test --test session_list_duplicate_db -- --ignored --test-threads=1
 //! ```
 //!
-//! WHY THIS TEST COMPILES THE REAL SERVICE: like `session_logging_db.rs`, this
-//! test compiles the production `SessionService` via `#[path]` and calls its
+//! WHY THIS TEST CALLS THE REAL SERVICE: like `session_logging_db.rs`, this
+//! test calls the production `SessionService` (from the library crate) and its
 //! real `log_brew`, `duplicate` and `list_filtered` methods rather than
 //! re-implementing them with inline SQL. That means these tests exercise the
 //! exact shipping query strings (the full-column `BrewingSession` SELECT, the
@@ -34,22 +34,19 @@ use sqlx::postgres::PgPoolOptions;
 use sqlx::PgPool;
 use uuid::Uuid;
 
-// Re-export the library modules under the `crate::` paths the service source
-// expects, so the `#[path]`-included `services/sessions.rs` compiles unchanged
-// inside this test crate (mirrors `main.rs`).
-use coffee_brewer_backend::{models, recipe, session_query, validation};
+// Use the models and the pure recipe helpers from the library crate.
+use coffee_brewer_backend::models::{
+    BrewingMethod, CreateBrewingSessionRequest, GrinderType, SessionFilter,
+};
+use coffee_brewer_backend::recipe;
 
-use models::{BrewingMethod, CreateBrewingSessionRequest, GrinderType, SessionFilter};
-
-// Compile the ACTUAL production service into this test crate and call it.
-// `dead_code` is allowed because each test file calls only a subset of the
-// service surface, so unused members would warn when compiled into the test
-// crate rather than the binary.
-#[allow(dead_code)]
-#[path = "../src/services/sessions.rs"]
-mod sessions;
-
-use sessions::SessionService;
+// The production service now lives in the library crate (`services::sessions`),
+// so this test calls it directly rather than re-compiling the source via
+// `#[path]`. It exercises the SAME compiled service the coverage gate measures:
+// the full-column `BrewingSession` SELECT, the `session_query`-built
+// filter/search/pagination SQL, the `INSERT ... RETURNING` and the `FromRow`
+// mapping, so a bind-order or column drift in the real queries fails here.
+use coffee_brewer_backend::services::sessions::SessionService;
 
 /// Connects to `DATABASE_URL` (falling back to `TEST_DATABASE_URL`) and ensures
 /// the schema is present. Returns `None` when neither variable is set so the
