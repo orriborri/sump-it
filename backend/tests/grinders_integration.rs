@@ -2,16 +2,18 @@
 //!
 //! DB-REQUIRED: these tests exercise `GrinderService` against a real Postgres
 //! instance created from `migrations/0001_init.sql`. They are IGNORED by
-//! default so the DB-free CI (which has no Postgres) still runs
-//! `cargo test`/`cargo check` cleanly. The coverage gate measures only the
-//! library (`cargo llvm-cov --lib`); these binary-level, DB-backed paths are
-//! intentionally outside that gate and documented here as the real end-to-end
-//! verification of the grinder persistence layer.
+//! default so `cargo test`/`cargo check` still run cleanly without a database,
+//! but they are run against a real Postgres as part of the DB integration
+//! suite. The coverage gate measures only the library (`cargo llvm-cov
+//! --lib`); these binary-level, DB-backed paths are intentionally outside that
+//! gate and documented here as the real end-to-end verification of the grinder
+//! persistence layer.
 //!
-//! To run locally against a database:
+//! To run locally against a database (the suite reads `DATABASE_URL`, falling
+//! back to `TEST_DATABASE_URL`, so a single variable drives every DB suite):
 //!
 //! ```bash
-//! export TEST_DATABASE_URL=postgres://postgres:postgres@localhost:5432/coffee_test
+//! export DATABASE_URL=postgres://postgres:postgres@localhost:5432/coffee_test
 //! cargo test --test grinders_integration -- --ignored
 //! ```
 //!
@@ -79,8 +81,11 @@ mod grinder_queries {
 
 /// Spins up a throwaway database and applies the single schema migration.
 async fn setup_pool() -> PgPool {
-    let base_url = std::env::var("TEST_DATABASE_URL")
-        .expect("TEST_DATABASE_URL must be set for DB-required grinder tests");
+    // Prefer `DATABASE_URL`, falling back to `TEST_DATABASE_URL`, so one env
+    // var drives every DB integration suite in this crate.
+    let base_url = std::env::var("DATABASE_URL")
+        .or_else(|_| std::env::var("TEST_DATABASE_URL"))
+        .expect("DATABASE_URL (or TEST_DATABASE_URL) must be set for DB-required grinder tests");
 
     let db_name = format!("grinder_test_{}", Uuid::new_v4().simple());
 
@@ -129,7 +134,7 @@ fn sample_request(min: i32, max: i32) -> CreateGrinderRequest {
 }
 
 #[tokio::test]
-#[ignore = "DB-required: needs a running Postgres via TEST_DATABASE_URL"]
+#[ignore = "DB-required: needs a running Postgres via DATABASE_URL"]
 async fn create_and_count_grinder() {
     let pool = setup_pool().await;
 
@@ -147,7 +152,7 @@ async fn create_and_count_grinder() {
 }
 
 #[tokio::test]
-#[ignore = "DB-required: needs a running Postgres via TEST_DATABASE_URL"]
+#[ignore = "DB-required: needs a running Postgres via DATABASE_URL"]
 async fn schema_rejects_max_not_greater_than_min() {
     let pool = setup_pool().await;
 
@@ -158,7 +163,7 @@ async fn schema_rejects_max_not_greater_than_min() {
 }
 
 #[tokio::test]
-#[ignore = "DB-required: needs a running Postgres via TEST_DATABASE_URL"]
+#[ignore = "DB-required: needs a running Postgres via DATABASE_URL"]
 async fn schema_rejects_negative_min_setting() {
     let pool = setup_pool().await;
 

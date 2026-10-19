@@ -1,11 +1,11 @@
 //! DB-backed integration tests for ticket #146: duplicate, list, filter and
 //! search over brewing sessions.
 //!
-//! THESE TESTS REQUIRE A LIVE POSTGRES and are therefore `#[ignore]`d. The CI
-//! sandbox for this ticket has NO Postgres and NO Docker, so they are NOT run
-//! here and their passing is NOT claimed. They encode the intended behaviour so
-//! a developer with a database (or a later integration-env ticket) can run them
-//! with:
+//! THESE TESTS REQUIRE A LIVE POSTGRES and are therefore `#[ignore]`d so that
+//! `cargo test` runs cleanly without a database. They are run against a real
+//! Postgres as part of the DB integration suite and encode the intended
+//! behaviour. Run them (they read `DATABASE_URL`, falling back to
+//! `TEST_DATABASE_URL`) with:
 //!
 //! ```sh
 //! export DATABASE_URL=postgres://user:pass@localhost:5432/coffee
@@ -51,10 +51,13 @@ mod sessions;
 
 use sessions::SessionService;
 
-/// Connects to `DATABASE_URL` and ensures the schema is present. Returns `None`
-/// when the variable is unset so the (ignored) tests degrade cleanly.
+/// Connects to `DATABASE_URL` (falling back to `TEST_DATABASE_URL`) and ensures
+/// the schema is present. Returns `None` when neither variable is set so the
+/// (ignored) tests degrade cleanly.
 async fn pool() -> Option<PgPool> {
-    let url = std::env::var("DATABASE_URL").ok()?;
+    let url = std::env::var("DATABASE_URL")
+        .or_else(|_| std::env::var("TEST_DATABASE_URL"))
+        .ok()?;
     let pool = PgPoolOptions::new()
         .max_connections(2)
         .connect(&url)
@@ -164,7 +167,7 @@ async fn cleanup(pool: &PgPool, beans: &[Uuid], grinders: &[Uuid]) {
 /// decremented) while dropping the original's rating and notes. Calls the real
 /// `SessionService::duplicate`, which routes through `log_brew`.
 #[tokio::test]
-#[ignore = "requires a live Postgres (DATABASE_URL); no DB in this sandbox"]
+#[ignore = "requires a live Postgres (DATABASE_URL); run with --ignored"]
 async fn duplicate_rebrew_decrements_and_drops_results() {
     let Some(pool) = pool().await else { return };
     let grinder = insert_grinder(&pool, "Comandante", "BurrConical").await;
@@ -208,7 +211,7 @@ async fn duplicate_rebrew_decrements_and_drops_results() {
 /// Listing with no filters returns sessions newest-first and respects LIMIT and
 /// OFFSET, using the real `SessionService::list_filtered` (full-column SELECT).
 #[tokio::test]
-#[ignore = "requires a live Postgres (DATABASE_URL); no DB in this sandbox"]
+#[ignore = "requires a live Postgres (DATABASE_URL); run with --ignored"]
 async fn list_is_newest_first_with_paging() {
     let Some(pool) = pool().await else { return };
     let grinder = insert_grinder(&pool, "Comandante", "BurrConical").await;
@@ -241,7 +244,7 @@ async fn list_is_newest_first_with_paging() {
 
 /// Each filter narrows the result set; `list_filtered` returns the right count.
 #[tokio::test]
-#[ignore = "requires a live Postgres (DATABASE_URL); no DB in this sandbox"]
+#[ignore = "requires a live Postgres (DATABASE_URL); run with --ignored"]
 async fn filters_narrow_results() {
     let Some(pool) = pool().await else { return };
     let burr = insert_grinder(&pool, "Comandante", "BurrConical").await;
@@ -275,7 +278,7 @@ async fn filters_narrow_results() {
 /// Case-insensitive search matches across bean name, origin, grinder brand and
 /// tasting notes, via the real `list_filtered` search path.
 #[tokio::test]
-#[ignore = "requires a live Postgres (DATABASE_URL); no DB in this sandbox"]
+#[ignore = "requires a live Postgres (DATABASE_URL); run with --ignored"]
 async fn search_matches_across_four_columns() {
     let Some(pool) = pool().await else { return };
     let grinder = insert_grinder(&pool, "Niche", "Zero").await;

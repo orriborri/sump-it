@@ -1,10 +1,10 @@
 //! DB-backed integration tests for the coffee-bean inventory slice (ticket #142).
 //!
-//! THESE TESTS REQUIRE A LIVE POSTGRES and are therefore `#[ignore]`d: the CI
-//! sandbox for this ticket has no Postgres and no Docker, so they are NOT run
-//! here and their passing is NOT claimed. They document the intended
-//! database-backed behaviour of the bean service so a later ticket (or a
-//! developer with a database) can run them with:
+//! THESE TESTS REQUIRE A LIVE POSTGRES and are therefore `#[ignore]`d so that
+//! `cargo test` runs cleanly without a database. They are run against a real
+//! Postgres as part of the DB integration suite and document the
+//! database-backed behaviour of the bean service. Run them (they read
+//! `DATABASE_URL`, falling back to `TEST_DATABASE_URL`) with:
 //!
 //! ```sh
 //! export DATABASE_URL=postgres://user:pass@localhost:5432/coffee
@@ -28,11 +28,14 @@ use sqlx::postgres::PgPoolOptions;
 use sqlx::PgPool;
 use uuid::Uuid;
 
-/// Connects to the database named by `DATABASE_URL` and ensures the schema is
-/// present. Returns `None` when `DATABASE_URL` is unset so the (ignored) tests
-/// degrade cleanly if invoked without configuration.
+/// Connects to the database named by `DATABASE_URL` (falling back to
+/// `TEST_DATABASE_URL`) and ensures the schema is present. Returns `None` when
+/// neither variable is set so the (ignored) tests degrade cleanly if invoked
+/// without configuration.
 async fn pool() -> Option<PgPool> {
-    let url = std::env::var("DATABASE_URL").ok()?;
+    let url = std::env::var("DATABASE_URL")
+        .or_else(|_| std::env::var("TEST_DATABASE_URL"))
+        .ok()?;
     let pool = PgPoolOptions::new()
         .max_connections(2)
         .connect(&url)
@@ -81,7 +84,7 @@ async fn insert_bean(pool: &PgPool, name: &str, remaining: Option<f32>) -> Uuid 
 }
 
 #[tokio::test]
-#[ignore = "requires a live Postgres (DATABASE_URL); no DB in this sandbox"]
+#[ignore = "requires a live Postgres (DATABASE_URL); run with --ignored"]
 async fn create_and_read_bean() {
     let Some(pool) = pool().await else { return };
     let id = insert_bean(&pool, "Create Read", Some(250.0)).await;
@@ -102,7 +105,7 @@ async fn create_and_read_bean() {
 }
 
 #[tokio::test]
-#[ignore = "requires a live Postgres (DATABASE_URL); no DB in this sandbox"]
+#[ignore = "requires a live Postgres (DATABASE_URL); run with --ignored"]
 async fn edit_bean_updates_fields() {
     let Some(pool) = pool().await else { return };
     let id = insert_bean(&pool, "Before Edit", Some(250.0)).await;
@@ -130,7 +133,7 @@ async fn edit_bean_updates_fields() {
 }
 
 #[tokio::test]
-#[ignore = "requires a live Postgres (DATABASE_URL); no DB in this sandbox"]
+#[ignore = "requires a live Postgres (DATABASE_URL); run with --ignored"]
 async fn soft_delete_preserves_brewing_sessions() {
     let Some(pool) = pool().await else { return };
     let grinder_id = insert_grinder(&pool).await;
@@ -192,7 +195,7 @@ async fn soft_delete_preserves_brewing_sessions() {
 }
 
 #[tokio::test]
-#[ignore = "requires a live Postgres (DATABASE_URL); no DB in this sandbox"]
+#[ignore = "requires a live Postgres (DATABASE_URL); run with --ignored"]
 async fn active_list_excludes_soft_deleted_and_empty_bags() {
     let Some(pool) = pool().await else { return };
     let active = insert_bean(&pool, "Active Bag", Some(250.0)).await;
@@ -229,7 +232,7 @@ async fn active_list_excludes_soft_deleted_and_empty_bags() {
 }
 
 #[tokio::test]
-#[ignore = "requires a live Postgres (DATABASE_URL); no DB in this sandbox"]
+#[ignore = "requires a live Postgres (DATABASE_URL); run with --ignored"]
 async fn usage_history_reports_sessions() {
     let Some(pool) = pool().await else { return };
     let grinder_id = insert_grinder(&pool).await;

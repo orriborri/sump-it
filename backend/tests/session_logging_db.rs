@@ -1,10 +1,10 @@
 //! DB-backed integration tests for the atomic brew-logging slice (ticket #145).
 //!
-//! THESE TESTS REQUIRE A LIVE POSTGRES and are therefore `#[ignore]`d. The CI
-//! sandbox for this ticket has NO Postgres and NO Docker, so they are NOT run
-//! here and their passing is NOT claimed. They encode the intended
-//! transactional behaviour so a developer with a database (or a later
-//! integration-env ticket) can run them with:
+//! THESE TESTS REQUIRE A LIVE POSTGRES and are therefore `#[ignore]`d so that
+//! `cargo test` runs cleanly without a database. They are run against a real
+//! Postgres as part of the DB integration suite and encode the intended
+//! transactional behaviour. Run them (they read `DATABASE_URL`, falling back to
+//! `TEST_DATABASE_URL`) with:
 //!
 //! ```sh
 //! export DATABASE_URL=postgres://user:pass@localhost:5432/coffee
@@ -60,10 +60,13 @@ mod sessions;
 
 use sessions::{SaveError, SessionService};
 
-/// Connects to `DATABASE_URL` and ensures the schema is present. Returns `None`
-/// when the variable is unset so the (ignored) tests degrade cleanly.
+/// Connects to `DATABASE_URL` (falling back to `TEST_DATABASE_URL`) and ensures
+/// the schema is present. Returns `None` when neither variable is set so the
+/// (ignored) tests degrade cleanly.
 async fn pool() -> Option<PgPool> {
-    let url = std::env::var("DATABASE_URL").ok()?;
+    let url = std::env::var("DATABASE_URL")
+        .or_else(|_| std::env::var("TEST_DATABASE_URL"))
+        .ok()?;
     let pool = PgPoolOptions::new()
         .max_connections(2)
         .connect(&url)
@@ -154,7 +157,7 @@ async fn cleanup(pool: &PgPool, bean: Uuid, grinder: Uuid) {
 /// real `SessionService::log_brew`, so the shipping INSERT column list, bind
 /// order and `BrewingSession` `FromRow` mapping are exercised end to end.
 #[tokio::test]
-#[ignore = "requires a live Postgres (DATABASE_URL); no DB in this sandbox"]
+#[ignore = "requires a live Postgres (DATABASE_URL); run with --ignored"]
 async fn espresso_logs_and_decrements_atomically() {
     let Some(pool) = pool().await else { return };
     let grinder = insert_grinder(&pool).await;
@@ -196,7 +199,7 @@ async fn espresso_logs_and_decrements_atomically() {
 /// `InsufficientQuantity` and the rollback leaves no session and the grams
 /// unchanged (never a silent clamp to zero).
 #[tokio::test]
-#[ignore = "requires a live Postgres (DATABASE_URL); no DB in this sandbox"]
+#[ignore = "requires a live Postgres (DATABASE_URL); run with --ignored"]
 async fn insufficient_quantity_rolls_back_entire_save() {
     let Some(pool) = pool().await else { return };
     let grinder = insert_grinder(&pool).await;
@@ -240,7 +243,7 @@ async fn insufficient_quantity_rolls_back_entire_save() {
 /// A bean that does not track quantity (`remaining_grams IS NULL`) never blocks
 /// a brew and is not decremented. Exercises `log_brew`'s untracked-bean branch.
 #[tokio::test]
-#[ignore = "requires a live Postgres (DATABASE_URL); no DB in this sandbox"]
+#[ignore = "requires a live Postgres (DATABASE_URL); run with --ignored"]
 async fn untracked_bean_never_blocks_and_is_not_decremented() {
     let Some(pool) = pool().await else { return };
     let grinder = insert_grinder(&pool).await;
