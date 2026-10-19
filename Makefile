@@ -6,9 +6,13 @@
 
 # Toolchain the backend coverage gate runs on. cargo-llvm-cov requires a
 # nightly toolchain (for the `coverage_nightly` cfg / `#[coverage(off)]`
-# attribute and llvm-tools). Override with `make coverage RUST_NIGHTLY=nightly`
-# once your environment's nightly compiles the dependency tree.
-RUST_NIGHTLY ?= nightly
+# attribute and llvm-tools). This is pinned to a dated nightly that compiles
+# the full dependency tree: the latest `nightly` currently fails to build
+# sqlx-postgres 0.7.4 (the `!` never-type inference change, rust-lang#148922),
+# while nightlies older than ~2025-06 are too old for newer transitive deps
+# (edition2024 / stabilized AVX-512 intrinsics). See docs/coverage.md. Override
+# with `make coverage RUST_NIGHTLY=<toolchain>` when your environment differs.
+RUST_NIGHTLY ?= nightly-2025-10-01
 
 .PHONY: coverage coverage-backend coverage-frontend
 
