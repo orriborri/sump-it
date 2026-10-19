@@ -119,13 +119,19 @@ async fn log_brew(
     rating: Option<f32>,
     notes: Option<&str>,
 ) -> Uuid {
+    // Pick a brew time and temperature that are in-band for THIS method's
+    // recipe rules (e.g. Espresso accepts 15-60 s / 88-96 C, while V60 accepts
+    // 120-360 s / 88-100 C), so the shared helper never trips a per-method
+    // recipe check before the row is persisted. Using the range minimum keeps
+    // the value valid for every method in the table.
+    let rules = recipe::rules_for(&method);
     let request = CreateBrewingSessionRequest {
         bean_id: bean,
         grinder_id: grinder,
         brewing_method: method,
         grind_setting: 20,
-        water_temp_celsius: Some(93),
-        brew_time_seconds: Some(180),
+        water_temp_celsius: Some(rules.water_temp_celsius.min),
+        brew_time_seconds: Some(rules.brew_time_seconds.min),
         coffee_grams,
         water_grams,
         tasting_notes: notes.map(|n| n.to_string()),
@@ -215,7 +221,14 @@ async fn duplicate_rebrew_decrements_and_drops_results() {
 async fn list_is_newest_first_with_paging() {
     let Some(pool) = pool().await else { return };
     let grinder = insert_grinder(&pool, "Comandante", "BurrConical").await;
-    let bean = insert_bean(&pool, "Yirgacheffe", "Ethiopia", 5).await;
+    // Use an origin unique to THIS test so the origin filter isolates exactly
+    // the three sessions inserted below. The suite shares the DB and several
+    // other tests use the "Ethiopia" origin; filtering on a per-test origin
+    // keeps the total count deterministic and independent of other tests'
+    // rows (and of any row an earlier failing test left behind before its
+    // cleanup could run).
+    let origin = "Ethiopia-NewestFirst";
+    let bean = insert_bean(&pool, "Yirgacheffe", origin, 5).await;
     let service = SessionService::new(&pool);
 
     // Three sessions, logged oldest-to-newest so the last is the newest.
@@ -225,7 +238,7 @@ async fn list_is_newest_first_with_paging() {
 
     // Page size 2, offset 0 -> newest two in order.
     let filter = SessionFilter {
-        bean_origin: Some("Ethiopia".to_string()),
+        bean_origin: Some(origin.to_string()),
         limit: Some(2),
         offset: Some(0),
         ..SessionFilter::default()
@@ -281,7 +294,11 @@ async fn filters_narrow_results() {
 #[ignore = "requires a live Postgres (DATABASE_URL); run with --ignored"]
 async fn search_matches_across_four_columns() {
     let Some(pool) = pool().await else { return };
-    let grinder = insert_grinder(&pool, "Niche", "Zero").await;
+    // The Niche Zero is a conical-burr grinder; "BurrConical" is the matching
+    // valid `grinder_type` enum value. (The old fixture used the model name
+    // "Zero", which is not a member of the Postgres `grinder_type` enum.) The
+    // brand "Niche" is what the brand-column search below actually matches on.
+    let grinder = insert_grinder(&pool, "Niche", "BurrConical").await;
     let bean = insert_bean(&pool, "Geisha Lot 7", "Panama", 5).await;
     let service = SessionService::new(&pool);
 

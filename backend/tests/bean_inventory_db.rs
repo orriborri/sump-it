@@ -28,6 +28,12 @@ use sqlx::postgres::PgPoolOptions;
 use sqlx::PgPool;
 use uuid::Uuid;
 
+// The application-level bean rules live in the library crate; import the single
+// source of truth so this suite can assert that app validation still rejects
+// future dates even though the DB no longer forbids purchase-before-roast.
+use coffee_brewer_backend::models::validate_bean_fields;
+use coffee_brewer_backend::validation::ValidationErrorType;
+
 /// Connects to the database named by `DATABASE_URL` (falling back to
 /// `TEST_DATABASE_URL`) and ensures the schema is present. Returns `None` when
 /// neither variable is set so the (ignored) tests degrade cleanly if invoked
@@ -283,6 +289,73 @@ async fn usage_history_reports_sessions() {
         .ok();
     sqlx::query("DELETE FROM grinders WHERE id = $1")
         .bind(grinder_id)
+        .execute(&pool)
+        .await
+        .ok();
+}
+
+/// Ticket #139: the `roast_date <= purchase_date` CHECK is GONE.
+///
+/// After migration `0003_drop_roast_before_purchase_check.sql`, the database no
+/// longer forbids a bean whose `purchase_date` precedes its `roast_date` (a
+/// bean roasted-to-order can be bought before it is roasted), so the INSERT
+/// below must succeed. The application still rejects FUTURE dates via
+/// `validate_bean_fields`, which this test also pins down: purchase-before-roast
+/// with both dates in the past validates, while a future roast date is still
+/// rejected. The two guarantees are independent.
+#[tokio::test]
+#[ignore = "requires a live Postgres (DATABASE_URL); run with --ignored"]
+async fn purchase_before_roast_is_allowed_at_db_level_but_future_dates_still_rejected() {
+    let Some(pool) = pool().await else { return };
+
+    // Dates in the past, but purchase BEFORE roast (what the old CHECK forbade).
+    let today = Utc::now().naive_utc().date();
+    let roast = today - Duration::days(2);
+    let purchase = today - Duration::days(5); // earlier than the roast date
+
+    // (1) The DB now accepts purchase-before-roast.
+    let id = Uuid::new_v4();
+    sqlx::query(
+        r#"INSERT INTO coffee_beans
+           (id, name, origin, roast_date, purchase_date, remaining_grams, is_active)
+           VALUES ($1, 'Roasted To Order', 'Colombia', $2, $3, 250.0, true)"#,
+    )
+    .bind(id)
+    .bind(roast)
+    .bind(purchase)
+    .execute(&pool)
+    .await
+    .expect("purchase-before-roast must be accepted now that the CHECK is dropped");
+
+    let (stored_roast, stored_purchase): (chrono::NaiveDate, chrono::NaiveDate) =
+        sqlx::query_as("SELECT roast_date, purchase_date FROM coffee_beans WHERE id = $1")
+            .bind(id)
+            .fetch_one(&pool)
+            .await
+            .expect("read back bean dates");
+    assert_eq!(stored_roast, roast);
+    assert_eq!(stored_purchase, purchase);
+    assert!(stored_purchase < stored_roast, "purchase precedes roast was persisted");
+
+    // (2) Application validation agrees: purchase-before-roast (both in the
+    // past) is accepted; the cross-field ordering is not an application rule.
+    assert!(
+        validate_bean_fields("Roasted To Order", "Colombia", roast, purchase, Some(250.0)).is_ok(),
+        "app validation must accept purchase-before-roast when both dates are in the past"
+    );
+
+    // (3) But a FUTURE roast date is still rejected by the application guard.
+    let future_roast = today + Duration::days(1);
+    assert!(
+        matches!(
+            validate_bean_fields("Roasted To Order", "Colombia", future_roast, purchase, Some(250.0)),
+            Err(ValidationErrorType::RoastDateInFuture)
+        ),
+        "app validation must still reject a future roast date"
+    );
+
+    sqlx::query("DELETE FROM coffee_beans WHERE id = $1")
+        .bind(id)
         .execute(&pool)
         .await
         .ok();

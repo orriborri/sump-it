@@ -1,0 +1,21 @@
+-- Ticket #139: drop the `roast_date <= purchase_date` CHECK on coffee_beans.
+--
+-- Ticket #138 (migration 0001_init.sql) shipped a global
+-- `CHECK (roast_date <= purchase_date)` on `coffee_beans`. The spec's schema
+-- decisions reverse that policy: the relationship between a bean's roast date
+-- and its purchase date is NOT a database invariant. A bean can legitimately be
+-- bought already roasted (purchase_date after roast_date) OR roasted-to-order /
+-- roasted after purchase (purchase_date before roast_date), so neither ordering
+-- may be forbidden at the DB level.
+--
+-- The application still rejects FUTURE dates for both fields via
+-- `validate_bean_fields` (backend/src/validation.rs); that app-level guard is
+-- unaffected by this migration. Only the cross-field ordering CHECK is removed.
+--
+-- Postgres auto-named the unnamed CHECK from 0001 `coffee_beans_check` (the
+-- unnamed `remaining_grams` CHECK became `coffee_beans_remaining_grams_check`
+-- because it references a single column). We drop it by that name and guard
+-- with IF EXISTS so the migration is idempotent and safe on any schema where
+-- the constraint has already been removed.
+ALTER TABLE coffee_beans
+    DROP CONSTRAINT IF EXISTS coffee_beans_check;
