@@ -59,10 +59,12 @@ the real code end to end against Postgres:
 
 Nothing is excluded with a path filter on the Rust side. The only coverage-off
 lines are inline-annotated bootstrap/wiring (`main`, `health_check`,
-`init_pool`) and a handful of defensive, by-construction-unreachable
-transaction branches in `services/sessions.rs` (opening/committing the brew
-transaction and the post-sufficiency-check inventory decrement), each with a
-`coverage:` reason.
+`init_pool`) and a single defensive, by-construction-unreachable transaction
+branch in `services/sessions.rs` (`begin_tx`, which only fails if the pool is
+already dead), each with a `coverage:` reason. The brew transaction's
+error-mapping on database queries - the inventory decrement and the commit, as
+well as the bean lock and session insert - is ordinary covered code, forced to
+fail by the DB integration tests.
 
 ## Running the backend gate
 
@@ -105,8 +107,8 @@ crate roots enable the attribute with
 
 Real examples in the tree: `main()` / `health_check()` (`backend/src/main.rs`),
 `database::init_pool()` (`backend/src/database.rs`), and the defensive
-transaction-wiring helpers `begin_tx` / `check_tx`
-(`backend/src/services/sessions.rs`).
+transaction-wiring helper `begin_tx` (`backend/src/services/sessions.rs`),
+which only fails if the pool is already dead.
 
 ### TypeScript
 

@@ -229,6 +229,65 @@ async fn insufficient_quantity_rolls_back_entire_save() {
     cleanup(&pool, bean, grinder).await;
 }
 
+/// Forces the inventory-DECREMENT UPDATE to fail AFTER a successful lock and
+/// insert, so the newly-inlined `.map_err(|e| db_error(e, "Failed to decrement
+/// bean quantity"))?` branch in `log_brew` is genuinely covered rather than
+/// excluded (US43/US44, docs/coverage.md: error mapping on DB queries is NEVER
+/// excluded).
+///
+/// WHY THE FAILURE IS FORCED THIS WAY: the decrement UPDATE runs inside the
+/// same transaction that already holds a `FOR UPDATE` lock on the bean row, so
+/// the `api_router_db.rs` technique of dropping the whole `coffee_beans` table
+/// mid-flight does NOT work here - a `DROP TABLE` would block on that lock and
+/// deadlock the test. Instead we corrupt the schema the UPDATE depends on
+/// BEFORE `log_brew` runs, from a separate statement: we drop the `updated_at`
+/// column that the decrement writes (`SET ... updated_at = $3`). The earlier
+/// steps still succeed - the grinder loads, the transaction begins, the
+/// `SELECT remaining_grams ... FOR UPDATE` locks the row (that column is
+/// untouched), the sufficiency check passes (100 g >= 18 g dose) and the
+/// session INSERT into `brewing_sessions` succeeds (a different table) - so
+/// execution reaches the decrement, where the UPDATE references the now-missing
+/// `updated_at` column and errors, driving the error-mapping branch. The
+/// service must surface `SaveError::Database(_)`.
+#[tokio::test]
+#[ignore = "requires a live Postgres (DATABASE_URL); run with --ignored"]
+async fn decrement_query_failure_maps_to_database_error() {
+    let Some(pool) = pool().await else { return };
+    let grinder = insert_grinder(&pool).await;
+    let bean = insert_bean(&pool, Some(100.0)).await; // enough for an 18 g dose
+
+    // Break the decrement UPDATE's target column BEFORE logging the brew, from
+    // a separate statement so no lock is held when we alter the schema. The
+    // lock + insert still succeed; only the decrement UPDATE touches
+    // `updated_at`, so that is the step that fails.
+    sqlx::query("ALTER TABLE coffee_beans DROP COLUMN updated_at")
+        .execute(&pool)
+        .await
+        .expect("drop updated_at column");
+
+    let service = SessionService::new(&pool);
+    let err = service
+        .log_brew(espresso_request(bean, grinder))
+        .await
+        .expect_err("decrement UPDATE must fail once updated_at is gone");
+    match err {
+        SaveError::Database(_) => {}
+        other => panic!("expected SaveError::Database, got {other:?}"),
+    }
+
+    // Restore the column so cleanup (and any later test on a shared database)
+    // sees the migrated schema again, then clean up the throwaway rows. The
+    // brew transaction rolled back, so no session row exists; the DELETE is a
+    // harmless no-op in that case.
+    sqlx::query(
+        "ALTER TABLE coffee_beans ADD COLUMN updated_at TIMESTAMPTZ NOT NULL DEFAULT now()",
+    )
+    .execute(&pool)
+    .await
+    .expect("restore updated_at column");
+    cleanup(&pool, bean, grinder).await;
+}
+
 /// A bean that does not track quantity (`remaining_grams IS NULL`) never blocks
 /// a brew and is not decremented. Exercises `log_brew`'s untracked-bean branch.
 #[tokio::test]

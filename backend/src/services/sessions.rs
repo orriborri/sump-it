@@ -167,7 +167,7 @@ impl<'a> SessionService<'a> {
         // proved there is enough, so an exact subtraction is correct and a
         // negative result would indicate a logic error rather than be hidden.
         if remaining.is_some() {
-            let decrement = sqlx::query(
+            sqlx::query(
                 r#"UPDATE coffee_beans
                    SET remaining_grams = remaining_grams - $2,
                        updated_at = $3
@@ -177,15 +177,14 @@ impl<'a> SessionService<'a> {
             .bind(coffee_required)
             .bind(chrono::Utc::now())
             .execute(&mut *tx)
-            .await;
-            // The UPDATE on the already-locked, sufficiency-checked bean row
-            // cannot fail by construction; `check_tx` maps the defensive error.
-            check_tx(decrement, "Failed to decrement bean quantity")?;
+            .await
+            .map_err(|e| db_error(e, "Failed to decrement bean quantity"))?;
         }
 
         // (8) Commit: the session and the decrement land together or not at all.
-        let commit = tx.commit().await;
-        check_tx(commit, "Failed to commit transaction")?;
+        tx.commit()
+            .await
+            .map_err(|e| db_error(e, "Failed to commit transaction"))?;
 
         Ok(inserted)
     }
@@ -297,8 +296,8 @@ impl<'a> SessionService<'a> {
 /// Wraps a sqlx error as [`SaveError::Database`] with a human-readable context.
 ///
 /// Shared by the transactional save path so every DB failure is mapped the same
-/// way. The reachable call sites (bean lock, session insert) are exercised by
-/// the DB integration tests.
+/// way. The reachable call sites (bean lock, session insert, inventory
+/// decrement, commit) are exercised by the DB integration tests.
 fn db_error(e: sqlx::Error, context: &'static str) -> SaveError {
     SaveError::Database(anyhow::Error::new(e).context(context))
 }
@@ -312,15 +311,6 @@ async fn begin_tx(pool: &PgPool) -> std::result::Result<sqlx::Transaction<'_, sq
     pool.begin()
         .await
         .map_err(|e| db_error(e, "Failed to begin transaction"))
-}
-
-// coverage: defensive wiring - maps the result of a transaction step that
-// cannot fail by construction (the COMMIT of an already-successful transaction,
-// and the inventory decrement on an already-locked, sufficiency-checked row).
-// Excluded per docs/coverage.md (defensive, genuinely-unreachable branch).
-#[cfg_attr(coverage_nightly, coverage(off))]
-fn check_tx<T>(result: std::result::Result<T, sqlx::Error>, context: &'static str) -> std::result::Result<T, SaveError> {
-    result.map_err(|e| db_error(e, context))
 }
 
 /// Binds every [`QueryBind`], in order, to a `query_as` builder.
