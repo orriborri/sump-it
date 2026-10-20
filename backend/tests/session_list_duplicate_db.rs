@@ -106,6 +106,10 @@ async fn insert_bean(pool: &PgPool, name: &str, origin: &str, roast_days_ago: i6
 /// operate on rows the production path actually produced. `method` must be a
 /// value the per-method recipe accepts for a 20 g / 320 g dose; `V60` and
 /// `Espresso` (with a 18 g / 36 g dose) are chosen per test.
+// Test-only helper: the parameters mirror the fields of a brew request that
+// each call site varies independently, so keeping them positional reads more
+// clearly here than wrapping them in a one-off struct.
+#[allow(clippy::too_many_arguments)]
 async fn log_brew(
     service: &SessionService<'_>,
     bean: Uuid,

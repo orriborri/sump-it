@@ -198,17 +198,20 @@ pub enum GrinderType {
     Electric,
 }
 
-impl GrinderType {
-    pub fn to_string(&self) -> String {
-        match self {
-            GrinderType::BurrConical => "BurrConical".to_string(),
-            GrinderType::BurrFlat => "BurrFlat".to_string(),
-            GrinderType::Blade => "Blade".to_string(),
-            GrinderType::Manual => "Manual".to_string(),
-            GrinderType::Electric => "Electric".to_string(),
-        }
+impl std::fmt::Display for GrinderType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let name = match self {
+            GrinderType::BurrConical => "BurrConical",
+            GrinderType::BurrFlat => "BurrFlat",
+            GrinderType::Blade => "Blade",
+            GrinderType::Manual => "Manual",
+            GrinderType::Electric => "Electric",
+        };
+        f.write_str(name)
     }
-    
+}
+
+impl GrinderType {
     pub fn from_string(s: &str) -> Result<Self, ValidationErrorType> {
         match s {
             "BurrConical" => Ok(GrinderType::BurrConical),
@@ -241,20 +244,23 @@ pub enum BrewingMethod {
     Other,
 }
 
-impl BrewingMethod {
-    pub fn to_string(&self) -> String {
-        match self {
-            BrewingMethod::V60 => "V60".to_string(),
-            BrewingMethod::Chemex => "Chemex".to_string(),
-            BrewingMethod::FrenchPress => "FrenchPress".to_string(),
-            BrewingMethod::AeroPress => "AeroPress".to_string(),
-            BrewingMethod::Espresso => "Espresso".to_string(),
-            BrewingMethod::Moka => "Moka".to_string(),
-            BrewingMethod::ColdBrew => "ColdBrew".to_string(),
-            BrewingMethod::Other => "Other".to_string(),
-        }
+impl std::fmt::Display for BrewingMethod {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let name = match self {
+            BrewingMethod::V60 => "V60",
+            BrewingMethod::Chemex => "Chemex",
+            BrewingMethod::FrenchPress => "FrenchPress",
+            BrewingMethod::AeroPress => "AeroPress",
+            BrewingMethod::Espresso => "Espresso",
+            BrewingMethod::Moka => "Moka",
+            BrewingMethod::ColdBrew => "ColdBrew",
+            BrewingMethod::Other => "Other",
+        };
+        f.write_str(name)
     }
-    
+}
+
+impl BrewingMethod {
     pub fn from_string(s: &str) -> Result<Self, ValidationErrorType> {
         match s {
             "V60" => Ok(BrewingMethod::V60),
