@@ -358,7 +358,8 @@ async fn usage_history_reports_sessions() {
         .ok();
 }
 
-/// Ticket #139: the `roast_date <= purchase_date` CHECK is GONE.
+/// Ticket #139: the `roast_date <= purchase_date` CHECK is GONE **and only
+/// that CHECK** — the `remaining_grams >= 0` CHECK must survive.
 ///
 /// After migration `0003_drop_roast_before_purchase_check.sql`, the database no
 /// longer forbids a bean whose `purchase_date` precedes its `roast_date` (a
@@ -367,6 +368,16 @@ async fn usage_history_reports_sessions() {
 /// FUTURE dates via `validate_bean_fields`, which this test also pins down:
 /// purchase-before-roast with both dates in the past validates, while a future
 /// roast date is still rejected. The two guarantees are independent.
+///
+/// Migration 0003 drops the roast/purchase CHECK by its Postgres auto-generated
+/// name `coffee_beans_check`. That name is implementation-defined, so a drift
+/// in `coffee_beans`'s unnamed CHECKs could make the migration drop the wrong
+/// constraint (or, via a future over-broad migration, more than intended)
+/// without the drop-only assertions above noticing. To close that gap this test
+/// ALSO re-asserts that the OTHER table-level CHECK survived: a raw INSERT with
+/// a negative `remaining_grams` must still be rejected by the database. If a
+/// migration ever over-dropped and removed `coffee_beans_remaining_grams_check`
+/// too, this insert would wrongly succeed and fail the test.
 #[tokio::test]
 #[ignore = "requires a live Postgres (DATABASE_URL); run with --ignored"]
 async fn purchase_before_roast_is_allowed_at_db_level_but_future_dates_still_rejected() {
@@ -418,9 +429,51 @@ async fn purchase_before_roast_is_allowed_at_db_level_but_future_dates_still_rej
         "app validation must still reject a future roast date"
     );
 
+    // (4) Migration 0003 must have dropped ONLY the roast/purchase CHECK. Prove
+    // the sibling `remaining_grams >= 0` CHECK (auto-named
+    // `coffee_beans_remaining_grams_check` in 0001) survived by attempting a raw
+    // INSERT of a negative quantity straight at the table, bypassing the service
+    // and app validation. The database itself must reject it; if an over-dropping
+    // migration had also removed this CHECK, the INSERT would succeed and this
+    // assertion would fail, catching the regression.
+    let negative_grams_id = Uuid::new_v4();
+    let insert_negative = sqlx::query(
+        r#"INSERT INTO coffee_beans
+           (id, name, origin, roast_date, purchase_date, remaining_grams)
+           VALUES ($1, 'Negative Grams', 'Brazil', $2, $3, -1.0)"#,
+    )
+    .bind(negative_grams_id)
+    .bind(roast)
+    .bind(purchase)
+    .execute(&pool)
+    .await;
+
+    assert!(
+        insert_negative.is_err(),
+        "the remaining_grams >= 0 CHECK must still reject a negative quantity; \
+         migration 0003 must not have over-dropped it"
+    );
+    // Belt-and-braces: nothing should have been persisted for that id.
+    let leaked: bool =
+        sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM coffee_beans WHERE id = $1)")
+            .bind(negative_grams_id)
+            .fetch_one(&pool)
+            .await
+            .expect("query negative-grams existence");
+    assert!(
+        !leaked,
+        "the rejected negative-grams insert must not have persisted a row"
+    );
+
     service.delete_bean(created.id).await.ok();
     sqlx::query("DELETE FROM coffee_beans WHERE id = $1")
         .bind(created.id)
+        .execute(&pool)
+        .await
+        .ok();
+    // Defensive cleanup in case a regression allowed the negative row through.
+    sqlx::query("DELETE FROM coffee_beans WHERE id = $1")
+        .bind(negative_grams_id)
         .execute(&pool)
         .await
         .ok();

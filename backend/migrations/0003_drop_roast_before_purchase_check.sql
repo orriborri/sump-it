@@ -17,5 +17,23 @@
 -- because it references a single column). We drop it by that name and guard
 -- with IF EXISTS so the migration is idempotent and safe on any schema where
 -- the constraint has already been removed.
+--
+-- VERIFICATION (run before changing coffee_beans's unnamed CHECKs): confirm the
+-- auto-generated name still maps to the roast/purchase CHECK and that the
+-- single-column grams CHECK keeps its own distinct name, so this DROP targets
+-- exactly the intended constraint:
+--
+--   SELECT conname, pg_get_constraintdef(oid)
+--   FROM pg_constraint
+--   WHERE conrelid = 'coffee_beans'::regclass AND contype = 'c';
+--
+--   -- expected: coffee_beans_check                 -> CHECK (roast_date <= purchase_date)
+--   --           coffee_beans_remaining_grams_check -> CHECK (remaining_grams >= 0 OR ... IS NULL)
+--
+-- The `remaining_grams >= 0` CHECK must remain after this migration; the
+-- regression test
+-- `purchase_before_roast_is_allowed_at_db_level_but_future_dates_still_rejected`
+-- in backend/tests/bean_inventory_db.rs asserts exactly that (a negative-grams
+-- insert must still be rejected), so an over-dropping migration fails CI.
 ALTER TABLE coffee_beans
     DROP CONSTRAINT IF EXISTS coffee_beans_check;
