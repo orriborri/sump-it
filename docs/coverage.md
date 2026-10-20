@@ -53,7 +53,10 @@ the real code end to end against Postgres:
   queries fail).
 - `tests/session_logging_db.rs` and `tests/session_list_duplicate_db.rs` call
   the real `services::sessions::SessionService` directly, exercising the
-  shipping INSERT/SELECT column lists, bind order and `FromRow` mapping.
+  shipping INSERT/SELECT column lists, bind order and `FromRow` mapping. Two of
+  them force the in-transaction error-mapping arms to execute: the decrement
+  mapping (by dropping the column the `UPDATE` writes) and the commit mapping
+  (by a deferred constraint trigger that fails only at `COMMIT`).
 - `tests/bean_inventory_db.rs` and `tests/grinders_integration.rs` pin the
   schema behaviour.
 
@@ -63,8 +66,15 @@ lines are inline-annotated bootstrap/wiring (`main`, `health_check`,
 branch in `services/sessions.rs` (`begin_tx`, which only fails if the pool is
 already dead), each with a `coverage:` reason. The brew transaction's
 error-mapping on database queries - the inventory decrement and the commit, as
-well as the bean lock and session insert - is ordinary covered code, forced to
-fail by the DB integration tests.
+well as the bean lock and session insert - is ordinary covered code. Each
+mapping site is forced to fail by a dedicated DB integration test: the bean
+lock and session insert by dropping the relevant table mid-flight
+(`api_router_db.rs`), the inventory decrement by
+`decrement_query_failure_maps_to_database_error` (dropping the
+`coffee_beans.updated_at` column the `UPDATE` writes), and the commit by
+`commit_failure_maps_to_database_error` (a `DEFERRABLE INITIALLY DEFERRED`
+constraint trigger that fires and raises only at `COMMIT`, after the in-tx
+lock/insert/decrement have all succeeded) - both in `session_logging_db.rs`.
 
 ## Running the backend gate
 

@@ -288,6 +288,87 @@ async fn decrement_query_failure_maps_to_database_error() {
     cleanup(&pool, bean, grinder).await;
 }
 
+/// Forces `tx.commit()` ITSELF to fail AFTER a fully successful lock + insert +
+/// decrement, so the newly-inlined `.map_err(|e| db_error(e, "Failed to commit
+/// transaction"))?` branch in `log_brew` is genuinely covered rather than
+/// excluded (US43/US44, docs/coverage.md: error mapping on DB queries is NEVER
+/// excluded).
+///
+/// WHY THE FAILURE IS FORCED AT COMMIT SPECIFICALLY: every other failure point
+/// in `log_brew` (the lock SELECT, the session INSERT, the inventory UPDATE)
+/// short-circuits via `?` BEFORE step (8) commit is reached, so none of them
+/// can exercise the commit mapping - the `decrement_query_failure_...` test
+/// above returns at step (7) for exactly that reason. The only way to reach and
+/// fail the commit is an error that Postgres defers to `COMMIT` time. We install
+/// a `CONSTRAINT TRIGGER ... DEFERRABLE INITIALLY DEFERRED` on
+/// `brewing_sessions` whose function unconditionally `RAISE`s. Because the
+/// trigger is DEFERRED, it does NOT fire during the INSERT inside the
+/// transaction - the INSERT (and the earlier lock + the decrement UPDATE) all
+/// succeed and execution reaches `tx.commit()`. At `COMMIT`, Postgres runs the
+/// deferred constraint trigger, it raises, and the COMMIT fails, driving the
+/// commit error-mapping branch. The service must surface `SaveError::Database(_)`.
+///
+/// The trigger/function are created from a separate statement BEFORE `log_brew`
+/// (so no transaction lock is held when we touch the schema) and dropped again
+/// afterwards, mirroring the restore-the-schema cleanup the decrement test uses.
+#[tokio::test]
+#[ignore = "requires a live Postgres (DATABASE_URL); run with --ignored"]
+async fn commit_failure_maps_to_database_error() {
+    let Some(pool) = pool().await else { return };
+    let grinder = insert_grinder(&pool).await;
+    let bean = insert_bean(&pool, Some(100.0)).await; // enough for an 18 g dose
+
+    // Install a DEFERRABLE INITIALLY DEFERRED constraint trigger on
+    // brewing_sessions that always raises. Deferred means it fires at COMMIT,
+    // not at INSERT time, so the in-transaction INSERT/lock/decrement succeed
+    // and only the commit fails. Created from separate statements before
+    // log_brew so no lock is held while we alter the schema.
+    sqlx::query(
+        r#"CREATE OR REPLACE FUNCTION sump_it_fail_at_commit()
+           RETURNS trigger AS $$
+           BEGIN
+               RAISE EXCEPTION 'forced commit failure for coverage test';
+           END;
+           $$ LANGUAGE plpgsql"#,
+    )
+    .execute(&pool)
+    .await
+    .expect("create deferred-failure trigger function");
+    sqlx::query(
+        r#"CREATE CONSTRAINT TRIGGER sump_it_fail_at_commit_trg
+           AFTER INSERT ON brewing_sessions
+           DEFERRABLE INITIALLY DEFERRED
+           FOR EACH ROW EXECUTE FUNCTION sump_it_fail_at_commit()"#,
+    )
+    .execute(&pool)
+    .await
+    .expect("create deferred constraint trigger");
+
+    let service = SessionService::new(&pool);
+    let err = service
+        .log_brew(espresso_request(bean, grinder))
+        .await
+        .expect_err("commit must fail once the deferred constraint trigger is installed");
+    match err {
+        SaveError::Database(_) => {}
+        other => panic!("expected SaveError::Database, got {other:?}"),
+    }
+
+    // Drop the trigger and function so cleanup (and any later test on a shared
+    // database) sees the migrated schema again, then clean up the throwaway
+    // rows. The brew transaction rolled back (the commit failed), so no session
+    // row exists; the DELETE is a harmless no-op in that case.
+    sqlx::query("DROP TRIGGER IF EXISTS sump_it_fail_at_commit_trg ON brewing_sessions")
+        .execute(&pool)
+        .await
+        .expect("drop deferred constraint trigger");
+    sqlx::query("DROP FUNCTION IF EXISTS sump_it_fail_at_commit()")
+        .execute(&pool)
+        .await
+        .expect("drop deferred-failure trigger function");
+    cleanup(&pool, bean, grinder).await;
+}
+
 /// A bean that does not track quantity (`remaining_grams IS NULL`) never blocks
 /// a brew and is not decremented. Exercises `log_brew`'s untracked-bean branch.
 #[tokio::test]
