@@ -9,6 +9,11 @@ import React from 'react';
 
 import { BrewWorkflow } from './BrewWorkflow';
 
+/**
+ * Route entry for `/brew`: a thin wrapper that mounts {@link BrewWorkflow} with
+ * its default (real) typed client. All behaviour and state live in the
+ * workflow, which is injected with a fake client in tests.
+ */
 export default function BrewPage() {
   return <BrewWorkflow />;
 }

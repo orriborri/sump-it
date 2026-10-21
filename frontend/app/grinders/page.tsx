@@ -6,6 +6,10 @@ import { Box, Container } from '@mui/material';
 
 import { GrinderManager } from './GrinderManager';
 
+/**
+ * Route entry for `/grinders`: a thin wrapper around the client-driven
+ * {@link GrinderManager} so the page itself holds no logic to test.
+ */
 export default function GrindersPage() {
   return (
     <Container maxWidth="md">
