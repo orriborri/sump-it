@@ -8,7 +8,7 @@ A comprehensive coffee brewing tracker application combining the best features f
 - **Backend**: Rust with Axum, SQLx, PostgreSQL
 - **Database**: PostgreSQL with custom enums and CHECK constraints
 - **Communication**: Typed REST contract; TypeScript types generated from the Rust models via ts-rs and consumed by a thin typed fetch client
-- **DevOps**: Docker Compose for local development
+- **Tests/Coverage**: `make coverage` (100%-line backend via cargo-llvm-cov against a real Postgres, 100% frontend via Vitest). CI runs it with a Postgres service container.
 
 ## Key Features Consolidated
 
@@ -31,10 +31,15 @@ A comprehensive coffee brewing tracker application combining the best features f
 - ✅ Scalable project structure
 
 ## Development Setup
-1. Run `./setup.sh` to start Docker containers
-2. Frontend: http://localhost:3000
-3. Backend API: http://localhost:3001
-4. Database: PostgreSQL on port 5432
+The backend (Rust/Axum/SQLx) talks to a PostgreSQL database named by
+`DATABASE_URL`. Point it at any reachable Postgres and apply the migrations in
+`backend/migrations/` (sqlx migrations are the only schema source). The typed
+frontend contract under `frontend/lib/generated/` is produced from the Rust
+models by `cd backend && cargo test export_bindings` and must stay diff-free
+(CI fails on any drift).
+
+Run the full test + coverage gate with `make coverage` (needs a reachable
+`DATABASE_URL` for the backend half; see `docs/coverage.md`).
 
 ## Agent skills
 
@@ -72,13 +77,16 @@ This repository has Matt Pocock's complete skill set installed (38 skills) inclu
 - **Commits**: Conventional commits with clear messages
 
 ## Testing Strategy
-- **Backend**: Rust unit and integration tests
-- **Frontend**: React Testing Library, Jest
-- **E2E**: Playwright for user workflows
-- **Validation**: Property-based testing for core logic
+- **Backend**: Rust unit tests plus `#[ignore]`d DB integration tests under
+  `backend/tests/*_db.rs` that drive the real compiled services/router against a
+  live Postgres (`--include-ignored --test-threads=1`).
+- **Frontend**: Vitest + React Testing Library, with the typed client replaced
+  by a fake.
+- **Coverage gate**: `make coverage` enforces 100% lines backend (cargo-llvm-cov,
+  pinned nightly) and 100% statements/branches/functions/lines frontend. See
+  `docs/coverage.md`.
 
 ## Deployment
-- Docker-based deployment
 - PostgreSQL with connection pooling
-- Environment-based configuration
+- Environment-based configuration (`DATABASE_URL`)
 - Health checks and monitoring

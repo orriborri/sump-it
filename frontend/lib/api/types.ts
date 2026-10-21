@@ -1,3 +1,9 @@
+/* v8 ignore start -- coverage: type-only barrel. Every statement below is an
+   `export type` re-export of a ts-rs generated type; TypeScript erases them at
+   compile time, so this file emits ZERO runtime JavaScript and has no coverable
+   lines. It is kept out of the vitest `include` allow-list for the same reason
+   (there is nothing to execute), and annotated here so the audit sees an
+   explicit, reasoned exclusion rather than a silent omission (US44). */
 // Re-exports the TypeScript types generated from the Rust models.
 //
 // The files under `lib/generated/` are produced by ts-rs (see the backend
@@ -16,3 +22,4 @@ export type { CreateBrewingSessionRequest } from '../generated/CreateBrewingSess
 export type { SessionFilter } from '../generated/SessionFilter';
 export type { PaginatedResponse } from '../generated/PaginatedResponse';
 export type { ErrorResponse } from '../generated/ErrorResponse';
+/* v8 ignore stop */

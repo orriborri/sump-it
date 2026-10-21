@@ -38,15 +38,26 @@ This workspace has 38 Matt Pocock engineering skills installed in `.kiro/skills/
 - **Coffee Beans**: Track name, origin, roast date, remaining quantity
 - **Grinders**: Equipment with brand, model, type, setting ranges
 - **Brewing Sessions**: Complete parameter tracking with validation
-- **Brewing Methods**: V60, Chemex, French Press, AeroPress, etc.
-- **Coffee Ratio**: Must be between 15.0-17.0 (water:coffee)
+- **Brewing Methods**: Espresso, Moka, AeroPress, French Press, V60, Chemex, Cold Brew, Other
+- **Coffee Ratio**: Per-method water:coffee band, not a single global range.
+  Espresso brews near 1:2 while a French Press or pour-over sits near 1:15, so
+  the accepted ratio depends on the method.
 
 ### Validation Rules
-1. Coffee amount: 10.0-100.0g
-2. Water amount: 150.0-1700.0ml  
-3. Rating: 1.0-10.0 in 0.5 increments
-4. Grind setting: Within grinder's min-max range
-5. Bean quantity: Sufficient for brewing session
+Brewing rules are **per method**, not global. The single source of truth is the
+`rules_for` table in `backend/src/recipe.rs`, which keys each method to its
+accepted ratio, coffee dose, water weight, temperature, and brew-time ranges
+(e.g. Espresso allows 7-25 g coffee and 10-75 g water; French Press and the
+pour-over cones sit in the 1:12-1:18 bands). Adjusting a method is a one-line
+edit to its row there.
+
+Only method-invariant checks stay global:
+1. Rating: 1.0-10.0 in 0.5 increments
+2. Grind setting: within the chosen grinder's min-max range
+3. Grind setting must be non-negative (enforced on the request model)
+4. Bean quantity: sufficient for the session (checked in the save transaction;
+   insufficient quantity is an error with available/required grams, never a
+   silent clamp; beans that do not track a quantity never block a brew)
 
 ### Technical Constraints
 - **Frontend**: Next.js 15 with TypeScript, Material-UI
@@ -76,4 +87,6 @@ This workspace has 38 Matt Pocock engineering skills installed in `.kiro/skills/
 - **Steering files**: `.kiro/steering/` for project context
 - **Domain glossary**: `GLOSSARY.md` for coffee brewing terms
 - **API documentation**: Inline in Rust/TypeScript code
-- **Validation rules**: `backend/src/validation.rs` for all constraints
+- **Recipe rules**: `backend/src/recipe.rs` for the per-method brewing table
+- **Method-invariant checks**: `backend/src/validation.rs` (rating, grinder range)
+- **Coverage / tests**: `make coverage` (see `docs/coverage.md`)

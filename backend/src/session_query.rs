@@ -2,10 +2,11 @@
 //! (ticket #146).
 //!
 //! The actual SQL execution lives in the binary (`services/sessions.rs`) and
-//! needs a live Postgres, which this sandbox does not have. To keep the
-//! interesting logic covered by the library coverage gate (`cargo llvm-cov
-//! --lib`), everything that decides WHICH predicates apply, in what order, and
-//! how pagination is clamped is expressed here as pure functions over a
+//! needs a live Postgres; it is exercised by the `#[ignore]`d DB integration
+//! tests, which `make coverage-backend` and CI run against a real Postgres. To
+//! keep the interesting logic covered by the library coverage gate (`cargo
+//! llvm-cov --lib`), everything that decides WHICH predicates apply, in what
+//! order, and how pagination is clamped is expressed here as pure functions over a
 //! [`crate::models::SessionFilter`] plus an optional free-text search term.
 //!
 //! SAFETY: user input is NEVER interpolated into SQL. This module only emits
