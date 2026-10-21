@@ -25,9 +25,8 @@ import {
   Typography,
 } from '@mui/material';
 
-import { coffeeBrewerClient } from '@/lib/trpc/client';
+import { coffeeBrewerClient, type ApiResponse } from '@/lib/trpc/client';
 import type { CreateGrinderRequest, Grinder } from '@/lib/api/types';
-import type { ApiResponse } from '@/lib/trpc/client';
 import {
   GRINDER_TYPES,
   emptyGrinderForm,

@@ -13,13 +13,6 @@ import {
 } from '@mui/material';
 import { Check } from '@mui/icons-material';
 
-interface StepConfig {
-  label: string;
-  title: string;
-  description: string;
-  content: React.ReactNode;
-}
-
 interface IntegratedVerticalStepperProps {
   steps: string[];
   activeStep: number;
