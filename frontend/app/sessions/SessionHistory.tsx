@@ -57,6 +57,237 @@ export interface SessionHistoryProps {
 }
 
 /**
+ * Renders the roast-date range row of the filter form.
+ *
+ * @param props - The row props.
+ * @param props.from - The current "roast date from" value.
+ * @param props.to - The current "roast date to" value.
+ * @param props.onChange - Updates one of the two date fields.
+ * @returns The rendered date-range row.
+ */
+const FilterDateRange: React.FC<{
+  from: string;
+  to: string;
+  onChange: (key: 'roastDateFrom' | 'roastDateTo', value: string) => void;
+}> = ({ from, to, onChange }) => (
+  <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+    <TextField
+      label="Roast Date From"
+      type="date"
+      value={from}
+      onChange={(e) => onChange('roastDateFrom', e.target.value)}
+      InputLabelProps={{ shrink: true }}
+      inputProps={{ 'aria-label': 'Roast Date From' }}
+      fullWidth
+    />
+    <TextField
+      label="Roast Date To"
+      type="date"
+      value={to}
+      onChange={(e) => onChange('roastDateTo', e.target.value)}
+      InputLabelProps={{ shrink: true }}
+      inputProps={{ 'aria-label': 'Roast Date To' }}
+      fullWidth
+    />
+  </Stack>
+);
+
+/**
+ * Renders the grinder-type and brewing-method dropdown row of the filter form.
+ *
+ * @param props - The row props.
+ * @param props.grinderType - The current grinder-type filter value.
+ * @param props.brewingMethod - The current brewing-method filter value.
+ * @param props.onChange - Updates one of the two dropdown filters.
+ * @returns The rendered type/method row.
+ */
+const FilterTypeMethod: React.FC<{
+  grinderType: string;
+  brewingMethod: string;
+  onChange: (key: 'grinderType' | 'brewingMethod', value: string) => void;
+}> = ({ grinderType, brewingMethod, onChange }) => (
+  <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+    <FormControl fullWidth>
+      <InputLabel id="grinder-type-filter-label">Grinder Type</InputLabel>
+      <Select
+        labelId="grinder-type-filter-label"
+        label="Grinder Type"
+        value={grinderType}
+        inputProps={{ 'aria-label': 'Grinder Type' }}
+        onChange={(e) => onChange('grinderType', e.target.value)}
+      >
+        <MenuItem value="">Any</MenuItem>
+        {GRINDER_TYPE_OPTIONS.map((opt) => (
+          <MenuItem key={opt.value} value={opt.value}>
+            {opt.label}
+          </MenuItem>
+        ))}
+      </Select>
+    </FormControl>
+    <FormControl fullWidth>
+      <InputLabel id="method-filter-label">Brewing Method</InputLabel>
+      <Select
+        labelId="method-filter-label"
+        label="Brewing Method"
+        value={brewingMethod}
+        inputProps={{ 'aria-label': 'Brewing Method' }}
+        onChange={(e) => onChange('brewingMethod', e.target.value)}
+      >
+        <MenuItem value="">Any</MenuItem>
+        {METHOD_OPTIONS.map((opt) => (
+          <MenuItem key={opt.value} value={opt.value}>
+            {opt.label}
+          </MenuItem>
+        ))}
+      </Select>
+    </FormControl>
+  </Stack>
+);
+
+/**
+ * Renders the full filter and search form: text search, bean origin, roast-date
+ * range, grinder-type and method dropdowns, minimum rating and a clear button.
+ *
+ * @param props - The filters props.
+ * @param props.form - The current filter form state.
+ * @param props.updateField - Updates a single filter field (resetting the page).
+ * @param props.onClear - Clears all filters back to the unconstrained query.
+ * @returns The rendered filter form.
+ */
+const SessionFilters: React.FC<{
+  form: SessionFilterForm;
+  updateField: <K extends keyof SessionFilterForm>(key: K, value: SessionFilterForm[K]) => void;
+  onClear: () => void;
+}> = ({ form, updateField, onClear }) => (
+  <Stack spacing={2}>
+    <TextField
+      label="Search"
+      placeholder="bean, origin, grinder or notes"
+      value={form.search}
+      onChange={(e) => updateField('search', e.target.value)}
+      inputProps={{ 'aria-label': 'Search' }}
+      fullWidth
+    />
+    <TextField
+      label="Bean Origin"
+      value={form.beanOrigin}
+      onChange={(e) => updateField('beanOrigin', e.target.value)}
+      inputProps={{ 'aria-label': 'Bean Origin' }}
+      fullWidth
+    />
+    <FilterDateRange
+      from={form.roastDateFrom}
+      to={form.roastDateTo}
+      onChange={(key, value) => updateField(key, value)}
+    />
+    <FilterTypeMethod
+      grinderType={form.grinderType}
+      brewingMethod={form.brewingMethod}
+      onChange={(key, value) => updateField(key, value)}
+    />
+    <TextField
+      label="Minimum Rating"
+      type="number"
+      value={form.ratingMin}
+      onChange={(e) => updateField('ratingMin', e.target.value)}
+      inputProps={{ 'aria-label': 'Minimum Rating', min: 1, max: 10, step: 0.5 }}
+      fullWidth
+    />
+    <Box>
+      <Button variant="outlined" onClick={onClear}>
+        Clear Filters
+      </Button>
+    </Box>
+  </Stack>
+);
+
+/**
+ * Renders the ratio, rating and dose chips for a session card.
+ *
+ * @param props - The chips props.
+ * @param props.session - The session whose chips are shown.
+ * @returns The rendered session chips.
+ */
+const SessionChips: React.FC<{ session: BrewingSession }> = ({ session }) => (
+  <Stack direction="row" spacing={1} sx={{ mt: 0.5 }} flexWrap="wrap">
+    <Chip
+      label={formatRatio(session.coffeeGrams, session.waterGrams, session.coffeeRatio)}
+      color="primary"
+      size="small"
+    />
+    <Chip label={formatRating(session.rating)} color="info" size="small" />
+    <Chip
+      label={`${session.coffeeGrams}g : ${session.waterGrams}g`}
+      size="small"
+    />
+  </Stack>
+);
+
+/**
+ * Renders a single brewing session as a card with its method, chips, optional
+ * tasting notes and a duplicate action.
+ *
+ * @param props - The card props.
+ * @param props.session - The session to render.
+ * @param props.onDuplicate - Invoked to duplicate the session.
+ * @returns The rendered session card.
+ */
+const SessionCard: React.FC<{
+  session: BrewingSession;
+  onDuplicate: () => void;
+}> = ({ session, onDuplicate }) => (
+  <Paper elevation={1} sx={{ p: 2 }}>
+    <Stack
+      direction={{ xs: 'column', sm: 'row' }}
+      justifyContent="space-between"
+      alignItems={{ xs: 'flex-start', sm: 'center' }}
+      spacing={1}
+    >
+      <Box>
+        <Typography variant="subtitle1">
+          {methodLabel(session.brewingMethod)}
+        </Typography>
+        <SessionChips session={session} />
+        {session.tastingNotes && (
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            {session.tastingNotes}
+          </Typography>
+        )}
+      </Box>
+      <Button variant="outlined" size="small" onClick={onDuplicate}>
+        Duplicate
+      </Button>
+    </Stack>
+  </Paper>
+);
+
+/**
+ * Renders the previous and next paging buttons for the session list.
+ *
+ * @param props - The pager props.
+ * @param props.canPrev - Whether a previous page is available.
+ * @param props.canNext - Whether a next page is available.
+ * @param props.onPrev - Invoked to move to the previous page.
+ * @param props.onNext - Invoked to move to the next page.
+ * @returns The rendered pager.
+ */
+const SessionPager: React.FC<{
+  canPrev: boolean;
+  canNext: boolean;
+  onPrev: () => void;
+  onNext: () => void;
+}> = ({ canPrev, canNext, onPrev, onNext }) => (
+  <Stack direction="row" spacing={2} justifyContent="space-between">
+    <Button variant="outlined" disabled={!canPrev} onClick={onPrev}>
+      Previous
+    </Button>
+    <Button variant="outlined" disabled={!canNext} onClick={onNext}>
+      Next
+    </Button>
+  </Stack>
+);
+
+/**
  * Brewing-session history view: lists past brews newest-first with filter,
  * search and paging, and lets the user duplicate a session to brew it again.
  * All data flows through the injected typed client.
@@ -147,92 +378,7 @@ export function SessionHistory({
         <Typography variant="h6" gutterBottom sx={{ color: 'primary.main' }}>
           Filter &amp; Search
         </Typography>
-        <Stack spacing={2}>
-          <TextField
-            label="Search"
-            placeholder="bean, origin, grinder or notes"
-            value={form.search}
-            onChange={(e) => updateField('search', e.target.value)}
-            inputProps={{ 'aria-label': 'Search' }}
-            fullWidth
-          />
-          <TextField
-            label="Bean Origin"
-            value={form.beanOrigin}
-            onChange={(e) => updateField('beanOrigin', e.target.value)}
-            inputProps={{ 'aria-label': 'Bean Origin' }}
-            fullWidth
-          />
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-            <TextField
-              label="Roast Date From"
-              type="date"
-              value={form.roastDateFrom}
-              onChange={(e) => updateField('roastDateFrom', e.target.value)}
-              InputLabelProps={{ shrink: true }}
-              inputProps={{ 'aria-label': 'Roast Date From' }}
-              fullWidth
-            />
-            <TextField
-              label="Roast Date To"
-              type="date"
-              value={form.roastDateTo}
-              onChange={(e) => updateField('roastDateTo', e.target.value)}
-              InputLabelProps={{ shrink: true }}
-              inputProps={{ 'aria-label': 'Roast Date To' }}
-              fullWidth
-            />
-          </Stack>
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-            <FormControl fullWidth>
-              <InputLabel id="grinder-type-filter-label">Grinder Type</InputLabel>
-              <Select
-                labelId="grinder-type-filter-label"
-                label="Grinder Type"
-                value={form.grinderType}
-                inputProps={{ 'aria-label': 'Grinder Type' }}
-                onChange={(e) => updateField('grinderType', e.target.value)}
-              >
-                <MenuItem value="">Any</MenuItem>
-                {GRINDER_TYPE_OPTIONS.map((opt) => (
-                  <MenuItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <FormControl fullWidth>
-              <InputLabel id="method-filter-label">Brewing Method</InputLabel>
-              <Select
-                labelId="method-filter-label"
-                label="Brewing Method"
-                value={form.brewingMethod}
-                inputProps={{ 'aria-label': 'Brewing Method' }}
-                onChange={(e) => updateField('brewingMethod', e.target.value)}
-              >
-                <MenuItem value="">Any</MenuItem>
-                {METHOD_OPTIONS.map((opt) => (
-                  <MenuItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Stack>
-          <TextField
-            label="Minimum Rating"
-            type="number"
-            value={form.ratingMin}
-            onChange={(e) => updateField('ratingMin', e.target.value)}
-            inputProps={{ 'aria-label': 'Minimum Rating', min: 1, max: 10, step: 0.5 }}
-            fullWidth
-          />
-          <Box>
-            <Button variant="outlined" onClick={resetFilters}>
-              Clear Filters
-            </Button>
-          </Box>
-        </Stack>
+        <SessionFilters form={form} updateField={updateField} onClear={resetFilters} />
       </Paper>
 
       <Typography variant="h6" gutterBottom sx={{ color: 'primary.main' }}>
@@ -251,62 +397,19 @@ export function SessionHistory({
             {pageSummary(total, page, sessions.length)}
           </Typography>
           {sessions.map((session) => (
-            <Paper key={session.id} elevation={1} sx={{ p: 2 }}>
-              <Stack
-                direction={{ xs: 'column', sm: 'row' }}
-                justifyContent="space-between"
-                alignItems={{ xs: 'flex-start', sm: 'center' }}
-                spacing={1}
-              >
-                <Box>
-                  <Typography variant="subtitle1">
-                    {methodLabel(session.brewingMethod)}
-                  </Typography>
-                  <Stack direction="row" spacing={1} sx={{ mt: 0.5 }} flexWrap="wrap">
-                    <Chip
-                      label={formatRatio(session.coffeeGrams, session.waterGrams, session.coffeeRatio)}
-                      color="primary"
-                      size="small"
-                    />
-                    <Chip label={formatRating(session.rating)} color="info" size="small" />
-                    <Chip
-                      label={`${session.coffeeGrams}g : ${session.waterGrams}g`}
-                      size="small"
-                    />
-                  </Stack>
-                  {session.tastingNotes && (
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                      {session.tastingNotes}
-                    </Typography>
-                  )}
-                </Box>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  onClick={() => void handleDuplicate(session.id)}
-                >
-                  Duplicate
-                </Button>
-              </Stack>
-            </Paper>
+            <SessionCard
+              key={session.id}
+              session={session}
+              onDuplicate={() => void handleDuplicate(session.id)}
+            />
           ))}
 
-          <Stack direction="row" spacing={2} justifyContent="space-between">
-            <Button
-              variant="outlined"
-              disabled={!hasPrevPage(page)}
-              onClick={() => setPage((p) => Math.max(0, p - 1))}
-            >
-              Previous
-            </Button>
-            <Button
-              variant="outlined"
-              disabled={!hasNextPage(total, page)}
-              onClick={() => setPage((p) => p + 1)}
-            >
-              Next
-            </Button>
-          </Stack>
+          <SessionPager
+            canPrev={hasPrevPage(page)}
+            canNext={hasNextPage(total, page)}
+            onPrev={() => setPage((p) => Math.max(0, p - 1))}
+            onNext={() => setPage((p) => p + 1)}
+          />
         </Stack>
       )}
     </Box>

@@ -37,6 +37,69 @@ function ratingOptions(): number[] {
 }
 
 /**
+ * Renders the rating selector: a "No rating" option plus every allowed rating
+ * value from 1.0 to 10.0 in 0.5 steps.
+ *
+ * @param props - The rating-field props.
+ * @param props.value - The current select value ('' for no rating).
+ * @param props.onChange - Invoked when the selected rating changes.
+ * @returns The rendered rating selector wrapped in its grid cell.
+ */
+const RatingField: React.FC<{
+  value: string;
+  onChange: (event: SelectChangeEvent) => void;
+}> = ({ value, onChange }) => (
+  <Grid item xs={12} sm={6}>
+    <FormControl fullWidth>
+      <InputLabel id="rating-label">Rating</InputLabel>
+      <Select
+        labelId="rating-label"
+        id="rating-select"
+        label="Rating"
+        value={value}
+        onChange={onChange}
+      >
+        <MenuItem value="">
+          <em>No rating</em>
+        </MenuItem>
+        {ratingOptions().map((option) => (
+          <MenuItem key={option} value={String(option)}>
+            {option.toFixed(1)}
+          </MenuItem>
+        ))}
+      </Select>
+    </FormControl>
+  </Grid>
+);
+
+/**
+ * Renders a full-width multiline text field in its own grid cell, used for the
+ * tasting notes, feedback and suggestions inputs.
+ *
+ * @param props - The field props.
+ * @param props.label - The field label.
+ * @param props.value - The current field value.
+ * @param props.onChange - Invoked with the new value when the field changes.
+ * @returns The rendered multiline field wrapped in its grid cell.
+ */
+const MultilineField: React.FC<{
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}> = ({ label, value, onChange }) => (
+  <Grid item xs={12}>
+    <TextField
+      label={label}
+      fullWidth
+      multiline
+      minRows={2}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+    />
+  </Grid>
+);
+
+/**
  * Brew and Rate step: captures the optional quality rating (1.0 to 10.0 in 0.5
  * steps) along with free-text tasting notes, feedback and suggestions for the
  * session.
@@ -60,58 +123,26 @@ export function BrewFeedback({ formData, updateFormData }: BrewFeedbackProps) {
       </Typography>
 
       <Grid container spacing={3}>
-        <Grid item xs={12} sm={6}>
-          <FormControl fullWidth>
-            <InputLabel id="rating-label">Rating</InputLabel>
-            <Select
-              labelId="rating-label"
-              id="rating-select"
-              label="Rating"
-              value={formData.rating === undefined ? '' : String(formData.rating)}
-              onChange={handleRatingChange}
-            >
-              <MenuItem value="">
-                <em>No rating</em>
-              </MenuItem>
-              {ratingOptions().map((value) => (
-                <MenuItem key={value} value={String(value)}>
-                  {value.toFixed(1)}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Grid>
+        <RatingField
+          value={formData.rating === undefined ? '' : String(formData.rating)}
+          onChange={handleRatingChange}
+        />
 
-        <Grid item xs={12}>
-          <TextField
-            label="Tasting notes"
-            fullWidth
-            multiline
-            minRows={2}
-            value={formData.tastingNotes ?? ''}
-            onChange={(e) => updateFormData({ tastingNotes: e.target.value })}
-          />
-        </Grid>
-        <Grid item xs={12}>
-          <TextField
-            label="Feedback"
-            fullWidth
-            multiline
-            minRows={2}
-            value={formData.feedback ?? ''}
-            onChange={(e) => updateFormData({ feedback: e.target.value })}
-          />
-        </Grid>
-        <Grid item xs={12}>
-          <TextField
-            label="Suggestions"
-            fullWidth
-            multiline
-            minRows={2}
-            value={formData.suggestions ?? ''}
-            onChange={(e) => updateFormData({ suggestions: e.target.value })}
-          />
-        </Grid>
+        <MultilineField
+          label="Tasting notes"
+          value={formData.tastingNotes ?? ''}
+          onChange={(value) => updateFormData({ tastingNotes: value })}
+        />
+        <MultilineField
+          label="Feedback"
+          value={formData.feedback ?? ''}
+          onChange={(value) => updateFormData({ feedback: value })}
+        />
+        <MultilineField
+          label="Suggestions"
+          value={formData.suggestions ?? ''}
+          onChange={(value) => updateFormData({ suggestions: value })}
+        />
       </Grid>
     </Box>
   );

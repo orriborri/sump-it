@@ -66,6 +66,258 @@ const BREWING_METHODS = [
 ];
 
 /**
+ * Renders the primary name and secondary detail line shown inside a bean's
+ * dropdown option, including origin, roast date and remaining grams when known.
+ *
+ * @param props - The option props.
+ * @param props.bean - The bean to describe.
+ * @returns The rendered bean option content.
+ */
+const BeanOption: React.FC<{ bean: Bean }> = ({ bean }) => (
+  <Box>
+    <Typography variant="body1">{bean.name}</Typography>
+    <Typography variant="caption" color="text.secondary">
+      {bean.origin} • {new Date(bean.roastDate).toLocaleDateString()}
+      {bean.remainingGrams !== undefined && ` • ${bean.remainingGrams}g left`}
+    </Typography>
+  </Box>
+);
+
+/**
+ * Renders the primary name and secondary detail line shown inside a grinder's
+ * dropdown option, including the grinder type and setting range.
+ *
+ * @param props - The option props.
+ * @param props.grinder - The grinder to describe.
+ * @returns The rendered grinder option content.
+ */
+const GrinderOption: React.FC<{ grinder: Grinder }> = ({ grinder }) => (
+  <Box>
+    <Typography variant="body1">{grinder.brand} {grinder.model}</Typography>
+    <Typography variant="caption" color="text.secondary">
+      {grinder.grinderType} • Settings: {grinder.minSetting}-{grinder.maxSetting}
+    </Typography>
+  </Box>
+);
+
+/**
+ * Renders the coffee-bean dropdown control, including the no-beans warning.
+ *
+ * @param props - The field props.
+ * @param props.beans - The beans available to pick from.
+ * @param props.value - The current bean id value.
+ * @param props.onChange - Invoked when the bean selection changes.
+ * @returns The rendered bean dropdown control.
+ */
+const BeanSelectField: React.FC<{
+  beans: Bean[];
+  value: string;
+  onChange: (event: SelectChangeEvent) => void;
+}> = ({ beans, value, onChange }) => (
+  <FormControl fullWidth>
+    <InputLabel id="bean-select-label">Coffee Bean</InputLabel>
+    <Select
+      labelId="bean-select-label"
+      id="bean-select"
+      value={value}
+      label="Coffee Bean"
+      onChange={onChange}
+      disabled={beans.length === 0}
+    >
+      {beans.map(bean => (
+        <MenuItem key={bean.id} value={bean.id}>
+          <BeanOption bean={bean} />
+        </MenuItem>
+      ))}
+    </Select>
+    {beans.length === 0 && (
+      <Alert severity="warning" sx={{ mt: 1 }}>
+        No coffee beans found. Please add beans first.
+      </Alert>
+    )}
+  </FormControl>
+);
+
+/**
+ * Renders the coffee-bean selection column: the bean dropdown control plus the
+ * freshness and remaining-quantity chips for the current selection.
+ *
+ * @param props - The column props.
+ * @param props.beans - The beans available to pick from.
+ * @param props.selectedBean - The currently selected bean, if any.
+ * @param props.value - The current bean id value.
+ * @param props.onChange - Invoked when the bean selection changes.
+ * @returns The rendered bean-selection column.
+ */
+const BeanColumn: React.FC<{
+  beans: Bean[];
+  selectedBean?: Bean;
+  value: string;
+  onChange: (event: SelectChangeEvent) => void;
+}> = ({ beans, selectedBean, value, onChange }) => (
+  <Grid item xs={12} md={4}>
+    <BeanSelectField beans={beans} value={value} onChange={onChange} />
+
+    {selectedBean && (
+      <Box sx={{ mt: 2 }}>
+        <Chip
+          label={selectedBean.isFresh ? 'Fresh beans' : 'Aged beans'}
+          color={selectedBean.isFresh ? 'success' : 'default'}
+          size="small"
+          sx={{ mr: 1 }}
+        />
+        {selectedBean.remainingGrams != null && (
+          <Chip
+            label={`${selectedBean.remainingGrams}g remaining`}
+            color={selectedBean.remainingGrams > 0 ? 'info' : 'error'}
+            size="small"
+          />
+        )}
+      </Box>
+    )}
+  </Grid>
+);
+
+/**
+ * Renders the grinder dropdown control, including the no-grinders warning.
+ *
+ * @param props - The field props.
+ * @param props.grinders - The grinders available to pick from.
+ * @param props.value - The current grinder id value.
+ * @param props.onChange - Invoked when the grinder selection changes.
+ * @returns The rendered grinder dropdown control.
+ */
+const GrinderSelectField: React.FC<{
+  grinders: Grinder[];
+  value: string;
+  onChange: (event: SelectChangeEvent) => void;
+}> = ({ grinders, value, onChange }) => (
+  <FormControl fullWidth>
+    <InputLabel id="grinder-select-label">Grinder</InputLabel>
+    <Select
+      labelId="grinder-select-label"
+      id="grinder-select"
+      value={value}
+      label="Grinder"
+      onChange={onChange}
+      disabled={grinders.length === 0}
+    >
+      {grinders.map(grinder => (
+        <MenuItem key={grinder.id} value={grinder.id}>
+          <GrinderOption grinder={grinder} />
+        </MenuItem>
+      ))}
+    </Select>
+    {grinders.length === 0 && (
+      <Alert severity="warning" sx={{ mt: 1 }}>
+        No grinders found. Please add a grinder first.
+      </Alert>
+    )}
+  </FormControl>
+);
+
+/**
+ * Renders the grinder selection column: the grinder dropdown control plus the
+ * type and setting-range chips for the current selection.
+ *
+ * @param props - The column props.
+ * @param props.grinders - The grinders available to pick from.
+ * @param props.selectedGrinder - The currently selected grinder, if any.
+ * @param props.value - The current grinder id value.
+ * @param props.onChange - Invoked when the grinder selection changes.
+ * @returns The rendered grinder-selection column.
+ */
+const GrinderColumn: React.FC<{
+  grinders: Grinder[];
+  selectedGrinder?: Grinder;
+  value: string;
+  onChange: (event: SelectChangeEvent) => void;
+}> = ({ grinders, selectedGrinder, value, onChange }) => (
+  <Grid item xs={12} md={4}>
+    <GrinderSelectField grinders={grinders} value={value} onChange={onChange} />
+
+    {selectedGrinder && (
+      <Box sx={{ mt: 2 }}>
+        <Chip
+          label={selectedGrinder.grinderType}
+          color="primary"
+          size="small"
+          sx={{ mr: 1 }}
+        />
+        <Chip
+          label={`Settings: ${selectedGrinder.minSetting}-${selectedGrinder.maxSetting}`}
+          color="info"
+          size="small"
+        />
+      </Box>
+    )}
+  </Grid>
+);
+
+/**
+ * Renders the brewing-method selection column: the method dropdown and a chip
+ * echoing the chosen method.
+ *
+ * @param props - The column props.
+ * @param props.value - The current brewing-method value.
+ * @param props.onChange - Invoked when the method selection changes.
+ * @returns The rendered method-selection column.
+ */
+const MethodColumn: React.FC<{
+  value: string;
+  onChange: (event: SelectChangeEvent) => void;
+}> = ({ value, onChange }) => (
+  <Grid item xs={12} md={4}>
+    <FormControl fullWidth>
+      <InputLabel id="method-select-label">Brewing Method</InputLabel>
+      <Select
+        labelId="method-select-label"
+        id="method-select"
+        value={value}
+        label="Brewing Method"
+        onChange={onChange}
+      >
+        {BREWING_METHODS.map(method => (
+          <MenuItem key={method.value} value={method.value}>
+            {method.label}
+          </MenuItem>
+        ))}
+      </Select>
+    </FormControl>
+
+    {value && (
+      <Box sx={{ mt: 2 }}>
+        <Chip
+          label={value}
+          color="secondary"
+          size="small"
+        />
+      </Box>
+    )}
+  </Grid>
+);
+
+/**
+ * Renders a single labeled line in the selection summary, e.g. the chosen bean,
+ * grinder or method, inside its own grid cell.
+ *
+ * @param props - The summary-item props.
+ * @param props.label - The bold label prefix (Bean, Grinder or Method).
+ * @param props.children - The value text for the line.
+ * @returns The rendered summary line.
+ */
+const SummaryItem: React.FC<{ label: string; children: React.ReactNode }> = ({
+  label,
+  children,
+}) => (
+  <Grid item xs={12} sm={4}>
+    <Typography variant="body2">
+      <strong>{label}:</strong> {children}
+    </Typography>
+  </Grid>
+);
+
+/**
  * Equipment-selection step: lets the user choose a coffee bean, a grinder and a
  * brewing method, showing freshness and remaining-quantity chips plus a summary
  * of the current selection.
@@ -116,131 +368,23 @@ export function BeanSelector({
 
       <Grid container spacing={3}>
         {/* Coffee Bean Selection */}
-        <Grid item xs={12} md={4}>
-          <FormControl fullWidth>
-            <InputLabel id="bean-select-label">Coffee Bean</InputLabel>
-            <Select
-              labelId="bean-select-label"
-              id="bean-select"
-              value={formData.beanId}
-              label="Coffee Bean"
-              onChange={handleBeanChange}
-              disabled={beans.length === 0}
-            >
-              {beans.map(bean => (
-                <MenuItem key={bean.id} value={bean.id}>
-                  <Box>
-                    <Typography variant="body1">{bean.name}</Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {bean.origin} • {new Date(bean.roastDate).toLocaleDateString()}
-                      {bean.remainingGrams !== undefined && ` • ${bean.remainingGrams}g left`}
-                    </Typography>
-                  </Box>
-                </MenuItem>
-              ))}
-            </Select>
-            {beans.length === 0 && (
-              <Alert severity="warning" sx={{ mt: 1 }}>
-                No coffee beans found. Please add beans first.
-              </Alert>
-            )}
-          </FormControl>
-          
-          {selectedBean && (
-            <Box sx={{ mt: 2 }}>
-              <Chip
-                label={selectedBean.isFresh ? 'Fresh beans' : 'Aged beans'}
-                color={selectedBean.isFresh ? 'success' : 'default'}
-                size="small"
-                sx={{ mr: 1 }}
-              />
-              {selectedBean.remainingGrams != null && (
-                <Chip
-                  label={`${selectedBean.remainingGrams}g remaining`}
-                  color={selectedBean.remainingGrams > 0 ? 'info' : 'error'}
-                  size="small"
-                />
-              )}
-            </Box>
-          )}
-        </Grid>
+        <BeanColumn
+          beans={beans}
+          selectedBean={selectedBean}
+          value={formData.beanId}
+          onChange={handleBeanChange}
+        />
 
         {/* Grinder Selection */}
-        <Grid item xs={12} md={4}>
-          <FormControl fullWidth>
-            <InputLabel id="grinder-select-label">Grinder</InputLabel>
-            <Select
-              labelId="grinder-select-label"
-              id="grinder-select"
-              value={formData.grinderId}
-              label="Grinder"
-              onChange={handleGrinderChange}
-              disabled={grinders.length === 0}
-            >
-              {grinders.map(grinder => (
-                <MenuItem key={grinder.id} value={grinder.id}>
-                  <Box>
-                    <Typography variant="body1">{grinder.brand} {grinder.model}</Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {grinder.grinderType} • Settings: {grinder.minSetting}-{grinder.maxSetting}
-                    </Typography>
-                  </Box>
-                </MenuItem>
-              ))}
-            </Select>
-            {grinders.length === 0 && (
-              <Alert severity="warning" sx={{ mt: 1 }}>
-                No grinders found. Please add a grinder first.
-              </Alert>
-            )}
-          </FormControl>
-          
-          {selectedGrinder && (
-            <Box sx={{ mt: 2 }}>
-              <Chip
-                label={selectedGrinder.grinderType}
-                color="primary"
-                size="small"
-                sx={{ mr: 1 }}
-              />
-              <Chip
-                label={`Settings: ${selectedGrinder.minSetting}-${selectedGrinder.maxSetting}`}
-                color="info"
-                size="small"
-              />
-            </Box>
-          )}
-        </Grid>
+        <GrinderColumn
+          grinders={grinders}
+          selectedGrinder={selectedGrinder}
+          value={formData.grinderId}
+          onChange={handleGrinderChange}
+        />
 
         {/* Brewing Method Selection */}
-        <Grid item xs={12} md={4}>
-          <FormControl fullWidth>
-            <InputLabel id="method-select-label">Brewing Method</InputLabel>
-            <Select
-              labelId="method-select-label"
-              id="method-select"
-              value={formData.brewingMethod}
-              label="Brewing Method"
-              onChange={handleMethodChange}
-            >
-              {BREWING_METHODS.map(method => (
-                <MenuItem key={method.value} value={method.value}>
-                  {method.label}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          
-          {formData.brewingMethod && (
-            <Box sx={{ mt: 2 }}>
-              <Chip
-                label={formData.brewingMethod}
-                color="secondary"
-                size="small"
-              />
-            </Box>
-          )}
-        </Grid>
+        <MethodColumn value={formData.brewingMethod} onChange={handleMethodChange} />
       </Grid>
 
       {/* Selection Summary */}
@@ -251,25 +395,17 @@ export function BeanSelector({
           </Typography>
           <Grid container spacing={1}>
             {selectedBean && (
-              <Grid item xs={12} sm={4}>
-                <Typography variant="body2">
-                  <strong>Bean:</strong> {selectedBean.name} ({selectedBean.origin})
-                </Typography>
-              </Grid>
+              <SummaryItem label="Bean">
+                {selectedBean.name} ({selectedBean.origin})
+              </SummaryItem>
             )}
             {selectedGrinder && (
-              <Grid item xs={12} sm={4}>
-                <Typography variant="body2">
-                  <strong>Grinder:</strong> {selectedGrinder.brand} {selectedGrinder.model}
-                </Typography>
-              </Grid>
+              <SummaryItem label="Grinder">
+                {selectedGrinder.brand} {selectedGrinder.model}
+              </SummaryItem>
             )}
             {formData.brewingMethod && (
-              <Grid item xs={12} sm={4}>
-                <Typography variant="body2">
-                  <strong>Method:</strong> {formData.brewingMethod}
-                </Typography>
-              </Grid>
+              <SummaryItem label="Method">{formData.brewingMethod}</SummaryItem>
             )}
           </Grid>
         </Box>
