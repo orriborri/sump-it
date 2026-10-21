@@ -47,11 +47,136 @@ export interface BrewClient {
   sessions: Pick<typeof coffeeBrewerClient.sessions, 'list' | 'create'>;
 }
 
+/** Props for {@link BrewWorkflow}. */
 export interface BrewWorkflowProps {
   /** Injected client; defaults to the real typed client. */
   client?: BrewClient;
 }
 
+/** Props for {@link WorkflowFooter}. */
+interface WorkflowFooterProps {
+  /** The zero-based index of the current step. */
+  currentStep: number;
+  /** Whether the user may advance past the current step. */
+  canProceed: boolean;
+  /** A save error to surface, if any. */
+  saveError: string | null;
+  /** Returns to the previous step. */
+  onBack: () => void;
+  /** Advances to the next step. */
+  onNext: () => void;
+  /** Saves the completed brew session. */
+  onSubmit: () => void;
+}
+
+/**
+ * The footer region below the stepper: a "complete required fields" hint, any
+ * save error, and the Back/Next/Save navigation row.
+ */
+const WorkflowFooter: React.FC<WorkflowFooterProps> = ({
+  currentStep,
+  canProceed,
+  saveError,
+  onBack,
+  onNext,
+  onSubmit,
+}) => (
+  <Box sx={{ mt: 6, pt: 3, borderTop: 1, borderColor: 'divider' }}>
+    {!canProceed && currentStep < 2 && (
+      <Alert severity="info" sx={{ mb: 2 }}>
+        Please complete all required fields before proceeding.
+      </Alert>
+    )}
+
+    {saveError && (
+      <Alert severity="error" sx={{ mb: 2 }}>
+        {saveError}
+      </Alert>
+    )}
+
+    <StepNavigation
+      currentStep={currentStep}
+      canProceed={canProceed}
+      onBack={onBack}
+      onNext={onNext}
+      onSubmit={onSubmit}
+    />
+  </Box>
+);
+
+/** Props for {@link StepNavigation}. */
+interface StepNavigationProps {
+  /** The zero-based index of the current step. */
+  currentStep: number;
+  /** Whether the user may advance past the current step. */
+  canProceed: boolean;
+  /** Advances to the next step. */
+  onBack: () => void;
+  /** Returns to the previous step. */
+  onNext: () => void;
+  /** Saves the completed brew session. */
+  onSubmit: () => void;
+}
+
+/**
+ * The bottom navigation row for the workflow: Back on the left, and either
+ * Next (steps 0-1) or "Save Brew Session" (final step) on the right.
+ */
+const StepNavigation: React.FC<StepNavigationProps> = ({
+  currentStep,
+  canProceed,
+  onBack,
+  onNext,
+  onSubmit,
+}) => (
+  <Stack
+    direction={{ xs: 'column', sm: 'row' }}
+    spacing={2}
+    justifyContent="space-between"
+    alignItems="center"
+  >
+    <Button
+      variant="outlined"
+      disabled={currentStep === 0}
+      onClick={onBack}
+      size="large"
+      sx={{ minWidth: { xs: '100%', sm: 120 } }}
+    >
+      Back
+    </Button>
+
+    {currentStep < 2 ? (
+      <Button
+        variant="contained"
+        color="primary"
+        onClick={onNext}
+        disabled={!canProceed}
+        size="large"
+        sx={{ minWidth: { xs: '100%', sm: 120 } }}
+      >
+        Next
+      </Button>
+    ) : (
+      <Button
+        variant="contained"
+        color="success"
+        onClick={onSubmit}
+        size="large"
+        sx={{ minWidth: { xs: '100%', sm: 120 } }}
+      >
+        Save Brew Session
+      </Button>
+    )}
+  </Stack>
+);
+
+/**
+ * The brew-logging workflow: ties equipment selection, parameter entry and
+ * feedback into one vertical stepper and saves the brew through the typed
+ * client. Pure logic (gating, live ratio, grind clamping, request mapping)
+ * lives in `lib/brew/recipe.ts`; this component is the MUI shell that wires it
+ * to the stepper.
+ */
 export function BrewWorkflow({ client = coffeeBrewerClient }: BrewWorkflowProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState<BrewFormData>(emptyBrewForm());
@@ -203,59 +328,14 @@ export function BrewWorkflow({ client = coffeeBrewerClient }: BrewWorkflowProps)
             getStepContent={(index) => stepConfig[index].content}
           />
 
-          <Box sx={{ mt: 6, pt: 3, borderTop: 1, borderColor: 'divider' }}>
-            {!canProceed && currentStep < 2 && (
-              <Alert severity="info" sx={{ mb: 2 }}>
-                Please complete all required fields before proceeding.
-              </Alert>
-            )}
-
-            {saveError && (
-              <Alert severity="error" sx={{ mb: 2 }}>
-                {saveError}
-              </Alert>
-            )}
-
-            <Stack
-              direction={{ xs: 'column', sm: 'row' }}
-              spacing={2}
-              justifyContent="space-between"
-              alignItems="center"
-            >
-              <Button
-                variant="outlined"
-                disabled={currentStep === 0}
-                onClick={handleBack}
-                size="large"
-                sx={{ minWidth: { xs: '100%', sm: 120 } }}
-              >
-                Back
-              </Button>
-
-              {currentStep < 2 ? (
-                <Button
-                  variant="contained"
-                  color="primary"
-                  onClick={handleNext}
-                  disabled={!canProceed}
-                  size="large"
-                  sx={{ minWidth: { xs: '100%', sm: 120 } }}
-                >
-                  Next
-                </Button>
-              ) : (
-                <Button
-                  variant="contained"
-                  color="success"
-                  onClick={handleSubmit}
-                  size="large"
-                  sx={{ minWidth: { xs: '100%', sm: 120 } }}
-                >
-                  Save Brew Session
-                </Button>
-              )}
-            </Stack>
-          </Box>
+          <WorkflowFooter
+            currentStep={currentStep}
+            canProceed={canProceed}
+            saveError={saveError}
+            onBack={handleBack}
+            onNext={handleNext}
+            onSubmit={handleSubmit}
+          />
         </Paper>
       </Box>
 

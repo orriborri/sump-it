@@ -6,6 +6,10 @@ import { Box, Container } from '@mui/material';
 
 import { SessionHistory } from './SessionHistory';
 
+/**
+ * Route entry for `/sessions`: the brewing-session history page. Renders
+ * {@link SessionHistory} inside the standard page container.
+ */
 export default function SessionsPage() {
   return (
     <Container maxWidth="md">
