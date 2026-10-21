@@ -1,0 +1,39 @@
+-- Ticket #139: drop the `roast_date <= purchase_date` CHECK on coffee_beans.
+--
+-- Ticket #138 (migration 0001_init.sql) shipped a global
+-- `CHECK (roast_date <= purchase_date)` on `coffee_beans`. The spec's schema
+-- decisions reverse that policy: the relationship between a bean's roast date
+-- and its purchase date is NOT a database invariant. A bean can legitimately be
+-- bought already roasted (purchase_date after roast_date) OR roasted-to-order /
+-- roasted after purchase (purchase_date before roast_date), so neither ordering
+-- may be forbidden at the DB level.
+--
+-- The application still rejects FUTURE dates for both fields via
+-- `validate_bean_fields` (backend/src/validation.rs); that app-level guard is
+-- unaffected by this migration. Only the cross-field ordering CHECK is removed.
+--
+-- Postgres auto-named the unnamed CHECK from 0001 `coffee_beans_check` (the
+-- unnamed `remaining_grams` CHECK became `coffee_beans_remaining_grams_check`
+-- because it references a single column). We drop it by that name and guard
+-- with IF EXISTS so the migration is idempotent and safe on any schema where
+-- the constraint has already been removed.
+--
+-- VERIFICATION (run before changing coffee_beans's unnamed CHECKs): confirm the
+-- auto-generated name still maps to the roast/purchase CHECK and that the
+-- single-column grams CHECK keeps its own distinct name, so this DROP targets
+-- exactly the intended constraint:
+--
+--   SELECT conname, pg_get_constraintdef(oid)
+--   FROM pg_constraint
+--   WHERE conrelid = 'coffee_beans'::regclass AND contype = 'c';
+--
+--   -- expected: coffee_beans_check                 -> CHECK (roast_date <= purchase_date)
+--   --           coffee_beans_remaining_grams_check -> CHECK (remaining_grams >= 0 OR ... IS NULL)
+--
+-- The `remaining_grams >= 0` CHECK must remain after this migration; the
+-- regression test
+-- `purchase_before_roast_is_allowed_at_db_level_but_future_dates_still_rejected`
+-- in backend/tests/bean_inventory_db.rs asserts exactly that (a negative-grams
+-- insert must still be rejected), so an over-dropping migration fails CI.
+ALTER TABLE coffee_beans
+    DROP CONSTRAINT IF EXISTS coffee_beans_check;

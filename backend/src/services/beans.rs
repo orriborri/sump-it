@@ -198,7 +198,7 @@ impl<'a> BeanService<'a> {
                 bs.coffee_grams as grams_used,
                 bs.rating,
                 g.brand || ' ' || g.model as grinder_used,
-                bs.brewing_method,
+                bs.brewing_method::text as brewing_method,
                 bs.tasting_notes
             FROM brewing_sessions bs
             JOIN grinders g ON bs.grinder_id = g.id

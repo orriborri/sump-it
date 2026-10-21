@@ -6,7 +6,10 @@
 //! logic lives in the library crate (`models`, `recipe`, `validation`) and is
 //! unit tested there; this service owns only the SQL and the transaction
 //! orchestration, which is exercised by the `#[ignore]`d DB integration tests
-//! under `backend/tests/` (no Postgres in this sandbox).
+//! under `backend/tests/`. Those tests require a live Postgres named by
+//! `DATABASE_URL`/`TEST_DATABASE_URL`; they are `#[ignore]`d so a plain
+//! `cargo test` without a database stays green, and are run against a real
+//! Postgres by `make coverage-backend` and the backend-coverage CI job.
 
 use anyhow::{Context, Result};
 use sqlx::PgPool;
@@ -89,9 +92,7 @@ impl<'a> SessionService<'a> {
         let session = apply_notes_to_session(session, &request);
 
         // (3) Begin the transaction that ties the insert and decrement together.
-        let mut tx = self.pool.begin().await.map_err(|e| {
-            SaveError::Database(anyhow::Error::new(e).context("Failed to begin transaction"))
-        })?;
+        let mut tx = begin_tx(self.pool).await?;
 
         // (4) Lock the bean row for the life of the transaction. A missing row
         // means the bean does not exist (or is inactive); roll back.
@@ -103,9 +104,7 @@ impl<'a> SessionService<'a> {
         .bind(session.bean_id)
         .fetch_optional(&mut *tx)
         .await
-        .map_err(|e| {
-            SaveError::Database(anyhow::Error::new(e).context("Failed to lock bean row"))
-        })?;
+        .map_err(|e| db_error(e, "Failed to lock bean row"))?;
 
         let remaining = match remaining {
             Some(value) => value,
@@ -165,9 +164,7 @@ impl<'a> SessionService<'a> {
         .bind(session.updated_at)
         .fetch_one(&mut *tx)
         .await
-        .map_err(|e| {
-            SaveError::Database(anyhow::Error::new(e).context("Failed to insert session"))
-        })?;
+        .map_err(|e| db_error(e, "Failed to insert session"))?;
 
         // (7) Decrement the tracked inventory. No GREATEST clamp: step (5)
         // proved there is enough, so an exact subtraction is correct and a
@@ -184,17 +181,13 @@ impl<'a> SessionService<'a> {
             .bind(chrono::Utc::now())
             .execute(&mut *tx)
             .await
-            .map_err(|e| {
-                SaveError::Database(
-                    anyhow::Error::new(e).context("Failed to decrement bean quantity"),
-                )
-            })?;
+            .map_err(|e| db_error(e, "Failed to decrement bean quantity"))?;
         }
 
         // (8) Commit: the session and the decrement land together or not at all.
-        tx.commit().await.map_err(|e| {
-            SaveError::Database(anyhow::Error::new(e).context("Failed to commit transaction"))
-        })?;
+        tx.commit()
+            .await
+            .map_err(|e| db_error(e, "Failed to commit transaction"))?;
 
         Ok(inserted)
     }
@@ -258,10 +251,15 @@ impl<'a> SessionService<'a> {
         filter: &SessionFilter,
         search: Option<&str>,
     ) -> Result<(Vec<BrewingSession>, i64)> {
+        // The COUNT(*) is read through `query_as` into a one-column tuple so it
+        // shares the single `bind_all` binder with the list query below (rather
+        // than a second, near-identical `query_scalar` binder whose extra bind
+        // arms the count query - which never carries limit/offset - could never
+        // exercise).
         let count_query = session_query::count_sessions_sql(filter, search);
-        let count_builder = sqlx::query_scalar::<_, i64>(&count_query.sql);
-        let count_builder = bind_all_scalar(count_builder, &count_query.binds);
-        let total = count_builder
+        let count_builder = sqlx::query_as::<_, (i64,)>(&count_query.sql);
+        let count_builder = bind_all(count_builder, &count_query.binds);
+        let (total,) = count_builder
             .fetch_one(self.pool)
             .await
             .context("Failed to count filtered sessions")?;
@@ -298,6 +296,26 @@ impl<'a> SessionService<'a> {
     }
 }
 
+/// Wraps a sqlx error as [`SaveError::Database`] with a human-readable context.
+///
+/// Shared by the transactional save path so every DB failure is mapped the same
+/// way. The reachable call sites (bean lock, session insert, inventory
+/// decrement, commit) are exercised by the DB integration tests.
+fn db_error(e: sqlx::Error, context: &'static str) -> SaveError {
+    SaveError::Database(anyhow::Error::new(e).context(context))
+}
+
+// coverage: defensive wiring - opening a transaction only fails if the pool /
+// connection is already dead (process/infra failure), which cannot be provoked
+// by construction once we hold a live pool. Excluded per docs/coverage.md
+// (defensive, genuinely-unreachable branch). The happy path returns the tx.
+#[cfg_attr(coverage_nightly, coverage(off))]
+async fn begin_tx(pool: &PgPool) -> std::result::Result<sqlx::Transaction<'_, sqlx::Postgres>, SaveError> {
+    pool.begin()
+        .await
+        .map_err(|e| db_error(e, "Failed to begin transaction"))
+}
+
 /// Binds every [`QueryBind`], in order, to a `query_as` builder.
 ///
 /// `QueryBind` keeps each value typed, so the driver encodes it as a real bind
@@ -307,27 +325,6 @@ fn bind_all<'q, O>(
     query: sqlx::query::QueryAs<'q, sqlx::Postgres, O, sqlx::postgres::PgArguments>,
     binds: &'q [QueryBind],
 ) -> sqlx::query::QueryAs<'q, sqlx::Postgres, O, sqlx::postgres::PgArguments> {
-    let mut query = query;
-    for bind in binds {
-        query = match bind {
-            QueryBind::Text(value) => query.bind(value),
-            QueryBind::Date(value) => query.bind(value),
-            QueryBind::Grinder(value) => query.bind(value),
-            QueryBind::Method(value) => query.bind(value),
-            QueryBind::Float(value) => query.bind(value),
-            QueryBind::Pattern(value) => query.bind(value),
-            QueryBind::Int(value) => query.bind(value),
-        };
-    }
-    query
-}
-
-/// Binds every [`QueryBind`], in order, to a `query_scalar` builder (used for
-/// the `COUNT(*)`). Mirrors [`bind_all`] for the scalar query type.
-fn bind_all_scalar<'q, O>(
-    query: sqlx::query::QueryScalar<'q, sqlx::Postgres, O, sqlx::postgres::PgArguments>,
-    binds: &'q [QueryBind],
-) -> sqlx::query::QueryScalar<'q, sqlx::Postgres, O, sqlx::postgres::PgArguments> {
     let mut query = query;
     for bind in binds {
         query = match bind {

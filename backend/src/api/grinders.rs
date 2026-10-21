@@ -182,17 +182,12 @@ fn validate_grinder_request(payload: &CreateGrinderRequest) -> Option<axum::resp
 }
 
 /// Query parameters for listing grinders.
+///
+/// Both fields are optional; the handler applies the 1/50 page/limit defaults
+/// inline via `unwrap_or`, so there is no separate `Default` impl to keep in
+/// sync (and none to leave untested).
 #[derive(Debug, serde::Deserialize)]
 struct ListParams {
     page: Option<i32>,
     limit: Option<i32>,
-}
-
-impl Default for ListParams {
-    fn default() -> Self {
-        Self {
-            page: Some(1),
-            limit: Some(50),
-        }
-    }
 }

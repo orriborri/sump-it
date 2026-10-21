@@ -26,13 +26,15 @@ ts-rs = { version = "12.0", features = ["chrono-impl", "uuid-impl"] }
 
 # Development dependencies
 [dev-dependencies]
-reqwest = { version = "0.11", features = ["json"] }
-testcontainers = "0.15"
-rstest = "0.18"
+# Drive the real axum router in-process in the DB integration tests:
+# `tower`'s `util` feature provides `ServiceExt::oneshot`, and
+# `http-body-util` collects the response body. Both are already in the tree as
+# transitive deps of axum; declaring them here makes them usable from tests.
+tower = { version = "0.5", features = ["util"] }
+http-body-util = "0.1"
 
 [features]
 default = []
-test-utils = []
 
 # `coverage_nightly` is a custom cfg set by the coverage harness (see
 # `docs/coverage.md` and the `coverage` npm/make target). Registering it here

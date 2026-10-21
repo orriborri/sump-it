@@ -198,19 +198,14 @@ async fn get_bean_usage(
     }
 }
 
-/// Query parameters for listing beans
+/// Query parameters for listing beans.
+///
+/// Both fields are optional; the handlers apply the 1/50 page/limit defaults
+/// inline via `unwrap_or`, so there is no separate `Default` impl to keep in
+/// sync (and none to leave untested).
 #[derive(Debug, serde::Deserialize)]
 struct ListParams {
     page: Option<i32>,
     limit: Option<i32>,
-}
-
-impl Default for ListParams {
-    fn default() -> Self {
-        Self {
-            page: Some(1),
-            limit: Some(50),
-        }
-    }
 }
 
