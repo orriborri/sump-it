@@ -110,9 +110,9 @@ interface StepNavigationProps {
   currentStep: number;
   /** Whether the user may advance past the current step. */
   canProceed: boolean;
-  /** Advances to the next step. */
-  onBack: () => void;
   /** Returns to the previous step. */
+  onBack: () => void;
+  /** Advances to the next step. */
   onNext: () => void;
   /** Saves the completed brew session. */
   onSubmit: () => void;
