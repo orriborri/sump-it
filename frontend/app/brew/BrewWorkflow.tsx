@@ -52,6 +52,16 @@ export interface BrewWorkflowProps {
   client?: BrewClient;
 }
 
+/**
+ * Brew-logging workflow: the top-level component that drives the three-step
+ * vertical stepper (equipment selection, brewing parameters, brew and rate),
+ * loads reference data through the injected client, gates step progression, and
+ * saves the completed brew.
+ *
+ * @param props - The workflow props.
+ * @param props.client - Injected typed client; defaults to the real client.
+ * @returns The rendered brew-logging workflow.
+ */
 export function BrewWorkflow({ client = coffeeBrewerClient }: BrewWorkflowProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState<BrewFormData>(emptyBrewForm());

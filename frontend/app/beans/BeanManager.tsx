@@ -50,6 +50,16 @@ export interface BeanManagerProps {
   now?: () => Date;
 }
 
+/**
+ * Coffee bean inventory manager: lists active beans, adds, edits and
+ * soft-deletes beans, shows freshness and remaining grams, and displays
+ * per-bean usage history. All data flows through the injected typed client.
+ *
+ * @param props - The component props.
+ * @param props.client - Injected bean client; defaults to the real typed client.
+ * @param props.now - Injected clock; defaults to the real current time.
+ * @returns The rendered bean inventory manager.
+ */
 export function BeanManager({
   client = coffeeBrewerClient.beans,
   now = () => new Date(),

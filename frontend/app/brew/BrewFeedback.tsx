@@ -20,6 +20,7 @@ import {
 } from '@mui/material';
 import { RATING_MAX, RATING_MIN, RATING_STEP, type BrewFormData } from '@/lib/brew/recipe';
 
+/** Props for the Brew and Rate step. */
 interface BrewFeedbackProps {
   formData: BrewFormData;
   updateFormData: (updates: Partial<BrewFormData>) => void;
@@ -35,6 +36,17 @@ function ratingOptions(): number[] {
   return options;
 }
 
+/**
+ * Brew and Rate step: captures the optional quality rating (1.0 to 10.0 in 0.5
+ * steps) along with free-text tasting notes, feedback and suggestions for the
+ * session.
+ *
+ * @param props - The step props.
+ * @param props.formData - The current brew form state.
+ * @param props.updateFormData - Applies a partial update to the brew form.
+ * @param props.onSubmit - Invoked to save the completed session.
+ * @returns The rendered brew-and-rate form.
+ */
 export function BrewFeedback({ formData, updateFormData }: BrewFeedbackProps) {
   const handleRatingChange = (event: SelectChangeEvent) => {
     const value = event.target.value;

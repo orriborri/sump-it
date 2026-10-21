@@ -56,6 +56,15 @@ export interface SessionHistoryProps {
   client?: SessionHistoryClient;
 }
 
+/**
+ * Brewing-session history view: lists past brews newest-first with filter,
+ * search and paging, and lets the user duplicate a session to brew it again.
+ * All data flows through the injected typed client.
+ *
+ * @param props - The component props.
+ * @param props.client - Injected sessions client; defaults to the real typed client.
+ * @returns The rendered session-history view.
+ */
 export function SessionHistory({
   client = coffeeBrewerClient.sessions,
 }: SessionHistoryProps) {

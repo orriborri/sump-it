@@ -62,6 +62,15 @@ function formFromGrinder(grinder: Grinder): GrinderFormState {
   };
 }
 
+/**
+ * Grinder management UI: lists grinders and adds, edits and removes them
+ * through the injected typed client. The max-greater-than-min rule is enforced
+ * client-side before the request and also surfaced from the API error.
+ *
+ * @param props - The component props.
+ * @param props.client - Injected grinders client; defaults to the real typed client.
+ * @returns The rendered grinder manager.
+ */
 export function GrinderManager({
   client = coffeeBrewerClient.grinders,
 }: GrinderManagerProps) {

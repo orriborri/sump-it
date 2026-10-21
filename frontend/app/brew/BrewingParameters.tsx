@@ -18,6 +18,7 @@ import {
   type BrewFormData,
 } from '@/lib/brew/recipe';
 
+/** Props for the Brewing Parameters step. */
 interface BrewingParametersProps {
   formData: BrewFormData;
   updateFormData: (updates: Partial<BrewFormData>) => void;
@@ -26,6 +27,20 @@ interface BrewingParametersProps {
   selectedGrinder?: Grinder;
 }
 
+/**
+ * Brewing Parameters step: captures coffee dose, water weight and grind
+ * setting, shows the live coffee ratio, and bounds the grind setting to the
+ * selected grinder's range. Optional water temperature and brew time are also
+ * collected here.
+ *
+ * @param props - The step props.
+ * @param props.formData - The current brew form state.
+ * @param props.updateFormData - Applies a partial update to the brew form.
+ * @param props.previousSessions - Recent sessions shown for reference.
+ * @param props.isLoading - Whether the reference sessions are still loading.
+ * @param props.selectedGrinder - The chosen grinder, used to bound the grind setting.
+ * @returns The rendered brewing-parameters form.
+ */
 export function BrewingParameters({
   formData,
   updateFormData,

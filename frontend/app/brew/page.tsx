@@ -9,6 +9,12 @@ import React from 'react';
 
 import { BrewWorkflow } from './BrewWorkflow';
 
+/**
+ * Route entry for the brew-logging workflow. Mounts `BrewWorkflow` with its
+ * default typed client.
+ *
+ * @returns The brew page.
+ */
 export default function BrewPage() {
   return <BrewWorkflow />;
 }

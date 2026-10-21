@@ -21,6 +21,7 @@ import { type BrewFormData } from '@/lib/brew/recipe';
 // Accepts the generated CoffeeBean/Grinder shapes (nullable fields) plus the
 // UI-only `isFresh` hint. Kept structural so the generated types from
 // `@/lib/api/types` assign without conversion.
+/** Structural coffee-bean shape the selector renders, with a UI-only freshness hint. */
 interface Bean {
   id: string;
   name: string;
@@ -30,6 +31,7 @@ interface Bean {
   isFresh?: boolean;
 }
 
+/** Structural grinder shape the selector renders. */
 interface Grinder {
   id: string;
   brand: string;
@@ -39,6 +41,7 @@ interface Grinder {
   maxSetting: number;
 }
 
+/** Props for the equipment-selection step. */
 interface BeanSelectorProps {
   formData: {
     beanId: string;
@@ -62,6 +65,19 @@ const BREWING_METHODS = [
   { value: 'Other', label: 'Other' },
 ];
 
+/**
+ * Equipment-selection step: lets the user choose a coffee bean, a grinder and a
+ * brewing method, showing freshness and remaining-quantity chips plus a summary
+ * of the current selection.
+ *
+ * @param props - The step props.
+ * @param props.formData - The current equipment selection (bean, grinder, method).
+ * @param props.updateFormData - Applies a partial update to the brew form.
+ * @param props.beans - The beans available to pick from.
+ * @param props.grinders - The grinders available to pick from.
+ * @param props.isLoading - Whether the bean and grinder lists are still loading.
+ * @returns The rendered equipment-selection form.
+ */
 export function BeanSelector({
   formData,
   updateFormData,

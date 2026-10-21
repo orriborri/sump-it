@@ -13,6 +13,7 @@ import {
 } from '@mui/material';
 import { Check } from '@mui/icons-material';
 
+/** Describes a single step: its label, instruction text and form content. */
 interface StepConfig {
   label: string;
   title: string;
@@ -20,6 +21,7 @@ interface StepConfig {
   content: React.ReactNode;
 }
 
+/** Props for the integrated vertical stepper. */
 interface IntegratedVerticalStepperProps {
   steps: string[];
   activeStep: number;
@@ -27,6 +29,19 @@ interface IntegratedVerticalStepperProps {
   getStepContent: (stepIndex: number) => React.ReactNode;
 }
 
+/**
+ * Renders the brewing workflow as a vertical stepper, marking completed and
+ * active steps and showing the active step's instructions and form content
+ * inline. Presentational only: the parent owns the active-step state and
+ * supplies instructions and content per step.
+ *
+ * @param props - The stepper props.
+ * @param props.steps - The ordered step labels.
+ * @param props.activeStep - The zero-based index of the current step.
+ * @param props.getStepInstructions - Returns the title and description for a step.
+ * @param props.getStepContent - Returns the form content for a step.
+ * @returns The rendered vertical stepper.
+ */
 export const IntegratedVerticalStepper: React.FC<IntegratedVerticalStepperProps> = ({
   steps,
   activeStep,
