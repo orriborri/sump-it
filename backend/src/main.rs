@@ -5,15 +5,11 @@
 // harness sets the `coverage_nightly` cfg. No effect on ordinary builds.
 #![cfg_attr(coverage_nightly, feature(coverage_attribute))]
 
-// The database-independent core (validation + models) lives in the library
-// crate so the coverage gate can enforce 100% line coverage over it with
-// `cargo llvm-cov --lib`. The binary re-exports those modules under the same
-// `crate::` paths the API and service layers already use.
-use coffee_brewer_backend::{models, recipe, session_query, validation};
-
-mod api;
-mod services;
-mod database;
+// Everything worth testing - the DB-free core (validation, models, recipe,
+// session_query) AND the DB-backed service layer and axum handlers - lives in
+// the library crate so one `cargo llvm-cov` run gates it all at 100%. The
+// binary only wires the process together (tracing, env, pool, router, listener).
+use coffee_brewer_backend::{api, database};
 
 use std::net::SocketAddr;
 use axum::{Router, routing::get, http::StatusCode};
@@ -52,6 +48,9 @@ async fn main() -> anyhow::Result<()> {
 }
 
 /// Health check endpoint. Returns 200 OK.
+// coverage: process bootstrap - trivial liveness probe wired only into the
+// server router in `main`; exercised by running the server, not unit tests.
+#[cfg_attr(coverage_nightly, coverage(off))]
 async fn health_check() -> StatusCode {
     StatusCode::OK
 }

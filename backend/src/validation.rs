@@ -65,7 +65,7 @@ pub enum ValidationErrorType {
 
 /// Validates quality rating (from rustyCoffy)
 pub fn validate_rating(rating: f32) -> Result<(), ValidationErrorType> {
-    if rating < RATING_MIN || rating > RATING_MAX {
+    if !(RATING_MIN..=RATING_MAX).contains(&rating) {
         return Err(ValidationErrorType::InvalidQualityRating {
             rating,
             min: RATING_MIN,

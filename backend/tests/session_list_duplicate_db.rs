@@ -1,19 +1,19 @@
 //! DB-backed integration tests for ticket #146: duplicate, list, filter and
 //! search over brewing sessions.
 //!
-//! THESE TESTS REQUIRE A LIVE POSTGRES and are therefore `#[ignore]`d. The CI
-//! sandbox for this ticket has NO Postgres and NO Docker, so they are NOT run
-//! here and their passing is NOT claimed. They encode the intended behaviour so
-//! a developer with a database (or a later integration-env ticket) can run them
-//! with:
+//! THESE TESTS REQUIRE A LIVE POSTGRES and are therefore `#[ignore]`d so that
+//! `cargo test` runs cleanly without a database. They are run against a real
+//! Postgres as part of the DB integration suite and encode the intended
+//! behaviour. Run them (they read `DATABASE_URL`, falling back to
+//! `TEST_DATABASE_URL`) with:
 //!
 //! ```sh
 //! export DATABASE_URL=postgres://user:pass@localhost:5432/coffee
 //! cargo test --test session_list_duplicate_db -- --ignored --test-threads=1
 //! ```
 //!
-//! WHY THIS TEST COMPILES THE REAL SERVICE: like `session_logging_db.rs`, this
-//! test compiles the production `SessionService` via `#[path]` and calls its
+//! WHY THIS TEST CALLS THE REAL SERVICE: like `session_logging_db.rs`, this
+//! test calls the production `SessionService` (from the library crate) and its
 //! real `log_brew`, `duplicate` and `list_filtered` methods rather than
 //! re-implementing them with inline SQL. That means these tests exercise the
 //! exact shipping query strings (the full-column `BrewingSession` SELECT, the
@@ -34,27 +34,27 @@ use sqlx::postgres::PgPoolOptions;
 use sqlx::PgPool;
 use uuid::Uuid;
 
-// Re-export the library modules under the `crate::` paths the service source
-// expects, so the `#[path]`-included `services/sessions.rs` compiles unchanged
-// inside this test crate (mirrors `main.rs`).
-use coffee_brewer_backend::{models, recipe, session_query, validation};
+// Use the models and the pure recipe helpers from the library crate.
+use coffee_brewer_backend::models::{
+    BrewingMethod, CreateBrewingSessionRequest, GrinderType, SessionFilter,
+};
+use coffee_brewer_backend::recipe;
 
-use models::{BrewingMethod, CreateBrewingSessionRequest, GrinderType, SessionFilter};
+// The production service now lives in the library crate (`services::sessions`),
+// so this test calls it directly rather than re-compiling the source via
+// `#[path]`. It exercises the SAME compiled service the coverage gate measures:
+// the full-column `BrewingSession` SELECT, the `session_query`-built
+// filter/search/pagination SQL, the `INSERT ... RETURNING` and the `FromRow`
+// mapping, so a bind-order or column drift in the real queries fails here.
+use coffee_brewer_backend::services::sessions::SessionService;
 
-// Compile the ACTUAL production service into this test crate and call it.
-// `dead_code` is allowed because each test file calls only a subset of the
-// service surface, so unused members would warn when compiled into the test
-// crate rather than the binary.
-#[allow(dead_code)]
-#[path = "../src/services/sessions.rs"]
-mod sessions;
-
-use sessions::SessionService;
-
-/// Connects to `DATABASE_URL` and ensures the schema is present. Returns `None`
-/// when the variable is unset so the (ignored) tests degrade cleanly.
+/// Connects to `DATABASE_URL` (falling back to `TEST_DATABASE_URL`) and ensures
+/// the schema is present. Returns `None` when neither variable is set so the
+/// (ignored) tests degrade cleanly.
 async fn pool() -> Option<PgPool> {
-    let url = std::env::var("DATABASE_URL").ok()?;
+    let url = std::env::var("DATABASE_URL")
+        .or_else(|_| std::env::var("TEST_DATABASE_URL"))
+        .ok()?;
     let pool = PgPoolOptions::new()
         .max_connections(2)
         .connect(&url)
@@ -106,6 +106,10 @@ async fn insert_bean(pool: &PgPool, name: &str, origin: &str, roast_days_ago: i6
 /// operate on rows the production path actually produced. `method` must be a
 /// value the per-method recipe accepts for a 20 g / 320 g dose; `V60` and
 /// `Espresso` (with a 18 g / 36 g dose) are chosen per test.
+// Test-only helper: the parameters mirror the fields of a brew request that
+// each call site varies independently, so keeping them positional reads more
+// clearly here than wrapping them in a one-off struct.
+#[allow(clippy::too_many_arguments)]
 async fn log_brew(
     service: &SessionService<'_>,
     bean: Uuid,
@@ -116,13 +120,19 @@ async fn log_brew(
     rating: Option<f32>,
     notes: Option<&str>,
 ) -> Uuid {
+    // Pick a brew time and temperature that are in-band for THIS method's
+    // recipe rules (e.g. Espresso accepts 15-60 s / 88-96 C, while V60 accepts
+    // 120-360 s / 88-100 C), so the shared helper never trips a per-method
+    // recipe check before the row is persisted. Using the range minimum keeps
+    // the value valid for every method in the table.
+    let rules = recipe::rules_for(&method);
     let request = CreateBrewingSessionRequest {
         bean_id: bean,
         grinder_id: grinder,
         brewing_method: method,
         grind_setting: 20,
-        water_temp_celsius: Some(93),
-        brew_time_seconds: Some(180),
+        water_temp_celsius: Some(rules.water_temp_celsius.min),
+        brew_time_seconds: Some(rules.brew_time_seconds.min),
         coffee_grams,
         water_grams,
         tasting_notes: notes.map(|n| n.to_string()),
@@ -164,7 +174,7 @@ async fn cleanup(pool: &PgPool, beans: &[Uuid], grinders: &[Uuid]) {
 /// decremented) while dropping the original's rating and notes. Calls the real
 /// `SessionService::duplicate`, which routes through `log_brew`.
 #[tokio::test]
-#[ignore = "requires a live Postgres (DATABASE_URL); no DB in this sandbox"]
+#[ignore = "requires a live Postgres (DATABASE_URL); run with --ignored"]
 async fn duplicate_rebrew_decrements_and_drops_results() {
     let Some(pool) = pool().await else { return };
     let grinder = insert_grinder(&pool, "Comandante", "BurrConical").await;
@@ -208,11 +218,18 @@ async fn duplicate_rebrew_decrements_and_drops_results() {
 /// Listing with no filters returns sessions newest-first and respects LIMIT and
 /// OFFSET, using the real `SessionService::list_filtered` (full-column SELECT).
 #[tokio::test]
-#[ignore = "requires a live Postgres (DATABASE_URL); no DB in this sandbox"]
+#[ignore = "requires a live Postgres (DATABASE_URL); run with --ignored"]
 async fn list_is_newest_first_with_paging() {
     let Some(pool) = pool().await else { return };
     let grinder = insert_grinder(&pool, "Comandante", "BurrConical").await;
-    let bean = insert_bean(&pool, "Yirgacheffe", "Ethiopia", 5).await;
+    // Use an origin unique to THIS test so the origin filter isolates exactly
+    // the three sessions inserted below. The suite shares the DB and several
+    // other tests use the "Ethiopia" origin; filtering on a per-test origin
+    // keeps the total count deterministic and independent of other tests'
+    // rows (and of any row an earlier failing test left behind before its
+    // cleanup could run).
+    let origin = "Ethiopia-NewestFirst";
+    let bean = insert_bean(&pool, "Yirgacheffe", origin, 5).await;
     let service = SessionService::new(&pool);
 
     // Three sessions, logged oldest-to-newest so the last is the newest.
@@ -222,7 +239,7 @@ async fn list_is_newest_first_with_paging() {
 
     // Page size 2, offset 0 -> newest two in order.
     let filter = SessionFilter {
-        bean_origin: Some("Ethiopia".to_string()),
+        bean_origin: Some(origin.to_string()),
         limit: Some(2),
         offset: Some(0),
         ..SessionFilter::default()
@@ -241,7 +258,7 @@ async fn list_is_newest_first_with_paging() {
 
 /// Each filter narrows the result set; `list_filtered` returns the right count.
 #[tokio::test]
-#[ignore = "requires a live Postgres (DATABASE_URL); no DB in this sandbox"]
+#[ignore = "requires a live Postgres (DATABASE_URL); run with --ignored"]
 async fn filters_narrow_results() {
     let Some(pool) = pool().await else { return };
     let burr = insert_grinder(&pool, "Comandante", "BurrConical").await;
@@ -275,10 +292,14 @@ async fn filters_narrow_results() {
 /// Case-insensitive search matches across bean name, origin, grinder brand and
 /// tasting notes, via the real `list_filtered` search path.
 #[tokio::test]
-#[ignore = "requires a live Postgres (DATABASE_URL); no DB in this sandbox"]
+#[ignore = "requires a live Postgres (DATABASE_URL); run with --ignored"]
 async fn search_matches_across_four_columns() {
     let Some(pool) = pool().await else { return };
-    let grinder = insert_grinder(&pool, "Niche", "Zero").await;
+    // The Niche Zero is a conical-burr grinder; "BurrConical" is the matching
+    // valid `grinder_type` enum value. (The old fixture used the model name
+    // "Zero", which is not a member of the Postgres `grinder_type` enum.) The
+    // brand "Niche" is what the brand-column search below actually matches on.
+    let grinder = insert_grinder(&pool, "Niche", "BurrConical").await;
     let bean = insert_bean(&pool, "Geisha Lot 7", "Panama", 5).await;
     let service = SessionService::new(&pool);
 

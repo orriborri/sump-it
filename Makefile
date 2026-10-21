@@ -20,13 +20,21 @@ RUST_NIGHTLY ?= nightly-2025-10-01
 coverage: coverage-backend coverage-frontend
 	@echo "All coverage gates passed."
 
-# Backend: cargo-llvm-cov on the DB-free library (validation, models, recipe,
-# session_query), enforcing 100% line coverage. RUSTFLAGS sets the
-# `coverage_nightly` cfg so the `#[cfg_attr(coverage_nightly, coverage(off))]`
-# bootstrap exclusions apply.
+# Backend: cargo-llvm-cov over the WHOLE application - the DB-free library core
+# (validation, models, recipe, session_query) AND the DB-backed service layer
+# (services/*) and axum handlers (api/*) - enforcing 100% line coverage in one
+# run. The handlers/services live in the library crate, so `--lib --tests`
+# measures both the library and the integration tests that drive the real axum
+# router / services against Postgres. The DB tests are `#[ignore]`d, so
+# `--include-ignored --test-threads=1` runs them serially against the live
+# database named by DATABASE_URL (which MUST be exported and reachable; see
+# docs/coverage.md). RUSTFLAGS sets the `coverage_nightly` cfg so the
+# `#[cfg_attr(coverage_nightly, coverage(off))]` bootstrap/defensive exclusions
+# apply.
 coverage-backend:
 	cd backend && RUSTFLAGS="--cfg coverage_nightly" \
-		cargo +$(RUST_NIGHTLY) llvm-cov --lib --fail-under-lines 100
+		cargo +$(RUST_NIGHTLY) llvm-cov --lib --tests --fail-under-lines 100 \
+		-- --include-ignored --test-threads=1
 
 # Frontend: Vitest + v8 coverage with 100% lines/branches/functions/statements.
 coverage-frontend:
