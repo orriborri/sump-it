@@ -6,7 +6,10 @@
 //! logic lives in the library crate (`models`, `recipe`, `validation`) and is
 //! unit tested there; this service owns only the SQL and the transaction
 //! orchestration, which is exercised by the `#[ignore]`d DB integration tests
-//! under `backend/tests/` (no Postgres in this sandbox).
+//! under `backend/tests/`. Those tests require a live Postgres named by
+//! `DATABASE_URL`/`TEST_DATABASE_URL`; they are `#[ignore]`d so a plain
+//! `cargo test` without a database stays green, and are run against a real
+//! Postgres by `make coverage-backend` and the backend-coverage CI job.
 
 use anyhow::{Context, Result};
 use sqlx::PgPool;
