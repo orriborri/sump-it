@@ -28,8 +28,7 @@ import {
   Typography,
 } from '@mui/material';
 
-import { coffeeBrewerClient } from '@/lib/trpc/client';
-import type { ApiResponse, SessionListParams } from '@/lib/trpc/client';
+import { coffeeBrewerClient, type ApiResponse, type SessionListParams } from '@/lib/trpc/client';
 import type { BrewingSession, PaginatedResponse } from '@/lib/api/types';
 import {
   GRINDER_TYPE_OPTIONS,
