@@ -20,8 +20,19 @@ This runs two gates, both of which must stay at 100%:
 > **The backend gate needs a live Postgres.** The DB-backed layers are measured
 > by the integration tests, which run against the database named by
 > `DATABASE_URL` (see "Running the backend gate" below). Export a reachable
-> `DATABASE_URL` before `make coverage` / `make coverage-backend`, or the
-> `#[ignore]`d DB tests cannot connect and the gate fails.
+> `DATABASE_URL` before `make coverage` / `make coverage-backend` so those
+> tests actually exercise the DB-backed code.
+>
+> **Local footgun:** the `#[ignore]`d DB tests read `DATABASE_URL` (falling back
+> to `TEST_DATABASE_URL`) and, when neither is set, their pool helper returns
+> `None` and each test returns early instead of failing. So a local
+> `make coverage-backend` with no database still *runs* the ignored tests but
+> they no-op, leaving the DB-backed `services/*` and `api/*` lines uncovered.
+> On a machine where those layers happen to be the only uncovered code the gate
+> would drop below 100% and fail, but the skipped tests themselves report green,
+> so always confirm a reachable `DATABASE_URL` locally. CI is safe: the
+> `backend-coverage` job always provides a `postgres` service container, so the
+> tests connect and the DB-backed lines are measured.
 
 ## What the backend gate covers
 
