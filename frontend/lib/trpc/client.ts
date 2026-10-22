@@ -99,17 +99,14 @@ export async function apiFetch<T>(
       return { data: undefined };
     }
 
-    // Runtime validation of the success payload lives here, at the single REST
-    // seam, rather than being duplicated in every component: every endpoint in
-    // this client returns a JSON object or array, so a parsed primitive/null is
-    // a malformed response. Guarding once keeps the never-throw guarantee and
-    // avoids blindly casting untrusted external JSON straight to `T`.
-    const parsed: unknown = await response.json();
-    if (parsed === null || typeof parsed !== 'object') {
-      return { error: 'Malformed response from server' };
-    }
-
-    return { data: parsed as T };
+    // The response types are generated from the Rust models by ts-rs. This is
+    // therefore an explicit compile-time trust boundary, not runtime schema
+    // validation: a generic object/null check cannot prove a value is T, while
+    // duplicating every Rust response schema here would create a second contract
+    // that can drift. Invalid JSON still rejects response.json() and is converted
+    // by the outer catch into the client's resolve-never-reject error shape.
+    const data = (await response.json()) as T;
+    return { data };
   } catch (error) {
     return {
       error: error instanceof Error ? error.message : 'Unknown error occurred',
