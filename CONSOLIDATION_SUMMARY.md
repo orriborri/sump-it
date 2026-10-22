@@ -14,7 +14,7 @@ coffee-brewer-consolidated/
 │   │   ├── services/         # Business logic layer
 │   │   ├── database/         # Database setup with PostgreSQL enums
 │   │   └── validation/       # Combined validation from all three apps
-│   ├── prisma/               # Database schema with constraints
+│   ├── migrations/           # SQLx migrations - single source of truth for the schema
 │   └── Cargo.toml
 │
 ├── frontend/                  # Next.js 15 frontend
@@ -44,7 +44,7 @@ coffee-brewer-consolidated/
 - **Bean inventory management**: Automatic quantity tracking and decrementing
 - **Session filtering**: Advanced filtering by origin, date ranges, ratings
 - **Session duplication**: Easy reproduction of successful brews
-- **Database constraints**: CHECK constraints for ratio validation (15.0-17.0)
+- **Database constraints**: CHECK constraints for method-invariant business rules (per-method ratio bands live in `rules_for` in `backend/src/recipe.rs`, not a single global range)
 
 ### ✅ Preserved from BeanIt
 - **Type safety**: Full TypeScript/Rust type safety throughout

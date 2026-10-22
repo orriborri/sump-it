@@ -22,7 +22,7 @@
 - **Definition**: A complete coffee brewing session record
 - **Attributes**: bean, grinder, brewing method, grind setting, water temp, brew time, coffee grams, water grams, rating, tasting notes
 - **Business Rules**:
-  - Coffee ratio must be between 15.0-17.0 (water:coffee)
+  - Coffee ratio (water:coffee) must fall within the band for the brewing method (per-method via `rules_for` in `backend/src/recipe.rs`; e.g. Espresso ~1:2, French Press / pour-over ~1:12-1:18)
   - Rating must be in 0.5 increments from 1.0-10.0
   - Coffee amount: 10.0-100.0g
   - Water amount: 150.0-1700.0ml
@@ -36,8 +36,8 @@
 
 ### Coffee Ratio
 - **Formula**: `water_grams / coffee_grams`
-- **Valid Range**: 15.0 to 17.0
-- **Example**: 20g coffee + 320g water = 16:1 ratio
+- **Valid Range**: per-method band via `rules_for` in `backend/src/recipe.rs`, not a single global range (e.g. Espresso ~1:2, French Press / pour-over ~1:12-1:18)
+- **Example**: 20g coffee + 320g water = 16:1 ratio (within the pour-over band)
 
 ### Grind Setting Validation
 - Each grinder has a valid range (min-max)
