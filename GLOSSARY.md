@@ -22,7 +22,7 @@
 - **Definition**: A complete coffee brewing session record
 - **Attributes**: bean, grinder, brewing method, grind setting, water temp, brew time, coffee grams, water grams, rating, tasting notes
 - **Business Rules**:
-  - Coffee ratio must be between 15.0-17.0 (water:coffee)
+  - Coffee ratio must fall within the per-method band (water:coffee) defined by `rules_for` in `backend/src/recipe.rs`
   - Rating must be in 0.5 increments from 1.0-10.0
   - Coffee amount: 10.0-100.0g
   - Water amount: 150.0-1700.0ml
