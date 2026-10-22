@@ -205,6 +205,15 @@ describe('formToSessionRequest', () => {
     });
   });
 
+  it('throws when the brewing method has not been chosen yet', () => {
+    // The field is `BrewingMethod | ''`; the workflow only calls this after
+    // isEquipmentComplete gates the empty case out, so an empty method is a
+    // programming error - guarded explicitly instead of an unchecked cast.
+    expect(() => formToSessionRequest(form({ brewingMethod: '' }))).toThrow(
+      'Cannot build a session request before a brewing method is chosen'
+    );
+  });
+
   it('preserves provided optionals and trims text', () => {
     const request = formToSessionRequest(
       form({

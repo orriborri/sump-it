@@ -20,7 +20,16 @@ import type {
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
-/** Discriminated result wrapper returned by every client call. */
+/**
+ * Discriminated result wrapper returned by every client call.
+ *
+ * Contract (ticket #170): every method on this client RESOLVES to an
+ * `ApiResponse<T>` and NEVER rejects. Transport failures (a rejected `fetch`)
+ * and non-2xx responses are both converted into a resolved `{ error }` by
+ * `apiFetch`, so callers only ever branch on `data` vs `error`. The injected
+ * `BrewClient` seam in `app/brew/BrewWorkflow.tsx` documents and relies on this
+ * same contract (while still defending the seam defensively).
+ */
 export type ApiResponse<T> = {
   data?: T;
   error?: string;
@@ -99,6 +108,15 @@ export async function apiFetch<T>(
       return { data: undefined };
     }
 
+    // Runtime-validation decision (ticket #170): we deliberately do NOT add a
+    // per-type schema validator here. The response shapes are generated from
+    // the Rust models by ts-rs (see `lib/generated/`) and the backend is the
+    // single owner of the contract, so a field-by-field runtime check would
+    // duplicate that contract in a second place and drift from it. We keep the
+    // typed cast as the compile-time contract; the only runtime failure mode
+    // that matters at this seam is a non-JSON / rejected body, which the outer
+    // try/catch already converts into a resolved `{ error }` (never a throw),
+    // honouring the resolve/never-reject contract above.
     const data = (await response.json()) as T;
     return { data };
   } catch (error) {
