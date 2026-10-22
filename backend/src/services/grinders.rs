@@ -29,9 +29,11 @@ impl<'a> GrinderService<'a> {
         page: Option<i32>,
         limit: Option<i32>,
     ) -> Result<(Vec<Grinder>, i64)> {
-        let page = page.unwrap_or(1).max(1);
-        let limit = limit.unwrap_or(50).clamp(1, 100);
-        let offset = (page - 1) * limit;
+        // Ticket #167: normalize page + limit through the shared pagination
+        // module so the clamp policy lives in exactly one place.
+        let pagination = crate::pagination::Pagination::from_request(page, limit);
+        let limit = pagination.limit();
+        let offset = pagination.offset();
 
         let total: i64 =
             sqlx::query_scalar(r#"SELECT COUNT(*) FROM grinders WHERE is_active = true"#)

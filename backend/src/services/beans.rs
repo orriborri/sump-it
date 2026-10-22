@@ -20,9 +20,11 @@ impl<'a> BeanService<'a> {
     
     /// List all coffee beans with pagination
     pub async fn list_beans(&self, page: Option<i32>, limit: Option<i32>) -> Result<(Vec<CoffeeBean>, i64)> {
-        let page = page.unwrap_or(1).max(1);
-        let limit = limit.unwrap_or(50).clamp(1, 100);
-        let offset = (page - 1) * limit;
+        // Ticket #167: normalize page + limit through the shared pagination
+        // module so the clamp policy lives in exactly one place.
+        let pagination = crate::pagination::Pagination::from_request(page, limit);
+        let limit = pagination.limit();
+        let offset = pagination.offset();
         
         // Get total count
         let total: i64 = sqlx::query_scalar(
