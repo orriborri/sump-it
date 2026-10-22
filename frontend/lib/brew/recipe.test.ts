@@ -13,6 +13,7 @@ import {
   RATING_MAX,
   RATING_MIN,
   RATING_STEP,
+  toBrewingMethod,
   toFriendlyError,
   UNREACHABLE_MESSAGE,
   validateRating,
@@ -54,6 +55,19 @@ describe('emptyBrewForm', () => {
       waterGrams: 320,
       grindSetting: 20,
     });
+  });
+});
+
+describe('toBrewingMethod', () => {
+  it('resolves every canonical value to itself', () => {
+    for (const { value } of BREWING_METHODS) {
+      expect(toBrewingMethod(value)).toBe(value);
+    }
+  });
+
+  it('maps an unrecognized value to the unselected sentinel', () => {
+    expect(toBrewingMethod('NotARealMethod')).toBe('');
+    expect(toBrewingMethod('')).toBe('');
   });
 });
 

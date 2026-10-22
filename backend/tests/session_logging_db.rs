@@ -12,8 +12,8 @@
 //! ```
 //!
 //! The schema is created from the single source of truth under `migrations/`
-//! (0001_init.sql + 0002_relax_session_bounds.sql) via `sqlx::migrate!`. Each
-//! test cleans up the rows it inserts so the suite can run repeatedly.
+//! (the full directory, 0001 through 0004) via `sqlx::migrate!`. Each test
+//! cleans up the rows it inserts so the suite can run repeatedly.
 //!
 //! WHY THIS TEST CALLS THE REAL SERVICE: the production save path
 //! (`SessionService::log_brew` / `duplicate` / `list_filtered`) lives in the

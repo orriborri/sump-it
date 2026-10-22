@@ -16,7 +16,7 @@ import {
   Chip,
   Alert,
 } from '@mui/material';
-import { BREWING_METHODS, type BrewFormData } from '@/lib/brew/recipe';
+import { BREWING_METHODS, toBrewingMethod, type BrewFormData } from '@/lib/brew/recipe';
 import type { BrewingMethod } from '@/lib/api/types';
 
 /**
@@ -341,9 +341,10 @@ export function BeanSelector({
   };
 
   const handleMethodChange = (event: SelectChangeEvent) => {
-    // The Select only renders BREWING_METHODS values, so the chosen value is a
-    // BrewingMethod; narrow the generic string event value to the union.
-    updateFormData({ brewingMethod: event.target.value as BrewingMethod });
+    // MUI types the event value as a plain string. Resolve it against the
+    // canonical BREWING_METHODS list to narrow to the BrewingMethod union
+    // without a cast; an unrecognized value falls back to '' (unselected).
+    updateFormData({ brewingMethod: toBrewingMethod(event.target.value) });
   };
 
   const selectedBean = beans.find(b => b.id === formData.beanId);

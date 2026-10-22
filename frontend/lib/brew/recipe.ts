@@ -62,6 +62,19 @@ export function emptyBrewForm(): BrewFormData {
 }
 
 /**
+ * Narrow an arbitrary string to the `BrewingMethod` union by resolving it
+ * against the canonical {@link BREWING_METHODS} list, with no unchecked cast.
+ *
+ * UI event sources (e.g. MUI's `SelectChangeEvent`) type their value as a plain
+ * `string`. This resolves a recognized value to its `BrewingMethod` and maps
+ * anything unrecognized to `''` (the unselected sentinel), keeping the field's
+ * `BrewingMethod | ''` type honest at runtime.
+ */
+export function toBrewingMethod(value: string): BrewingMethod | '' {
+  return BREWING_METHODS.find(m => m.value === value)?.value ?? '';
+}
+
+/**
  * True when the equipment step is complete (bean, grinder and method all
  * chosen). The stepper gates progress past step 1 on this.
  */
