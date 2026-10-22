@@ -18,8 +18,8 @@ use validator::Validate;
 use crate::{
     api::AppState,
     models::{CreateGrinderRequest, ErrorResponse, PaginatedResponse},
-    services::grinders::GrinderService,
-    validation::{validate_grinder_setting_range, validation_errors_to_string},
+    services::grinders::{GrinderService, GrinderServiceError},
+    validation::validation_errors_to_string,
 };
 
 pub fn router() -> Router<AppState> {
@@ -69,11 +69,7 @@ async fn create_grinder(
 
     match service.create_grinder(payload).await {
         Ok(grinder) => (StatusCode::CREATED, Json(grinder)).into_response(),
-        Err(e) => (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ErrorResponse::new(format!("Failed to create grinder: {}", e))),
-        )
-            .into_response(),
+        Err(e) => grinder_service_error_response(e, "Failed to create grinder"),
     }
 }
 
@@ -118,11 +114,7 @@ async fn update_grinder(
             Json(ErrorResponse::new("Grinder not found".to_string())),
         )
             .into_response(),
-        Err(e) => (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ErrorResponse::new(format!("Failed to update grinder: {}", e))),
-        )
-            .into_response(),
+        Err(e) => grinder_service_error_response(e, "Failed to update grinder"),
     }
 }
 
@@ -148,12 +140,16 @@ async fn delete_grinder(
     }
 }
 
-/// Run both the derive-based field validation and the domain setting-range
-/// validation for a grinder request. Returns `Some(response)` with a
-/// `400 Bad Request` body when invalid, or `None` when the request is valid.
+/// Run the cheap derive-based field validation (brand/model length) for a
+/// grinder request as supplemental fast feedback. Returns `Some(response)` with
+/// a `400 Bad Request` body when invalid, or `None` when the shape is valid.
 ///
-/// Kept as a private helper so create and update share the exact same rules
-/// (brand/model length, `min_setting >= 0`, `max_setting > min_setting`).
+/// The domain setting-range rule (`min_setting >= 0`, `max_setting > min_setting`)
+/// is NOT re-encoded here: it is owned by the service layer
+/// (`GrinderService::create_grinder`/`update_grinder` via
+/// `CreateGrinderRequest::validate_comprehensive`), whose typed error the
+/// handlers map to the same `400` response. Keeping it in one place means a
+/// non-handler caller cannot bypass it.
 fn validate_grinder_request(payload: &CreateGrinderRequest) -> Option<axum::response::Response> {
     if let Err(validation_errors) = payload.validate() {
         return Some(
@@ -168,17 +164,32 @@ fn validate_grinder_request(payload: &CreateGrinderRequest) -> Option<axum::resp
         );
     }
 
-    if let Err(e) = validate_grinder_setting_range(payload.min_setting, payload.max_setting) {
-        return Some(
-            (
-                StatusCode::BAD_REQUEST,
-                Json(ErrorResponse::new(e.to_string())),
-            )
-                .into_response(),
-        );
-    }
-
     None
+}
+
+/// Map a [`GrinderServiceError`] to an HTTP response with an [`ErrorResponse`]
+/// body, mirroring `api::sessions::save_error_response`.
+///
+/// A service-layer validation failure is a client error: it maps to the SAME
+/// `400 Bad Request` + `ErrorResponse` body the handler fast-path produces, so
+/// behaviour is unchanged whichever layer catches the invalid input. Any
+/// database failure stays a `500` with the existing `"{context}: {e}"` wording.
+fn grinder_service_error_response(
+    err: GrinderServiceError,
+    context: &str,
+) -> axum::response::Response {
+    match err {
+        GrinderServiceError::Validation(e) => (
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse::new(e.to_string())),
+        )
+            .into_response(),
+        GrinderServiceError::Database(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ErrorResponse::new(format!("{context}: {e}"))),
+        )
+            .into_response(),
+    }
 }
 
 /// Query parameters for listing grinders.

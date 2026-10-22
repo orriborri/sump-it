@@ -183,6 +183,21 @@ pub struct CreateGrinderRequest {
     pub description: Option<String>,
 }
 
+impl CreateGrinderRequest {
+    /// Applies the shared grinder business rules to an incoming create/update
+    /// request before it is persisted: non-empty brand, `min_setting >= 0`,
+    /// and `max_setting > min_setting`.
+    ///
+    /// Reuses [`validate_grinder_brand`] and [`validate_grinder_setting_range`]
+    /// so the rule lives in exactly one place and is shared by the service, the
+    /// [`Grinder`] model and the API handler.
+    pub fn validate_comprehensive(&self) -> Result<(), ValidationErrorType> {
+        validate_grinder_brand(&self.brand)?;
+        validate_grinder_setting_range(self.min_setting, self.max_setting)?;
+        Ok(())
+    }
+}
+
 /// Grinder type enum (from rustyCoffy + BeanIt).
 ///
 /// Variants serialize using their Rust names (e.g. `BurrConical`) to match the
@@ -739,6 +754,45 @@ mod tests {
         // Max not greater than min is rejected.
         let inverted = sample_grinder(40, 40);
         assert!(inverted.validate_comprehensive().is_err());
+    }
+
+    #[test]
+    fn create_grinder_request_validate_comprehensive() {
+        use crate::validation::ValidationErrorType;
+
+        let base = CreateGrinderRequest {
+            brand: "Comandante".to_string(),
+            model: "C40".to_string(),
+            grinder_type: GrinderType::BurrConical,
+            min_setting: 0,
+            max_setting: 40,
+            scale_type: Some("step".to_string()),
+            description: Some("Hand grinder".to_string()),
+        };
+
+        // A well-formed request validates.
+        assert!(base.validate_comprehensive().is_ok());
+
+        // Empty brand rejected.
+        let bad_brand = CreateGrinderRequest { brand: "  ".to_string(), ..base.clone() };
+        assert!(matches!(
+            bad_brand.validate_comprehensive(),
+            Err(ValidationErrorType::GrinderBrandEmpty)
+        ));
+
+        // Negative minimum setting rejected.
+        let negative_min = CreateGrinderRequest { min_setting: -1, ..base.clone() };
+        assert!(matches!(
+            negative_min.validate_comprehensive(),
+            Err(ValidationErrorType::Validation(_))
+        ));
+
+        // Maximum setting equal to the minimum rejected.
+        let inverted = CreateGrinderRequest { min_setting: 40, max_setting: 40, ..base.clone() };
+        assert!(matches!(
+            inverted.validate_comprehensive(),
+            Err(ValidationErrorType::Validation(_))
+        ));
     }
 
     #[test]

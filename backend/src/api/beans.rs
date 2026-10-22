@@ -14,7 +14,7 @@ use validator::Validate;
 use crate::{
     api::AppState,
     models::{CreateCoffeeBeanRequest, PaginatedResponse, ErrorResponse},
-    services::beans::BeanService,
+    services::beans::{BeanService, BeanServiceError},
     validation::validation_errors_to_string,
 };
 
@@ -66,24 +66,16 @@ async fn create_bean(
         ).into_response();
     }
     
-    // Business-rule validation: non-empty name/origin, no future roast or
-    // purchase dates, and non-negative remaining grams. Each error names the
-    // offending field clearly.
-    if let Err(e) = payload.validate_comprehensive() {
-        return (
-            StatusCode::BAD_REQUEST,
-            Json(ErrorResponse::new(e.to_string())),
-        ).into_response();
-    }
-    
+    // Business-rule validation (non-empty name/origin, no future roast or
+    // purchase dates, non-negative remaining grams) is owned by the service
+    // layer so it cannot be bypassed by a non-handler caller; the handler maps
+    // the resulting typed error to the SAME 400 response below. The cheap
+    // derive check above stays as supplemental fast feedback.
     let service = BeanService::new(&state.pool);
     
     match service.create_bean(payload).await {
         Ok(bean) => (StatusCode::CREATED, Json(bean)).into_response(),
-        Err(e) => (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ErrorResponse::new(format!("Failed to create bean: {}", e))),
-        ).into_response(),
+        Err(e) => bean_service_error_response(e, "Failed to create bean"),
     }
 }
 
@@ -124,14 +116,8 @@ async fn update_bean(
         ).into_response();
     }
 
-    // Business-rule validation (same rules as create): clear, named errors.
-    if let Err(e) = payload.validate_comprehensive() {
-        return (
-            StatusCode::BAD_REQUEST,
-            Json(ErrorResponse::new(e.to_string())),
-        ).into_response();
-    }
-    
+    // Business-rule validation (same rules as create) is owned by the service
+    // layer; the handler maps its typed error to the same 400 response.
     let service = BeanService::new(&state.pool);
     
     match service.update_bean(id, payload).await {
@@ -140,10 +126,29 @@ async fn update_bean(
             StatusCode::NOT_FOUND,
             Json(ErrorResponse::new("Coffee bean not found".to_string())),
         ).into_response(),
-        Err(e) => (
+        Err(e) => bean_service_error_response(e, "Failed to update bean"),
+    }
+}
+
+/// Map a [`BeanServiceError`] to an HTTP response with an [`ErrorResponse`]
+/// body, mirroring `api::sessions::save_error_response`.
+///
+/// A service-layer validation failure is a client error: it maps to the SAME
+/// `400 Bad Request` + `ErrorResponse` body the handler fast-path produces, so
+/// behaviour is unchanged whichever layer catches the invalid input. Any
+/// database failure stays a `500` with the existing `"{context}: {e}"` wording.
+fn bean_service_error_response(err: BeanServiceError, context: &str) -> axum::response::Response {
+    match err {
+        BeanServiceError::Validation(e) => (
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse::new(e.to_string())),
+        )
+            .into_response(),
+        BeanServiceError::Database(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ErrorResponse::new(format!("Failed to update bean: {}", e))),
-        ).into_response(),
+            Json(ErrorResponse::new(format!("{context}: {e}"))),
+        )
+            .into_response(),
     }
 }
 

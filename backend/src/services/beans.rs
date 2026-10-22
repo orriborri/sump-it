@@ -7,6 +7,28 @@ use uuid::Uuid;
 use anyhow::{Result, Context};
 
 use crate::models::{BeanUsageRecord, CoffeeBean, CreateCoffeeBeanRequest};
+use crate::validation::ValidationErrorType;
+
+/// Why a bean create/update failed. Mirrors `services::sessions::SaveError`:
+/// the API layer maps each variant to an HTTP status and an `ErrorResponse`,
+/// so `Validation` carries the precise `ValidationErrorType`.
+#[derive(Debug)]
+pub enum BeanServiceError {
+    /// A bean business rule (empty name/origin, future roast/purchase date, or
+    /// negative remaining grams) was violated BEFORE any row was written.
+    Validation(ValidationErrorType),
+    /// Any underlying database failure.
+    Database(anyhow::Error),
+}
+
+impl std::fmt::Display for BeanServiceError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            BeanServiceError::Validation(e) => write!(f, "{e}"),
+            BeanServiceError::Database(e) => write!(f, "{e}"),
+        }
+    }
+}
 
 /// Service for managing coffee beans
 pub struct BeanService<'a> {
@@ -54,8 +76,20 @@ impl<'a> BeanService<'a> {
         Ok((beans, total))
     }
     
-    /// Create a new coffee bean
-    pub async fn create_bean(&self, request: CreateCoffeeBeanRequest) -> Result<CoffeeBean> {
+    /// Create a new coffee bean.
+    ///
+    /// Business-rule validation runs at the TOP of the method, BEFORE any pool
+    /// or SQL access, so a non-handler caller cannot persist invalid data. The
+    /// handler keeps its own fast-path check for immediate HTTP feedback, but
+    /// this service is the authoritative owner of the invariants.
+    pub async fn create_bean(
+        &self,
+        request: CreateCoffeeBeanRequest,
+    ) -> std::result::Result<CoffeeBean, BeanServiceError> {
+        request
+            .validate_comprehensive()
+            .map_err(BeanServiceError::Validation)?;
+
         let now = Utc::now();
         
         let bean = sqlx::query_as::<_, CoffeeBean>(
@@ -85,7 +119,8 @@ impl<'a> BeanService<'a> {
         .bind(now)
         .fetch_one(self.pool)
         .await
-        .context("Failed to create bean")?;
+        .context("Failed to create bean")
+        .map_err(BeanServiceError::Database)?;
         
         Ok(bean)
     }
@@ -110,8 +145,20 @@ impl<'a> BeanService<'a> {
         Ok(bean)
     }
     
-    /// Update a coffee bean
-    pub async fn update_bean(&self, id: Uuid, request: CreateCoffeeBeanRequest) -> Result<Option<CoffeeBean>> {
+    /// Update a coffee bean.
+    ///
+    /// Like [`Self::create_bean`], the business rules are validated at the top
+    /// of the method, BEFORE any pool/SQL access, so invalid data fails at the
+    /// service layer independent of the HTTP handler.
+    pub async fn update_bean(
+        &self,
+        id: Uuid,
+        request: CreateCoffeeBeanRequest,
+    ) -> std::result::Result<Option<CoffeeBean>, BeanServiceError> {
+        request
+            .validate_comprehensive()
+            .map_err(BeanServiceError::Validation)?;
+
         let now = Utc::now();
         
         let bean = sqlx::query_as::<_, CoffeeBean>(
@@ -144,7 +191,8 @@ impl<'a> BeanService<'a> {
         .bind(now)
         .fetch_optional(self.pool)
         .await
-        .context("Failed to update bean")?;
+        .context("Failed to update bean")
+        .map_err(BeanServiceError::Database)?;
         
         Ok(bean)
     }

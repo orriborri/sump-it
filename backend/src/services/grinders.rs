@@ -12,6 +12,28 @@ use uuid::Uuid;
 use anyhow::{Result, Context};
 
 use crate::models::{Grinder, CreateGrinderRequest};
+use crate::validation::ValidationErrorType;
+
+/// Why a grinder create/update failed. Mirrors `services::sessions::SaveError`:
+/// the API layer maps each variant to an HTTP status and an `ErrorResponse`,
+/// so `Validation` carries the precise `ValidationErrorType`.
+#[derive(Debug)]
+pub enum GrinderServiceError {
+    /// A grinder business rule (empty brand, negative `min_setting`, or
+    /// `max_setting <= min_setting`) was violated BEFORE any row was written.
+    Validation(ValidationErrorType),
+    /// Any underlying database failure.
+    Database(anyhow::Error),
+}
+
+impl std::fmt::Display for GrinderServiceError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            GrinderServiceError::Validation(e) => write!(f, "{e}"),
+            GrinderServiceError::Database(e) => write!(f, "{e}"),
+        }
+    }
+}
 
 /// Service for managing grinders.
 pub struct GrinderService<'a> {
@@ -59,7 +81,19 @@ impl<'a> GrinderService<'a> {
     }
 
     /// Create a new grinder.
-    pub async fn create_grinder(&self, request: CreateGrinderRequest) -> Result<Grinder> {
+    ///
+    /// Business-rule validation runs at the TOP of the method, BEFORE any pool
+    /// or SQL access, so a non-handler caller cannot persist invalid data. The
+    /// handler keeps its own fast-path check for immediate HTTP feedback, but
+    /// this service is the authoritative owner of the invariants.
+    pub async fn create_grinder(
+        &self,
+        request: CreateGrinderRequest,
+    ) -> std::result::Result<Grinder, GrinderServiceError> {
+        request
+            .validate_comprehensive()
+            .map_err(GrinderServiceError::Validation)?;
+
         let now = Utc::now();
 
         let grinder = sqlx::query_as::<_, Grinder>(
@@ -87,7 +121,8 @@ impl<'a> GrinderService<'a> {
         .bind(now)
         .fetch_one(self.pool)
         .await
-        .context("Failed to create grinder")?;
+        .context("Failed to create grinder")
+        .map_err(GrinderServiceError::Database)?;
 
         Ok(grinder)
     }
@@ -114,11 +149,19 @@ impl<'a> GrinderService<'a> {
 
 
     /// Update an existing grinder.
+    ///
+    /// Like [`Self::create_grinder`], the business rules are validated at the
+    /// top of the method, BEFORE any pool/SQL access, so invalid data fails at
+    /// the service layer independent of the HTTP handler.
     pub async fn update_grinder(
         &self,
         id: Uuid,
         request: CreateGrinderRequest,
-    ) -> Result<Option<Grinder>> {
+    ) -> std::result::Result<Option<Grinder>, GrinderServiceError> {
+        request
+            .validate_comprehensive()
+            .map_err(GrinderServiceError::Validation)?;
+
         let now = Utc::now();
 
         let grinder = sqlx::query_as::<_, Grinder>(
@@ -151,7 +194,8 @@ impl<'a> GrinderService<'a> {
         .bind(now)
         .fetch_optional(self.pool)
         .await
-        .context("Failed to update grinder")?;
+        .context("Failed to update grinder")
+        .map_err(GrinderServiceError::Database)?;
 
         Ok(grinder)
     }

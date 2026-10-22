@@ -38,7 +38,12 @@ use coffee_brewer_backend::models::{CreateGrinderRequest, GrinderType};
 // The production service lives in the library crate (`services::grinders`), so
 // this test calls it directly rather than re-declaring the SQL. It exercises
 // the SAME compiled service the binary and the coverage gate measure.
-use coffee_brewer_backend::services::grinders::GrinderService;
+use coffee_brewer_backend::services::grinders::{GrinderService, GrinderServiceError};
+
+// The grinder business rules now live behind the service seam and surface the
+// precise variant on rejection; import it so the service-layer tests can assert
+// the typed error.
+use coffee_brewer_backend::validation::ValidationErrorType;
 
 /// Connects to `DATABASE_URL` (falling back to `TEST_DATABASE_URL`) and ensures
 /// the schema is present. Returns `None` when neither variable is set so the
@@ -319,4 +324,107 @@ async fn schema_rejects_negative_min_setting() {
         .create_grinder(grinder_request("Negative", -1, 40))
         .await;
     assert!(result.is_err(), "schema must reject negative min_setting");
+}
+
+/// The SERVICE itself owns the grinder invariants (ticket #166): calling
+/// `create_grinder` with invalid data is rejected at the service layer with a
+/// typed `GrinderServiceError::Validation`, BEFORE any row is written, and
+/// independent of the HTTP handler. Proves a non-handler caller cannot persist
+/// invalid data.
+#[tokio::test]
+#[ignore = "requires a live Postgres (DATABASE_URL); run with --ignored"]
+async fn create_grinder_rejects_invalid_data_at_service_layer() {
+    let Some(pool) = pool().await else { return };
+    let service = GrinderService::new(&pool);
+
+    // Empty brand.
+    let empty_brand = service.create_grinder(grinder_request("   ", 0, 40)).await;
+    assert!(matches!(
+        empty_brand,
+        Err(GrinderServiceError::Validation(
+            ValidationErrorType::GrinderBrandEmpty
+        ))
+    ));
+
+    // Negative minimum setting.
+    let negative_min = service
+        .create_grinder(grinder_request("Negative Min", -1, 40))
+        .await;
+    assert!(matches!(
+        negative_min,
+        Err(GrinderServiceError::Validation(
+            ValidationErrorType::Validation(_)
+        ))
+    ));
+
+    // Maximum setting not greater than the minimum.
+    let inverted = service
+        .create_grinder(grinder_request("Inverted", 40, 40))
+        .await;
+    assert!(matches!(
+        inverted,
+        Err(GrinderServiceError::Validation(
+            ValidationErrorType::Validation(_)
+        ))
+    ));
+
+    // Nothing was persisted: no grinder with these brands exists.
+    for brand in ["   ", "Negative Min", "Inverted"] {
+        let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM grinders WHERE brand = $1")
+            .bind(brand)
+            .fetch_one(&pool)
+            .await
+            .expect("count grinders by brand");
+        assert_eq!(count, 0, "invalid grinder must not be persisted");
+    }
+}
+
+/// `update_grinder` enforces the SAME invariants at the service layer: an edit
+/// that would make the row invalid is rejected with a typed
+/// `GrinderServiceError::Validation` before any UPDATE runs, and the stored row
+/// is left untouched.
+#[tokio::test]
+#[ignore = "requires a live Postgres (DATABASE_URL); run with --ignored"]
+async fn update_grinder_rejects_invalid_data_at_service_layer() {
+    let Some(pool) = pool().await else { return };
+    let service = GrinderService::new(&pool);
+
+    let created = service
+        .create_grinder(grinder_request("Valid Start", 0, 40))
+        .await
+        .expect("create grinder");
+
+    // An invalid edit (max <= min) is rejected at the service layer.
+    let bad_edit = service
+        .update_grinder(created.id, grinder_request("Valid Start", 40, 40))
+        .await;
+    assert!(matches!(
+        bad_edit,
+        Err(GrinderServiceError::Validation(
+            ValidationErrorType::Validation(_)
+        ))
+    ));
+
+    // An empty-brand edit is rejected with the precise variant.
+    let empty_brand_edit = service
+        .update_grinder(created.id, grinder_request("  ", 0, 40))
+        .await;
+    assert!(matches!(
+        empty_brand_edit,
+        Err(GrinderServiceError::Validation(
+            ValidationErrorType::GrinderBrandEmpty
+        ))
+    ));
+
+    // The stored row is unchanged: still the valid original.
+    let fetched = service
+        .get_grinder(created.id)
+        .await
+        .expect("get grinder")
+        .expect("grinder exists");
+    assert_eq!(fetched.brand, "Valid Start");
+    assert_eq!(fetched.min_setting, 0);
+    assert_eq!(fetched.max_setting, 40);
+
+    cleanup(&pool, &[created.id]).await;
 }

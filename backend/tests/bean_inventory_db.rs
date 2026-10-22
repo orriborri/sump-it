@@ -43,7 +43,7 @@ use uuid::Uuid;
 // The production bean service lives in the library crate (`services::beans`),
 // so this test drives it directly rather than re-declaring its SQL.
 use coffee_brewer_backend::models::CreateCoffeeBeanRequest;
-use coffee_brewer_backend::services::beans::BeanService;
+use coffee_brewer_backend::services::beans::{BeanService, BeanServiceError};
 
 // The application-level bean rules also live in the library crate; import the
 // single source of truth so this suite can assert that app validation still
@@ -477,4 +477,121 @@ async fn purchase_before_roast_is_allowed_at_db_level_but_future_dates_still_rej
         .execute(&pool)
         .await
         .ok();
+}
+
+/// The SERVICE itself owns the bean invariants (ticket #166): calling
+/// `create_bean` with invalid data is rejected at the service layer with a
+/// typed `BeanServiceError::Validation`, BEFORE any row is written, and
+/// independent of the HTTP handler. Proves a non-handler caller cannot persist
+/// invalid data.
+#[tokio::test]
+#[ignore = "requires a live Postgres (DATABASE_URL); run with --ignored"]
+async fn create_bean_rejects_invalid_data_at_service_layer() {
+    let Some(pool) = pool().await else { return };
+    let service = BeanService::new(&pool);
+
+    let today = Utc::now().naive_utc().date();
+
+    // Empty name.
+    let mut empty_name = bean_request("Service Reject", Some(250.0));
+    empty_name.name = "  ".to_string();
+    assert!(matches!(
+        service.create_bean(empty_name).await,
+        Err(BeanServiceError::Validation(ValidationErrorType::BeanNameEmpty))
+    ));
+
+    // Empty origin.
+    let mut empty_origin = bean_request("Service Reject Origin", Some(250.0));
+    empty_origin.origin = "".to_string();
+    assert!(matches!(
+        service.create_bean(empty_origin).await,
+        Err(BeanServiceError::Validation(ValidationErrorType::BeanOriginEmpty))
+    ));
+
+    // Future roast date.
+    let mut future_roast = bean_request("Service Reject Roast", Some(250.0));
+    future_roast.roast_date = today + Duration::days(1);
+    assert!(matches!(
+        service.create_bean(future_roast).await,
+        Err(BeanServiceError::Validation(ValidationErrorType::RoastDateInFuture))
+    ));
+
+    // Future purchase date.
+    let mut future_purchase = bean_request("Service Reject Purchase", Some(250.0));
+    future_purchase.purchase_date = today + Duration::days(1);
+    assert!(matches!(
+        service.create_bean(future_purchase).await,
+        Err(BeanServiceError::Validation(ValidationErrorType::PurchaseDateInFuture))
+    ));
+
+    // Negative remaining grams.
+    let negative = bean_request("Service Reject Grams", Some(-10.0));
+    assert!(matches!(
+        service.create_bean(negative).await,
+        Err(BeanServiceError::Validation(
+            ValidationErrorType::NegativeRemainingGrams { .. }
+        ))
+    ));
+
+    // Nothing was persisted for any of the rejected names.
+    for name in [
+        "Service Reject",
+        "Service Reject Origin",
+        "Service Reject Roast",
+        "Service Reject Purchase",
+        "Service Reject Grams",
+    ] {
+        let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM coffee_beans WHERE name = $1")
+            .bind(name)
+            .fetch_one(&pool)
+            .await
+            .expect("count beans by name");
+        assert_eq!(count, 0, "invalid bean must not be persisted");
+    }
+}
+
+/// `update_bean` enforces the SAME invariants at the service layer: an edit
+/// with invalid data is rejected with a typed `BeanServiceError::Validation`
+/// before any UPDATE runs, and the stored row is left untouched.
+#[tokio::test]
+#[ignore = "requires a live Postgres (DATABASE_URL); run with --ignored"]
+async fn update_bean_rejects_invalid_data_at_service_layer() {
+    let Some(pool) = pool().await else { return };
+    let service = BeanService::new(&pool);
+
+    let created = service
+        .create_bean(bean_request("Valid Bean", Some(250.0)))
+        .await
+        .expect("create bean");
+
+    // An invalid edit (negative grams) is rejected at the service layer.
+    let bad_edit = service
+        .update_bean(created.id, bean_request("Valid Bean", Some(-5.0)))
+        .await;
+    assert!(matches!(
+        bad_edit,
+        Err(BeanServiceError::Validation(
+            ValidationErrorType::NegativeRemainingGrams { .. }
+        ))
+    ));
+
+    // An empty-name edit is rejected with the precise variant.
+    let mut empty_name = bean_request("  ", Some(100.0));
+    empty_name.name = "  ".to_string();
+    let empty_name_edit = service.update_bean(created.id, empty_name).await;
+    assert!(matches!(
+        empty_name_edit,
+        Err(BeanServiceError::Validation(ValidationErrorType::BeanNameEmpty))
+    ));
+
+    // The stored row is unchanged: still the valid original.
+    let fetched = service
+        .get_bean(created.id)
+        .await
+        .expect("get bean")
+        .expect("bean exists");
+    assert_eq!(fetched.name, "Valid Bean");
+    assert_eq!(fetched.remaining_grams, Some(250.0));
+
+    service.delete_bean(created.id).await.ok();
 }
