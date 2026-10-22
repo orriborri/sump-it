@@ -20,7 +20,7 @@ coffee-brewer-consolidated/
 │   │   ├── services/    # Business logic layer
 │   │   ├── database/    # Database operations
 │   │   └── validation/  # Comprehensive validation logic
-│   ├── prisma/          # Database schema and migrations
+│   ├── migrations/      # SQLx migrations - single source of truth for the schema
 │   └── Cargo.toml
 │
 ├── frontend/            # Next.js 15 frontend (typed fetch client)
@@ -30,7 +30,7 @@ coffee-brewer-consolidated/
 │   │   ├── grinders/    # Grinder management
 │   │   └── sessions/    # Brew session history
 │   ├── lib/
-│   │   ├── trpc/        # Thin typed REST client (ts-rs generated types)
+│   │   ├── trpc/        # Thin typed REST client over fetch (ts-rs types; dir name is historical, not tRPC)
 │   │   └── utils/       # Shared utilities
 │   └── package.json
 │
@@ -69,14 +69,14 @@ coffee-brewer-consolidated/
 ### Backend
 - **Rust** with Axum web framework
 - **ts-rs** to generate TypeScript types from the Rust models for a type-safe API contract  
-- **Prisma** ORM with PostgreSQL
+- **SQLx** migrations (`backend/migrations/`) as the single source of truth for the PostgreSQL schema
 - **Docker** for containerization
 - **OpenTelemetry** for observability
 
 ### Frontend
 - **Next.js 15** with App Router
 - **TypeScript** for type safety
-- **Thin typed fetch client** (`lib/trpc/client.ts`) for type-safe API calls using the ts-rs-generated types
+- **Thin typed fetch client** (`lib/trpc/client.ts`) for type-safe API calls using the ts-rs-generated types (the `lib/trpc/` directory name is historical; there is no tRPC server or router)
 - **Material-UI** with custom coffee theme
 - **Zod** for form validation
 
@@ -100,7 +100,7 @@ coffee-brewer-consolidated/
    - Complete parameter tracking
    - Ratings (1.0-10.0 in 0.5 increments)
    - Tasting notes and feedback
-   - Coffee/water ratio validation (15.0-17.0)
+   - Per-method water:coffee ratio validation (bands depend on the brewing method via `rules_for` in `backend/src/recipe.rs`; e.g. Espresso ~1:2, French Press / pour-over ~1:12-1:18)
 
 ## 🚦 Getting Started
 

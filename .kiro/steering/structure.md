@@ -13,7 +13,7 @@ coffee-brewer-consolidated/
 │   │   ├── services/       # Business logic layer
 │   │   ├── database/       # Database operations
 │   │   └── validation/     # Comprehensive validation logic
-│   ├── prisma/             # Database schema and migrations
+│   ├── migrations/         # SQLx migrations - single source of truth for the schema
 │   └── Cargo.toml
 ├── frontend/                # Next.js 15 frontend
 │   ├── app/
@@ -22,7 +22,7 @@ coffee-brewer-consolidated/
 │   │   ├── grinders/       # Grinder management
 │   │   └── sessions/       # Brew session history
 │   ├── lib/
-│   │   ├── trpc/           # Thin typed REST client (ts-rs generated types)
+│   │   ├── trpc/           # Thin typed REST client over fetch (ts-rs types; dir name is historical, not tRPC)
 │   │   └── utils/          # Shared utilities
 │   └── package.json
 ├── docs/                    # Documentation
@@ -82,7 +82,7 @@ Vertical stepper UI components (from original sump-it):
 
 ## Configuration Files
 - **Environment**: `.env` (created from `.env.example`)
-- **Database**: `backend/prisma/schema.prisma`
+- **Database**: `backend/migrations/` (SQLx migrations - single source of truth for the schema)
 - **Dependencies**: `package.json`, `Cargo.toml`
 - **Development**: `docker-compose.yml`
 - **Documentation**: `CLAUDE.md`, `GLOSSARY.md`, `CONSOLIDATION_SUMMARY.md`
