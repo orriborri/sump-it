@@ -131,6 +131,31 @@ describe('apiFetch', () => {
 
     expect(result).toEqual({ error: 'Unknown error occurred' });
   });
+
+  // Adapter contract: apiFetch is documented (on the BrewClient seam) to always
+  // RESOLVE an ApiResponse and never reject. These tests pin that guarantee so
+  // callers (and the workflow seam) can rely on it.
+  it('resolves (never rejects) when fetch itself rejects', async () => {
+    fetchMock.mockRejectedValueOnce(new Error('network down'));
+
+    // `.resolves` would also pass on a throw-free resolve, but asserting the
+    // shape proves the rejection was converted rather than propagated.
+    await expect(apiFetch('/beans')).resolves.toEqual({ error: 'network down' });
+  });
+
+  it('resolves (never rejects) when response.json() rejects on a 2xx body', async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      statusText: 'OK',
+      json: async () => {
+        throw new Error('invalid json');
+      },
+    } as unknown as Response);
+
+    await expect(apiFetch('/beans')).resolves.toEqual({ error: 'invalid json' });
+  });
+
 });
 
 describe('coffeeBrewerClient.beans', () => {
