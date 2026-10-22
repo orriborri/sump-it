@@ -16,8 +16,19 @@ export const RATING_MIN = 1.0;
 export const RATING_MAX = 10.0;
 export const RATING_STEP = 0.5;
 
-/** Brewing methods offered in the equipment step, in display order. */
-export const BREWING_METHODS: readonly { value: BrewingMethod; label: string }[] = [
+/** A single selectable brewing-method option (value + display label). */
+export interface BrewingMethodOption {
+  value: BrewingMethod;
+  label: string;
+}
+
+/**
+ * The single canonical list of brewing-method options offered in the equipment
+ * step, in display order. This is the ONE place to edit when adding or renaming
+ * a method; the UI (`BeanSelector`) imports this list instead of maintaining
+ * its own copy.
+ */
+export const BREWING_METHODS: readonly BrewingMethodOption[] = [
   { value: 'V60', label: 'V60' },
   { value: 'Chemex', label: 'Chemex' },
   { value: 'FrenchPress', label: 'French Press' },
@@ -33,7 +44,13 @@ export interface BrewFormData {
   // Step 1: equipment selection.
   beanId: string;
   grinderId: string;
-  brewingMethod: string;
+  /**
+   * The chosen brewing method, or `''` before one is selected. Typed as the
+   * generated `BrewingMethod` union (plus the empty sentinel) so the form never
+   * holds an arbitrary string and `formToSessionRequest` needs no unchecked
+   * cast.
+   */
+  brewingMethod: BrewingMethod | '';
   // Step 2: brewing parameters.
   coffeeGrams: number;
   waterGrams: number;
@@ -45,6 +62,16 @@ export interface BrewFormData {
   tastingNotes?: string;
   feedback?: string;
   suggestions?: string;
+}
+
+/**
+ * Narrow an arbitrary string to a {@link BrewingMethod} by validating it
+ * against the canonical {@link BREWING_METHODS} list. Returns `true` only for a
+ * value that is a known method, letting callers (e.g. the MUI select boundary)
+ * narrow without an unchecked `as` cast.
+ */
+export function isBrewingMethod(value: string): value is BrewingMethod {
+  return BREWING_METHODS.some((method) => method.value === value);
 }
 
 /** The initial form used when the page first loads or after a reset. */
@@ -168,18 +195,26 @@ export function toFriendlyError(error: string): string {
 /**
  * Build the typed `CreateBrewingSessionRequest` body from the form. Optional
  * numeric fields collapse to `null`, and empty/whitespace text fields collapse
- * to `null`, matching the Rust `Option<T>` serialization. The brewing method
- * is narrowed from the form's plain string to the generated union.
+ * to `null`, matching the Rust `Option<T>` serialization.
+ *
+ * The brewing method is already typed as `BrewingMethod | ''`; the equipment
+ * gate (`isEquipmentComplete`) requires a non-empty method before the workflow
+ * can reach the save step, so `''` cannot legitimately arrive here. We guard it
+ * explicitly (throwing) rather than smuggling the empty value through with an
+ * unchecked `as` cast.
  */
 export function formToSessionRequest(form: BrewFormData): CreateBrewingSessionRequest {
   const trim = (value: string | undefined): string | null => {
     const trimmed = (value ?? '').trim();
     return trimmed === '' ? null : trimmed;
   };
+  if (form.brewingMethod === '') {
+    throw new Error('formToSessionRequest requires a brewing method; complete the equipment step first.');
+  }
   return {
     beanId: form.beanId,
     grinderId: form.grinderId,
-    brewingMethod: form.brewingMethod as BrewingMethod,
+    brewingMethod: form.brewingMethod,
     grindSetting: form.grindSetting,
     waterTempCelsius: form.waterTempCelsius ?? null,
     brewTimeSeconds: form.brewTimeSeconds ?? null,

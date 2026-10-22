@@ -3,6 +3,8 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import { BeanSelector } from './BeanSelector';
+import { BREWING_METHODS } from '@/lib/brew/recipe';
+import type { BrewingMethod } from '@/lib/api/types';
 
 interface Bean {
   id: string;
@@ -48,10 +50,15 @@ function grinder(overrides: Partial<Grinder> = {}): Grinder {
 
 function setup(
   props: Partial<Parameters<typeof BeanSelector>[0]> = {},
-  formOverrides: Partial<{ beanId: string; grinderId: string; brewingMethod: string }> = {}
+  formOverrides: Partial<{ beanId: string; grinderId: string; brewingMethod: BrewingMethod | '' }> = {}
 ) {
   const updateFormData = vi.fn();
-  const formData = { beanId: '', grinderId: '', brewingMethod: '', ...formOverrides };
+  const formData: { beanId: string; grinderId: string; brewingMethod: BrewingMethod | '' } = {
+    beanId: '',
+    grinderId: '',
+    brewingMethod: '',
+    ...formOverrides,
+  };
   render(
     <BeanSelector
       formData={formData}
@@ -134,5 +141,18 @@ describe('BeanSelector', () => {
   it('shows the method in the summary when chosen', () => {
     setup({}, { brewingMethod: 'Espresso' });
     expect(screen.getByText(/Method:/)).toBeInTheDocument();
+  });
+
+  it('renders method options from the shared canonical list', async () => {
+    const user = userEvent.setup();
+    setup();
+    await user.click(screen.getByLabelText('Brewing Method'));
+    const listbox = within(screen.getByRole('listbox'));
+    // Every option comes from the single BREWING_METHODS list in recipe.ts,
+    // so the selector has no private copy to drift from.
+    for (const method of BREWING_METHODS) {
+      expect(listbox.getByText(method.label)).toBeInTheDocument();
+    }
+    expect(listbox.getAllByRole('option')).toHaveLength(BREWING_METHODS.length);
   });
 });

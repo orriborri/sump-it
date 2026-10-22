@@ -219,6 +219,40 @@ describe('BrewWorkflow', () => {
     expect(create.mock.calls[0][0].tastingNotes).toBe('Chocolatey');
   });
 
+  it('does not stay stuck loading when the initial load adapter REJECTS', async () => {
+    // A non-conforming client that rejects (violating the resolve-only
+    // contract) must not leave the equipment step spinning forever: the
+    // workflow defends the seam, clears loading and shows the friendly error.
+    const { client } = makeClient({
+      getActive: () => Promise.reject(new Error('Failed to fetch')),
+    });
+    render(<BrewWorkflow client={client} />);
+    // The friendly load error appears (loading was cleared via finally)...
+    await waitFor(() => expect(screen.getByText(UNREACHABLE_MESSAGE)).toBeInTheDocument());
+    // ...and the step content rendered (no perpetual spinner).
+    expect(screen.getByLabelText('Brewing Method')).toBeInTheDocument();
+    expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
+  });
+
+  it('routes a REJECTING save adapter through toFriendlyError', async () => {
+    const user = userEvent.setup();
+    const { client } = makeClient({
+      create: vi.fn(() => Promise.reject(new Error('Failed to fetch'))),
+    });
+    render(<BrewWorkflow client={client} />);
+    await waitFor(() => screen.getByLabelText('Coffee Bean'));
+
+    await chooseEquipment(user);
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    await screen.findByLabelText('coffee-ratio');
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    await user.click(await screen.findByRole('button', { name: 'Save Brew Session' }));
+
+    // The rejection did not escape or bypass friendly handling: the friendly
+    // unreachable message is shown rather than a raw error (or nothing).
+    expect(await screen.findByText(UNREACHABLE_MESSAGE)).toBeInTheDocument();
+  });
+
   it('defaults to the real client when none is injected', async () => {
     // No client prop: exercises the default parameter. Stub fetch so the real
     // client surfaces an error (proving the workflow mounted end to end).

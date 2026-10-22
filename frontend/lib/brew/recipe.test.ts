@@ -6,6 +6,7 @@ import {
   clampGrindSetting,
   emptyBrewForm,
   formToSessionRequest,
+  isBrewingMethod,
   isEquipmentComplete,
   liveCoffeeRatio,
   parseNumber,
@@ -41,6 +42,20 @@ describe('constants', () => {
       'ColdBrew',
       'Other',
     ]);
+  });
+});
+
+describe('isBrewingMethod', () => {
+  it('accepts every value in the canonical list', () => {
+    for (const method of BREWING_METHODS) {
+      expect(isBrewingMethod(method.value)).toBe(true);
+    }
+  });
+
+  it('rejects the empty sentinel and unknown strings', () => {
+    expect(isBrewingMethod('')).toBe(false);
+    expect(isBrewingMethod('Pourover')).toBe(false);
+    expect(isBrewingMethod('v60')).toBe(false);
   });
 });
 
@@ -203,6 +218,22 @@ describe('formToSessionRequest', () => {
       suggestions: null,
       isTemplate: false,
     });
+  });
+
+  it('carries the typed brewing method straight through (no cast)', () => {
+    const request = formToSessionRequest(
+      form({ beanId: 'b', grinderId: 'g', brewingMethod: 'FrenchPress' })
+    );
+    expect(request.brewingMethod).toBe('FrenchPress');
+    expect(isBrewingMethod(request.brewingMethod)).toBe(true);
+  });
+
+  it('throws when the brewing method is still empty', () => {
+    // The equipment gate should prevent this, but the builder guards the
+    // empty sentinel explicitly instead of smuggling it through with a cast.
+    expect(() => formToSessionRequest(form({ beanId: 'b', grinderId: 'g' }))).toThrow(
+      /requires a brewing method/
+    );
   });
 
   it('preserves provided optionals and trims text', () => {

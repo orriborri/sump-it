@@ -69,6 +69,14 @@ function buildQuery(params?: Record<string, string | number | undefined>): strin
  * Perform a typed request against the backend. The caller declares the success
  * payload type `T`; errors are surfaced through the `error`/`details` fields
  * (shaped like the generated `ErrorResponse`) rather than thrown.
+ *
+ * Resolve/reject contract: `apiFetch` ALWAYS resolves an {@link ApiResponse}
+ * and NEVER rejects. Network-level failures (a rejected `fetch`) are caught and
+ * converted into a resolved `{ error }` result, so callers only need to branch
+ * on `response.error` and never need a `try/catch` around a client call. Every
+ * method on {@link coffeeBrewerClient} inherits this guarantee, and any
+ * alternative adapter substituted for it (e.g. in tests) is expected to honour
+ * the same contract.
  */
 export async function apiFetch<T>(
   endpoint: string,
