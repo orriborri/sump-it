@@ -18,6 +18,7 @@ use validator::Validate;
 use crate::{
     api::AppState,
     models::{CreateGrinderRequest, ErrorResponse, PaginatedResponse},
+    pagination::Pagination,
     services::grinders::GrinderService,
     validation::{validate_grinder_setting_range, validation_errors_to_string},
 };
@@ -35,16 +36,19 @@ async fn list_grinders(
 ) -> impl IntoResponse {
     let service = GrinderService::new(&state.pool);
 
+    // Normalise page/limit ONCE (ticket #167): the service clamps identically
+    // for the DB fetch, and the response metadata is derived from the SAME
+    // normalized values so `page_size`/`has_more` can never report an
+    // unclamped limit.
+    let pagination = Pagination::from_request(params.page, params.limit);
     match service.list_grinders(params.page, params.limit).await {
         Ok((grinders, total)) => {
-            let page = params.page.unwrap_or(1);
-            let page_size = params.limit.unwrap_or(50);
             Json(PaginatedResponse {
                 items: grinders,
                 total,
-                page,
-                page_size,
-                has_more: total > (page * page_size) as i64,
+                page: pagination.page,
+                page_size: pagination.limit,
+                has_more: pagination.has_more(total),
             })
             .into_response()
         }
