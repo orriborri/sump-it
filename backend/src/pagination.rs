@@ -60,7 +60,10 @@ impl Pagination {
     /// as `(page - 1) * limit`. Pure and total.
     pub fn from_request(page: Option<i32>, limit: Option<i32>) -> Self {
         let limit = normalize_limit(limit);
-        let page = page.unwrap_or(1).max(1);
+        let requested_page = page.unwrap_or(1).max(1);
+        let max_page = (i64::from(i32::MAX) / i64::from(limit) + 1)
+            .min(i64::from(i32::MAX)) as i32;
+        let page = requested_page.min(max_page);
         let offset = (page - 1) * limit;
         Self { page, limit, offset }
     }
@@ -151,6 +154,14 @@ mod tests {
         assert_eq!(p.page, 3);
         assert_eq!(p.limit, 25);
         assert_eq!(p.offset, 50);
+    }
+
+    #[test]
+    fn from_request_clamps_page_before_offset_can_overflow() {
+        let p = Pagination::from_request(Some(i32::MAX), Some(MAX_LIMIT));
+        assert!(p.offset >= 0);
+        assert_eq!(p.offset, (p.page - 1) * p.limit);
+        assert!(!p.has_more(i64::from(i32::MAX)));
     }
 
     #[test]

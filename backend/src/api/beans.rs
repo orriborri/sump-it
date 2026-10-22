@@ -72,16 +72,6 @@ async fn create_bean(
         ).into_response();
     }
     
-    // Business-rule validation: non-empty name/origin, no future roast or
-    // purchase dates, and non-negative remaining grams. Each error names the
-    // offending field clearly.
-    if let Err(e) = payload.validate_comprehensive() {
-        return (
-            StatusCode::BAD_REQUEST,
-            Json(ErrorResponse::new(e.to_string())),
-        ).into_response();
-    }
-    
     let service = BeanService::new(&state.pool);
     
     match service.create_bean(payload).await {
@@ -137,14 +127,6 @@ async fn update_bean(
         ).into_response();
     }
 
-    // Business-rule validation (same rules as create): clear, named errors.
-    if let Err(e) = payload.validate_comprehensive() {
-        return (
-            StatusCode::BAD_REQUEST,
-            Json(ErrorResponse::new(e.to_string())),
-        ).into_response();
-    }
-    
     let service = BeanService::new(&state.pool);
     
     match service.update_bean(id, payload).await {

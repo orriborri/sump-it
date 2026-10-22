@@ -20,7 +20,7 @@ use crate::{
     models::{CreateGrinderRequest, ErrorResponse, PaginatedResponse},
     pagination::Pagination,
     services::grinders::{GrinderService, GrinderServiceError},
-    validation::{validate_grinder_setting_range, validation_errors_to_string},
+    validation::validation_errors_to_string,
 };
 
 pub fn router() -> Router<AppState> {
@@ -178,16 +178,6 @@ fn validate_grinder_request(payload: &CreateGrinderRequest) -> Option<axum::resp
                     "Validation failed".to_string(),
                     vec![validation_errors_to_string(&validation_errors)],
                 )),
-            )
-                .into_response(),
-        );
-    }
-
-    if let Err(e) = validate_grinder_setting_range(payload.min_setting, payload.max_setting) {
-        return Some(
-            (
-                StatusCode::BAD_REQUEST,
-                Json(ErrorResponse::new(e.to_string())),
             )
                 .into_response(),
         );

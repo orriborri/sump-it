@@ -125,9 +125,21 @@ impl<'a> SessionService<'a> {
         // (4) Lock the GRINDER row second. Loading it under `FOR UPDATE` (and
         // validating against it in step 5) closes the TOCTOU window: no
         // concurrent update can change this grinder's range until we commit.
-        let grinder = match get_grinder_for_update(&mut tx, params.grinder_id)
-            .await
-            .map_err(|e| db_error(e, "Failed to lock grinder row"))?
+        let grinder = match sqlx::query_as::<_, Grinder>(
+            r#"
+            SELECT
+                id, brand, model, grinder_type,
+                min_setting, max_setting, scale_type, description,
+                created_at, updated_at
+            FROM grinders
+            WHERE id = $1 AND is_active = true
+            FOR UPDATE
+            "#,
+        )
+        .bind(params.grinder_id)
+        .fetch_optional(&mut *tx)
+        .await
+        .map_err(|e| db_error(e, "Failed to lock grinder row"))?
         {
             Some(grinder) => grinder,
             None => {
@@ -309,38 +321,6 @@ impl<'a> SessionService<'a> {
         Ok((sessions, total))
     }
 
-}
-
-/// Loads a grinder by id INSIDE the brew transaction, locking the row
-/// `FOR UPDATE` (needed to validate the grind setting against a range that
-/// cannot change until the session is committed - issue #168).
-///
-/// This is the second acquisition in the fixed bean-then-grinder lock order,
-/// so every `log_brew` takes its two row locks in the same order and the paths
-/// cannot deadlock against one another. It filters `WHERE is_active = true`
-/// (consistent with FEAT-002 / issue #165 and `GrinderService::get_grinder`),
-/// so a brand-new brew cannot reference a retired grinder; `None` therefore
-/// means "no active grinder with that id", which `log_brew` maps to
-/// `SaveError::GrinderNotFound`. Historical session reads JOIN grinders WITHOUT
-/// this filter, so retired grinders on existing sessions still resolve.
-async fn get_grinder_for_update(
-    tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
-    id: Uuid,
-) -> Result<Option<Grinder>, sqlx::Error> {
-    sqlx::query_as::<_, Grinder>(
-        r#"
-        SELECT
-            id, brand, model, grinder_type,
-            min_setting, max_setting, scale_type, description,
-            created_at, updated_at
-        FROM grinders
-        WHERE id = $1 AND is_active = true
-        FOR UPDATE
-        "#,
-    )
-    .bind(id)
-    .fetch_optional(&mut **tx)
-    .await
 }
 
 /// Wraps a sqlx error as [`SaveError::Database`] with a human-readable context.
