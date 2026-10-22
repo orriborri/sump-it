@@ -33,10 +33,11 @@ impl<'a> GrinderService<'a> {
         let limit = limit.unwrap_or(50).clamp(1, 100);
         let offset = (page - 1) * limit;
 
-        let total: i64 = sqlx::query_scalar(r#"SELECT COUNT(*) FROM grinders"#)
-            .fetch_one(self.pool)
-            .await
-            .context("Failed to count grinders")?;
+        let total: i64 =
+            sqlx::query_scalar(r#"SELECT COUNT(*) FROM grinders WHERE is_active = true"#)
+                .fetch_one(self.pool)
+                .await
+                .context("Failed to count grinders")?;
 
         let grinders = sqlx::query_as::<_, Grinder>(
             r#"
@@ -45,6 +46,7 @@ impl<'a> GrinderService<'a> {
                 min_setting, max_setting, scale_type, description,
                 created_at, updated_at
             FROM grinders
+            WHERE is_active = true
             ORDER BY created_at DESC, brand ASC
             LIMIT $1 OFFSET $2
             "#,
@@ -101,7 +103,7 @@ impl<'a> GrinderService<'a> {
                 min_setting, max_setting, scale_type, description,
                 created_at, updated_at
             FROM grinders
-            WHERE id = $1
+            WHERE id = $1 AND is_active = true
             "#,
         )
         .bind(id)
@@ -133,7 +135,7 @@ impl<'a> GrinderService<'a> {
                 scale_type = $7,
                 description = $8,
                 updated_at = $9
-            WHERE id = $1
+            WHERE id = $1 AND is_active = true
             RETURNING
                 id, brand, model, grinder_type,
                 min_setting, max_setting, scale_type, description,
@@ -156,13 +158,30 @@ impl<'a> GrinderService<'a> {
         Ok(grinder)
     }
 
-    /// Delete a grinder (hard delete; grinders have no soft-delete column).
+    /// Retire a grinder (soft delete), mirroring `BeanService::delete_bean`.
+    ///
+    /// Issue #165: brewing sessions are immutable historical records, so a
+    /// grinder is never physically removed (that would cascade-delete the
+    /// sessions that reference it). Instead this flips `is_active` to false so
+    /// the grinder disappears from `list_grinders`/`get_grinder` while every
+    /// brewing session, session-history row and bean-usage-history row that
+    /// used it still resolves (those JOINs intentionally do not filter on
+    /// `is_active`). Returns `true` when an active grinder was retired, `false`
+    /// when no active grinder with that id existed (already retired or absent),
+    /// matching the hard-delete contract callers relied on.
     pub async fn delete_grinder(&self, id: Uuid) -> Result<bool> {
-        let result = sqlx::query(r#"DELETE FROM grinders WHERE id = $1"#)
-            .bind(id)
-            .execute(self.pool)
-            .await
-            .context("Failed to delete grinder")?;
+        let result = sqlx::query(
+            r#"
+            UPDATE grinders
+            SET is_active = false, updated_at = $2
+            WHERE id = $1 AND is_active = true
+            "#,
+        )
+        .bind(id)
+        .bind(Utc::now())
+        .execute(self.pool)
+        .await
+        .context("Failed to delete grinder")?;
 
         Ok(result.rows_affected() > 0)
     }
