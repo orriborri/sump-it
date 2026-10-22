@@ -1,5 +1,9 @@
 # Spec: AI SDLC loops
 
+- Keep the model provider behind a replaceable runner protocol. Ship a generic
+  tool-capable HTTP adapter and support external command adapters. Configure
+  delivery/review endpoints, models and credentials independently; no vendor defaults.
+
 - Manually dispatch design, plan, build, fix and learn for a numbered GitHub issue.
 - Plan requires accepted intent/spec in the default branch; build/fix require plan.
 - Design/plan write Markdown only. Build iterates against existing contract/types

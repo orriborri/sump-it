@@ -64,6 +64,7 @@ jobs:
       - name: Preserve trusted controller and verification command
         run: |
           cp scripts/ai_sdlc.py /tmp/ai_sdlc.py
+          cp scripts/ai_runner.py /tmp/ai_runner.py
           cp scripts/ai-verify.sh /tmp/ai-verify.sh
       - name: Prepare task and check accepted artifacts
         id: prepare
@@ -92,17 +93,14 @@ jobs:
         if: inputs.stage == 'build' || inputs.stage == 'fix'
         working-directory: frontend
         run: npm ci --legacy-peer-deps
-      - name: Run bounded agent iteration
-        uses: anthropics/claude-code-action@6b6870e649b5ff408753befeaee5fc7989d4e6a9 # v1
-        with:
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          github_token: ${{ github.token }}
-          prompt: ${{ steps.prepare.outputs.prompt }}
-          claude_args: >-
-            --model sonnet
-            --max-turns 60
-            --max-budget-usd 10
-            --allowedTools "Read,Edit,Write,Glob,Grep,Bash"
+      - name: Run configured delivery agent
+        env:
+          AI_ADAPTER: ${{ vars.AI_DELIVERY_ADAPTER || vars.AI_ADAPTER || 'chat-completions' }}
+          AI_API_URL: ${{ vars.AI_DELIVERY_API_URL || vars.AI_API_URL }}
+          AI_MODEL: ${{ vars.AI_DELIVERY_MODEL || vars.AI_MODEL }}
+          AI_API_KEY: ${{ secrets.AI_DELIVERY_API_KEY || secrets.AI_API_KEY }}
+          AI_RUNNER_COMMAND: ${{ vars.AI_DELIVERY_COMMAND || vars.AI_RUNNER_COMMAND }}
+        run: python /tmp/ai_runner.py --role delivery --prompt .ai-run/prompt.txt
       - name: Validate change scope before executing candidate code
         run: |
           cp /tmp/ai-task.json .ai-run/task.json

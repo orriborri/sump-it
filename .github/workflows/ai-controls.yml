@@ -2,10 +2,10 @@ name: AI control checks
 
 on:
   pull_request:
-    paths: ['scripts/ai*', '.github/workflows/ai*', 'tests/ai/**', 'REVIEW.md', 'CLAUDE.md', 'AGENTS.md']
+    paths: ['scripts/ai*', '.github/prompts/**', '.github/workflows/ai*', 'tests/ai/**', 'REVIEW.md', 'CLAUDE.md', 'AGENTS.md']
   push:
     branches: [main]
-    paths: ['scripts/ai*', '.github/workflows/ai*', 'tests/ai/**', 'REVIEW.md', 'CLAUDE.md', 'AGENTS.md']
+    paths: ['scripts/ai*', '.github/prompts/**', '.github/workflows/ai*', 'tests/ai/**', 'REVIEW.md', 'CLAUDE.md', 'AGENTS.md']
   workflow_dispatch:
   schedule:
     - cron: '0 6 * * 1'

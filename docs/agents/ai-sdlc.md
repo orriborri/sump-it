@@ -8,11 +8,12 @@ reads their files directly rather than assuming they are installed slash command
 
 ## One-time activation
 
-1. Merge the workflow PR. Add `ANTHROPIC_API_KEY` under repository Settings →
-   Secrets and variables → Actions. Never put it in an issue or committed file.
+1. Merge the workflow PR. Configure your inference endpoint/agent adapter using
+   the provider-neutral settings below. Store any credential as `AI_API_KEY` in
+   repository Settings → Secrets and variables → Actions, never in an issue or file.
 2. In Settings → Actions → General, allow GitHub Actions to create pull requests.
-   No personal access token or Claude GitHub App is required: these workflows
-   supply the built-in GitHub token to the Claude action.
+   No personal access token or model-vendor GitHub App is required: only the
+   controller/publisher/posting jobs use the built-in GitHub token.
 3. Create an environment named `ai-delivery`, restrict deployments to the default
    branch, and configure a required human reviewer. The environment is an approval
    for starting agent work, not a production deployment. GitHub may limit environment
@@ -26,7 +27,72 @@ reads their files directly rather than assuming they are installed slash command
    relying on it for larger changes.
 
 Credentials, environment protections and repository settings are not configured by
-committing these files. Model/API execution needs the secret before its first run.
+committing these files. Model execution needs a configured endpoint/model or command
+adapter before its first run; an unauthenticated local endpoint need not have a key.
+
+## Provider-neutral runner
+
+The SDLC controller never imports a model SDK or invokes a vendor action/CLI.
+`scripts/ai_runner.py` is the replaceable execution boundary. There is no default
+provider, model, subscription or vendor account. Planning, code generation, review
+policy, test gates and publishing work independently of that choice.
+
+| Setting | Meaning |
+| --- | --- |
+| `AI_ADAPTER` | `chat-completions` (included reference implementation) or `command` |
+| `AI_API_URL` | Complete tool-capable Chat Completions URL, including its path; no hostname is assumed |
+| `AI_MODEL` | Model identifier exposed by that endpoint |
+| `AI_API_KEY` secret | Optional Bearer credential; omitted for an unauthenticated endpoint |
+| `AI_RUNNER_COMMAND` | For `command`: JSON argv array for an installed executable, not a shell string |
+
+These repository variables configure the common default. Delivery/review may use
+different providers, models and runners by setting `AI_DELIVERY_ADAPTER`,
+`AI_DELIVERY_API_URL`, `AI_DELIVERY_MODEL`, `AI_DELIVERY_COMMAND` and the corresponding
+`AI_REVIEW_*` variables. Role credentials are `AI_DELIVERY_API_KEY` and
+`AI_REVIEW_API_KEY` secrets, falling back to the common `AI_API_KEY`.
+
+The reference adapter speaks the widely implemented Chat Completions wire format:
+`messages`, function `tools`/`tool_calls`, `choices[0].message`, `max_tokens` and
+optional `usage.total_tokens`. It has no provider SDK dependency. Hosted services,
+an inference gateway, and local models can be used **if they support this format
+and tool calling**. Native APIs with another format need a command adapter or a
+gateway; API compatibility is not assumed for every provider. Remote inference
+must use HTTPS. Loopback HTTP is allowed for a service running on the same runner.
+A local service on your home network is not reachable from a GitHub-hosted runner
+without separately provisioning connectivity or an appropriate self-hosted runner.
+
+The review reference adapter exposes only workspace reading/listing; delivery
+also exposes file writes and local commands. Local commands do not inherit model
+or GitHub API credentials. The review returns validated JSON before the independent
+posting job can publish a verdict. No model can approve or merge a PR.
+
+### Alternate agent engines and native APIs
+
+Use `AI_ADAPTER=command` to integrate an existing agent CLI, remote worker adapter
+or native API client, without changing the SDLC workflows. Configure an executable
+available on the runner, for example `["/opt/agents/company-runner"]`; provisioning
+that executable is your adapter deployment responsibility. The wrapper invokes:
+
+```text
+<argv> --request <absolute-request.json> --response <absolute-response.json>
+```
+
+The version-1 request contains `role` (`delivery` or `review`), `read_only`,
+`workspace`, `prompt`, `model`, `max_steps`, `max_output_tokens`, and
+`timeout_seconds`. API credentials stay in environment variables, never in the
+request. Delivery adapters edit the workspace and return `{"summary":"..."}`.
+Review adapters must enforce `read_only` (no commands/writes) and return:
+
+```json
+{"verdict":"pass","summary":"No material findings","findings":[]}
+```
+
+Finding objects have `severity` (`critical`/`important`), `pass`
+(`bugs`/`security`/`spec`), `path` and `detail`. Other verdicts are `findings` and
+`blocked`; a pass with findings is rejected. Missing/invalid output, a nonzero
+adapter exit or a timeout fails closed. Custom adapters must honor step/token
+limits and isolation themselves; the wrapper enforces elapsed time and result
+validation. The command adapter is a trusted integration, not a hostile-code sandbox.
 
 ## Daily use
 
@@ -47,9 +113,13 @@ acceptance, so do not merge documents with unresolved blocking questions. There 
 no automatic transition from a model saying "approved" to implementation.
 
 The build/fix agent can iterate locally, with a prompt limit of three complete
-verification attempts, a hard 60-turn/$10 model limit, and a 60-minute job timeout.
-Sonnet does delivery; Opus does independent review (25 turns/$5, 15 minutes).
-These are per invocation limits, not a monthly budget. Failed verification prevents
+verification attempts. The reference adapter enforces 60 inference steps for
+delivery and 25 for review, 4,096 maximum output tokens per response and elapsed
+limits of 50/12 minutes, within 60/15-minute workflow jobs. No model is hardcoded.
+Custom adapters receive the same limits but enforce step/token limits themselves.
+There is no provider-independent dollar cap: set spending limits at your gateway
+or provider. Reported usage is retained in the runner result when available.
+Failed verification prevents
 publication. A blocked agent may leave an evidence-only proposal; read the evidence
 before treating it as implemented. Workflow logs retain failed verification output.
 
