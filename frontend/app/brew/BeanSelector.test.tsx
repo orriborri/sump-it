@@ -3,6 +3,8 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import { BeanSelector } from './BeanSelector';
+import { BREWING_METHODS } from '@/lib/brew/recipe';
+import type { BrewingMethod } from '@/lib/api/types';
 
 interface Bean {
   id: string;
@@ -48,10 +50,15 @@ function grinder(overrides: Partial<Grinder> = {}): Grinder {
 
 function setup(
   props: Partial<Parameters<typeof BeanSelector>[0]> = {},
-  formOverrides: Partial<{ beanId: string; grinderId: string; brewingMethod: string }> = {}
+  formOverrides: Partial<{ beanId: string; grinderId: string; brewingMethod: BrewingMethod | '' }> = {}
 ) {
   const updateFormData = vi.fn();
-  const formData = { beanId: '', grinderId: '', brewingMethod: '', ...formOverrides };
+  const formData: { beanId: string; grinderId: string; brewingMethod: BrewingMethod | '' } = {
+    beanId: '',
+    grinderId: '',
+    brewingMethod: '',
+    ...formOverrides,
+  };
   render(
     <BeanSelector
       formData={formData}
@@ -134,5 +141,15 @@ describe('BeanSelector', () => {
   it('shows the method in the summary when chosen', () => {
     setup({}, { brewingMethod: 'Espresso' });
     expect(screen.getByText(/Method:/)).toBeInTheDocument();
+  });
+
+  it('renders exactly the canonical BREWING_METHODS options from lib/brew/recipe', async () => {
+    const user = userEvent.setup();
+    setup();
+    await user.click(screen.getByLabelText('Brewing Method'));
+    const options = within(screen.getByRole('listbox')).getAllByRole('option');
+    // The dropdown is driven by the single exported list (no local duplicate):
+    // the options match BREWING_METHODS one-for-one, in order, by label.
+    expect(options.map((o) => o.textContent)).toEqual(BREWING_METHODS.map((m) => m.label));
   });
 });

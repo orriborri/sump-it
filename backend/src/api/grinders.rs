@@ -18,7 +18,8 @@ use validator::Validate;
 use crate::{
     api::AppState,
     models::{CreateGrinderRequest, ErrorResponse, PaginatedResponse},
-    services::grinders::GrinderService,
+    pagination::Pagination,
+    services::grinders::{GrinderService, GrinderServiceError},
     validation::{validate_grinder_setting_range, validation_errors_to_string},
 };
 
@@ -35,19 +36,20 @@ async fn list_grinders(
 ) -> impl IntoResponse {
     let service = GrinderService::new(&state.pool);
 
+    // Normalize once (ticket #167) so page_size/has_more in the response are
+    // derived from the SAME clamped values the service paged with, not the raw
+    // request params.
+    let pagination = Pagination::from_request(params.page, params.limit);
+
     match service.list_grinders(params.page, params.limit).await {
-        Ok((grinders, total)) => {
-            let page = params.page.unwrap_or(1);
-            let page_size = params.limit.unwrap_or(50);
-            Json(PaginatedResponse {
-                items: grinders,
-                total,
-                page,
-                page_size,
-                has_more: total > (page * page_size) as i64,
-            })
-            .into_response()
-        }
+        Ok((grinders, total)) => Json(PaginatedResponse {
+            items: grinders,
+            total,
+            page: pagination.page,
+            page_size: pagination.limit,
+            has_more: pagination.has_more(total),
+        })
+        .into_response(),
         Err(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(ErrorResponse::new(format!("Failed to list grinders: {}", e))),
@@ -69,7 +71,15 @@ async fn create_grinder(
 
     match service.create_grinder(payload).await {
         Ok(grinder) => (StatusCode::CREATED, Json(grinder)).into_response(),
-        Err(e) => (
+        // The service seam (ticket #166) is authoritative: a validation
+        // failure there maps to the SAME 400 body `validate_grinder_request`
+        // produces above, a DB failure to the SAME 500 body as before.
+        Err(GrinderServiceError::Validation(e)) => (
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse::new(e.to_string())),
+        )
+            .into_response(),
+        Err(GrinderServiceError::Database(e)) => (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(ErrorResponse::new(format!("Failed to create grinder: {}", e))),
         )
@@ -118,7 +128,12 @@ async fn update_grinder(
             Json(ErrorResponse::new("Grinder not found".to_string())),
         )
             .into_response(),
-        Err(e) => (
+        Err(GrinderServiceError::Validation(e)) => (
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse::new(e.to_string())),
+        )
+            .into_response(),
+        Err(GrinderServiceError::Database(e)) => (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(ErrorResponse::new(format!("Failed to update grinder: {}", e))),
         )

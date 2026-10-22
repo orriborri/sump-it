@@ -33,7 +33,9 @@ export interface BrewFormData {
   // Step 1: equipment selection.
   beanId: string;
   grinderId: string;
-  brewingMethod: string;
+  // Typed as the generated `BrewingMethod` union plus the empty-string
+  // "nothing selected yet" state, so no unchecked cast is needed downstream.
+  brewingMethod: BrewingMethod | '';
   // Step 2: brewing parameters.
   coffeeGrams: number;
   waterGrams: number;
@@ -57,6 +59,19 @@ export function emptyBrewForm(): BrewFormData {
     waterGrams: 320,
     grindSetting: 20,
   };
+}
+
+/**
+ * Narrow an arbitrary string to the `BrewingMethod` union by resolving it
+ * against the canonical {@link BREWING_METHODS} list, with no unchecked cast.
+ *
+ * UI event sources (e.g. MUI's `SelectChangeEvent`) type their value as a plain
+ * `string`. This resolves a recognized value to its `BrewingMethod` and maps
+ * anything unrecognized to `''` (the unselected sentinel), keeping the field's
+ * `BrewingMethod | ''` type honest at runtime.
+ */
+export function toBrewingMethod(value: string): BrewingMethod | '' {
+  return BREWING_METHODS.find(m => m.value === value)?.value ?? '';
 }
 
 /**
@@ -168,18 +183,26 @@ export function toFriendlyError(error: string): string {
 /**
  * Build the typed `CreateBrewingSessionRequest` body from the form. Optional
  * numeric fields collapse to `null`, and empty/whitespace text fields collapse
- * to `null`, matching the Rust `Option<T>` serialization. The brewing method
- * is narrowed from the form's plain string to the generated union.
+ * to `null`, matching the Rust `Option<T>` serialization.
+ *
+ * The form field is `BrewingMethod | ''`. The workflow only calls this after
+ * `isEquipmentComplete` has gated the empty-string case out, so an empty method
+ * here is a programming error rather than a user-reachable state; we guard it
+ * explicitly instead of casting, keeping the generated-union guarantee intact.
  */
 export function formToSessionRequest(form: BrewFormData): CreateBrewingSessionRequest {
   const trim = (value: string | undefined): string | null => {
     const trimmed = (value ?? '').trim();
     return trimmed === '' ? null : trimmed;
   };
+  if (form.brewingMethod === '') {
+    throw new Error('Cannot build a session request before a brewing method is chosen');
+  }
+  const brewingMethod: BrewingMethod = form.brewingMethod;
   return {
     beanId: form.beanId,
     grinderId: form.grinderId,
-    brewingMethod: form.brewingMethod as BrewingMethod,
+    brewingMethod,
     grindSetting: form.grindSetting,
     waterTempCelsius: form.waterTempCelsius ?? null,
     brewTimeSeconds: form.brewTimeSeconds ?? null,

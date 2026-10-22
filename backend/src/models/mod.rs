@@ -183,6 +183,19 @@ pub struct CreateGrinderRequest {
     pub description: Option<String>,
 }
 
+impl CreateGrinderRequest {
+    /// Applies the shared grinder business rules to an incoming create/update
+    /// request before it is persisted: non-empty brand and a valid setting
+    /// range (`min_setting >= 0`, `max_setting > min_setting`). Mirrors
+    /// [`Grinder::validate_comprehensive`] and reuses the same
+    /// [`crate::validation`] helpers so the rule has a single source of truth.
+    pub fn validate_comprehensive(&self) -> Result<(), ValidationErrorType> {
+        validate_grinder_brand(&self.brand)?;
+        validate_grinder_setting_range(self.min_setting, self.max_setting)?;
+        Ok(())
+    }
+}
+
 /// Grinder type enum (from rustyCoffy + BeanIt).
 ///
 /// Variants serialize using their Rust names (e.g. `BurrConical`) to match the

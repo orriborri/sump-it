@@ -13,6 +13,7 @@ import {
   RATING_MAX,
   RATING_MIN,
   RATING_STEP,
+  toBrewingMethod,
   toFriendlyError,
   UNREACHABLE_MESSAGE,
   validateRating,
@@ -54,6 +55,19 @@ describe('emptyBrewForm', () => {
       waterGrams: 320,
       grindSetting: 20,
     });
+  });
+});
+
+describe('toBrewingMethod', () => {
+  it('resolves every canonical value to itself', () => {
+    for (const { value } of BREWING_METHODS) {
+      expect(toBrewingMethod(value)).toBe(value);
+    }
+  });
+
+  it('maps an unrecognized value to the unselected sentinel', () => {
+    expect(toBrewingMethod('NotARealMethod')).toBe('');
+    expect(toBrewingMethod('')).toBe('');
   });
 });
 
@@ -203,6 +217,15 @@ describe('formToSessionRequest', () => {
       suggestions: null,
       isTemplate: false,
     });
+  });
+
+  it('throws when the brewing method has not been chosen yet', () => {
+    // The field is `BrewingMethod | ''`; the workflow only calls this after
+    // isEquipmentComplete gates the empty case out, so an empty method is a
+    // programming error - guarded explicitly instead of an unchecked cast.
+    expect(() => formToSessionRequest(form({ brewingMethod: '' }))).toThrow(
+      'Cannot build a session request before a brewing method is chosen'
+    );
   });
 
   it('preserves provided optionals and trims text', () => {
