@@ -53,16 +53,37 @@ impl<'a> SessionService<'a> {
         Self { pool }
     }
 
-    /// Logs a brew ATOMICALLY: the session insert and the bean-inventory
-    /// decrement happen inside ONE transaction.
+    /// Logs a brew ATOMICALLY: grinder-range validation, the session insert and
+    /// the bean-inventory decrement all happen inside ONE transaction, under
+    /// row locks, so no step can observe stale state.
+    ///
+    /// GRINDER SNAPSHOT / LOCK POLICY (ticket #168):
+    /// The grind setting is validated against the grinder's `min_setting` /
+    /// `max_setting` range. If the grinder were loaded and validated BEFORE the
+    /// transaction (as it was originally), a concurrent edit to that range
+    /// could slip in between validation and the insert - a classic
+    /// time-of-check/time-of-use (TOCTOU) race that could persist a session
+    /// whose grind setting is out of range for the grinder's CURRENT range. To
+    /// close it, the grinder is loaded `SELECT ... FOR UPDATE` INSIDE the
+    /// transaction and `recipe::validate` runs against THAT locked snapshot, so
+    /// the range cannot change between the check and the insert/commit.
+    ///
+    /// LOCK ORDER: bean first, then grinder. Both the bean and the grinder are
+    /// locked `FOR UPDATE` in the SAME transaction; always acquiring them in
+    /// this fixed order (bean, then grinder) means two concurrent `log_brew`
+    /// calls can never hold one lock while waiting on the other in the opposite
+    /// direction, so there is no lock-ordering deadlock between them.
     ///
     /// Steps, in order:
-    /// 1. Load the selected grinder (needed for the grind-setting range).
-    /// 2. Route the request through `recipe::validate` (ticket #144) so the
-    ///    per-method rules and the grinder range are the single source of
-    ///    truth; build the persistable session and attach the free-text notes.
-    /// 3. `BEGIN` a transaction.
-    /// 4. `SELECT ... FOR UPDATE` the bean row to lock it for the duration.
+    /// 1. `BEGIN` a transaction (ties validation, insert and decrement together).
+    /// 2. `SELECT ... FOR UPDATE` the bean row to lock it for the duration. A
+    ///    missing row means the bean does not exist (or is inactive); roll back.
+    /// 3. `SELECT ... FOR UPDATE` the grinder row to lock it (and snapshot its
+    ///    setting range) for the duration. A missing/retired grinder rolls back.
+    /// 4. Route the locked grinder snapshot and the request through
+    ///    `recipe::validate` (ticket #144) so the per-method rules and the
+    ///    grinder range are the single source of truth; build the persistable
+    ///    session and attach the free-text notes. A rule violation rolls back.
     /// 5. If the bean tracks quantity (`remaining_grams IS NOT NULL`) and has
     ///    less than the required dose, roll back and fail with the available
     ///    and required grams. Untracked beans (`NULL`) never block.
@@ -75,33 +96,20 @@ impl<'a> SessionService<'a> {
         &self,
         request: CreateBrewingSessionRequest,
     ) -> std::result::Result<BrewingSession, SaveError> {
-        // (1) Load the grinder so the recipe can check the grind setting
-        // against this grinder's physical range.
-        let grinder = self
-            .get_grinder(request.grinder_id)
-            .await
-            .map_err(SaveError::Database)?
-            .ok_or(SaveError::GrinderNotFound)?;
-
-        // (2) Validate through the recipe module (per-method + grinder range),
-        // then build the session and attach notes/feedback/suggestions.
-        let validated =
-            recipe::validate(request.to_brew_params(), &grinder).map_err(SaveError::Recipe)?;
-        let coffee_required = validated.params().coffee_grams;
-        let session = validated.into_session(Uuid::new_v4(), chrono::Utc::now());
-        let session = apply_notes_to_session(session, &request);
-
-        // (3) Begin the transaction that ties the insert and decrement together.
+        // (1) Begin the transaction FIRST, so the grinder-range check (step 4)
+        // runs against a row locked for the life of the save - no concurrent
+        // edit can slip between validation and the insert (ticket #168 TOCTOU).
         let mut tx = begin_tx(self.pool).await?;
 
-        // (4) Lock the bean row for the life of the transaction. A missing row
-        // means the bean does not exist (or is inactive); roll back.
+        // (2) Lock the bean row for the life of the transaction (lock order:
+        // bean BEFORE grinder). A missing row means the bean does not exist (or
+        // is inactive); roll back.
         let remaining: Option<Option<f32>> = sqlx::query_scalar(
             r#"SELECT remaining_grams FROM coffee_beans
                WHERE id = $1 AND is_active = true
                FOR UPDATE"#,
         )
-        .bind(session.bean_id)
+        .bind(request.bean_id)
         .fetch_optional(&mut *tx)
         .await
         .map_err(|e| db_error(e, "Failed to lock bean row"))?;
@@ -115,6 +123,53 @@ impl<'a> SessionService<'a> {
                 return Err(SaveError::BeanNotFound);
             }
         };
+
+        // (3) Lock the grinder row (lock order: grinder AFTER bean) and snapshot
+        // its setting range for the life of the transaction, so the range
+        // cannot change between the check in step (4) and the commit. A
+        // missing/retired grinder rolls back. The `is_active = true` filter
+        // means retiring a grinder (ticket #165 soft delete) stops new brews
+        // from being logged against it, while existing sessions survive.
+        let grinder_row = sqlx::query_as::<_, Grinder>(
+            r#"
+            SELECT
+                id, brand, model, grinder_type,
+                min_setting, max_setting, scale_type, description, is_active,
+                created_at, updated_at
+            FROM grinders
+            WHERE id = $1 AND is_active = true
+            FOR UPDATE
+            "#,
+        )
+        .bind(request.grinder_id)
+        .fetch_optional(&mut *tx)
+        .await;
+
+        let grinder = match grinder_row {
+            Ok(Some(grinder)) => grinder,
+            Ok(None) => {
+                let _ = tx.rollback().await;
+                return Err(SaveError::GrinderNotFound);
+            }
+            Err(e) => {
+                let _ = tx.rollback().await;
+                return Err(db_error(e, "Failed to lock grinder row"));
+            }
+        };
+
+        // (4) Validate through the recipe module (per-method + grinder range)
+        // against the LOCKED grinder snapshot, then build the session and
+        // attach notes/feedback/suggestions. A rule violation rolls back.
+        let validated = match recipe::validate(request.to_brew_params(), &grinder) {
+            Ok(validated) => validated,
+            Err(e) => {
+                let _ = tx.rollback().await;
+                return Err(SaveError::Recipe(e));
+            }
+        };
+        let coffee_required = validated.params().coffee_grams;
+        let session = validated.into_session(Uuid::new_v4(), chrono::Utc::now());
+        let session = apply_notes_to_session(session, &request);
 
         // (5) Sufficiency check. Untracked beans (NULL) never block; tracked
         // beans must have at least the required dose or the WHOLE save fails.
@@ -273,26 +328,6 @@ impl<'a> SessionService<'a> {
             .context("Failed to fetch filtered sessions")?;
 
         Ok((sessions, total))
-    }
-
-    /// Loads a grinder by id (needed to validate the grind setting).
-    async fn get_grinder(&self, id: Uuid) -> Result<Option<Grinder>> {
-        let grinder = sqlx::query_as::<_, Grinder>(
-            r#"
-            SELECT
-                id, brand, model, grinder_type,
-                min_setting, max_setting, scale_type, description,
-                created_at, updated_at
-            FROM grinders
-            WHERE id = $1
-            "#,
-        )
-        .bind(id)
-        .fetch_optional(self.pool)
-        .await
-        .context("Failed to fetch grinder")?;
-
-        Ok(grinder)
     }
 }
 

@@ -16,6 +16,7 @@ function makeGrinder(overrides: Partial<Grinder> = {}): Grinder {
     maxSetting: 40,
     scaleType: 'step',
     description: 'Hand grinder',
+    isActive: true,
     createdAt: '2024-01-01T00:00:00Z',
     updatedAt: '2024-01-01T00:00:00Z',
     ...overrides,

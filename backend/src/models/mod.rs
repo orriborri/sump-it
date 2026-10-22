@@ -140,7 +140,13 @@ pub struct Grinder {
     pub max_setting: i32,
     pub scale_type: Option<String>, // "step" or "sliding" (from BeanIt)
     pub description: Option<String>,
-    
+
+    /// Soft-delete flag mirroring [`CoffeeBean::is_active`] (ticket #165). A
+    /// retired grinder has `is_active = false`; `GrinderService::delete_grinder`
+    /// flips this flag instead of hard-deleting the row so the brewing sessions
+    /// and bean usage history logged against the grinder survive.
+    pub is_active: bool,
+
     // Timestamps
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -159,10 +165,27 @@ impl Grinder {
     
     /// Comprehensive validation
     pub fn validate_comprehensive(&self) -> Result<(), ValidationErrorType> {
-        validate_grinder_brand(&self.brand)?;
-        validate_grinder_setting_range(self.min_setting, self.max_setting)?;
-        Ok(())
+        validate_grinder_fields(&self.brand, self.min_setting, self.max_setting)
     }
+}
+
+/// Validates the user-supplied fields shared by [`Grinder`] and
+/// [`CreateGrinderRequest`].
+///
+/// This is the single source of truth for grinder business rules: a non-empty
+/// brand and a well-formed setting range (`min_setting >= 0` and
+/// `max_setting > min_setting`). Each failure returns a precise
+/// [`ValidationErrorType`] so the API can surface an actionable message. Shared
+/// so a non-HTTP caller (e.g. `GrinderService::create_grinder`) enforces the
+/// exact same rules as the HTTP handler.
+pub fn validate_grinder_fields(
+    brand: &str,
+    min_setting: i32,
+    max_setting: i32,
+) -> Result<(), ValidationErrorType> {
+    validate_grinder_brand(brand)?;
+    validate_grinder_setting_range(min_setting, max_setting)?;
+    Ok(())
 }
 
 /// Request for creating a new grinder
@@ -181,6 +204,21 @@ pub struct CreateGrinderRequest {
     pub max_setting: i32,
     pub scale_type: Option<String>,
     pub description: Option<String>,
+}
+
+impl CreateGrinderRequest {
+    /// Applies the shared grinder business rules to an incoming create/update
+    /// request before it is persisted: a non-empty brand and a well-formed
+    /// setting range (`min_setting >= 0`, `max_setting > min_setting`).
+    ///
+    /// Ticket #166: the CRUD service calls this at the top of `create_grinder`
+    /// and `update_grinder`, so invalid data is rejected at the service layer
+    /// regardless of caller (the HTTP handler's `validate_grinder_request` stays
+    /// as supplemental fast feedback). Mirrors
+    /// [`CreateCoffeeBeanRequest::validate_comprehensive`].
+    pub fn validate_comprehensive(&self) -> Result<(), ValidationErrorType> {
+        validate_grinder_fields(&self.brand, self.min_setting, self.max_setting)
+    }
 }
 
 /// Grinder type enum (from rustyCoffy + BeanIt).
@@ -561,8 +599,21 @@ mod tests {
             max_setting: max,
             scale_type: Some("step".to_string()),
             description: None,
+            is_active: true,
             created_at: Utc::now(),
             updated_at: Utc::now(),
+        }
+    }
+
+    fn sample_create_grinder_request(brand: &str, min: i32, max: i32) -> CreateGrinderRequest {
+        CreateGrinderRequest {
+            brand: brand.to_string(),
+            model: "C40".to_string(),
+            grinder_type: GrinderType::BurrConical,
+            min_setting: min,
+            max_setting: max,
+            scale_type: Some("step".to_string()),
+            description: None,
         }
     }
 
@@ -739,6 +790,34 @@ mod tests {
         // Max not greater than min is rejected.
         let inverted = sample_grinder(40, 40);
         assert!(inverted.validate_comprehensive().is_err());
+    }
+
+    #[test]
+    fn create_grinder_request_validate_comprehensive() {
+        use crate::validation::ValidationErrorType;
+
+        // A well-formed request validates.
+        let valid = sample_create_grinder_request("Comandante", 0, 40);
+        assert!(valid.validate_comprehensive().is_ok());
+
+        // Empty brand is rejected with a named error.
+        let bad_brand = sample_create_grinder_request("   ", 0, 40);
+        assert!(matches!(
+            bad_brand.validate_comprehensive(),
+            Err(ValidationErrorType::GrinderBrandEmpty)
+        ));
+
+        // Negative minimum setting is rejected.
+        let negative_min = sample_create_grinder_request("Comandante", -1, 40);
+        assert!(negative_min.validate_comprehensive().is_err());
+
+        // Max not greater than min is rejected.
+        let inverted = sample_create_grinder_request("Comandante", 40, 40);
+        assert!(inverted.validate_comprehensive().is_err());
+
+        // Max below min is rejected.
+        let backwards = sample_create_grinder_request("Comandante", 40, 10);
+        assert!(backwards.validate_comprehensive().is_err());
     }
 
     #[test]

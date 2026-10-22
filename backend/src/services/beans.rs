@@ -55,7 +55,18 @@ impl<'a> BeanService<'a> {
     }
     
     /// Create a new coffee bean
+    ///
+    /// Ticket #166: the service OWNS the bean invariants. The request is run
+    /// through [`CreateCoffeeBeanRequest::validate_comprehensive`] (non-empty
+    /// name/origin, no future roast/purchase dates, non-negative remaining
+    /// grams) BEFORE any SQL, so a non-HTTP caller cannot persist invalid data;
+    /// the HTTP handler's validation stays as supplemental fast feedback.
     pub async fn create_bean(&self, request: CreateCoffeeBeanRequest) -> Result<CoffeeBean> {
+        request
+            .validate_comprehensive()
+            .map_err(|e| anyhow::anyhow!(e.to_string()))
+            .context("Bean validation failed")?;
+
         let now = Utc::now();
         
         let bean = sqlx::query_as::<_, CoffeeBean>(
@@ -111,7 +122,16 @@ impl<'a> BeanService<'a> {
     }
     
     /// Update a coffee bean
+    ///
+    /// Ticket #166: validates the request through
+    /// [`CreateCoffeeBeanRequest::validate_comprehensive`] before any SQL, same
+    /// as `create_bean`, so a non-HTTP caller cannot persist invalid data.
     pub async fn update_bean(&self, id: Uuid, request: CreateCoffeeBeanRequest) -> Result<Option<CoffeeBean>> {
+        request
+            .validate_comprehensive()
+            .map_err(|e| anyhow::anyhow!(e.to_string()))
+            .context("Bean validation failed")?;
+
         let now = Utc::now();
         
         let bean = sqlx::query_as::<_, CoffeeBean>(

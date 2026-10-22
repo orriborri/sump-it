@@ -33,18 +33,20 @@ impl<'a> GrinderService<'a> {
         let limit = limit.unwrap_or(50).clamp(1, 100);
         let offset = (page - 1) * limit;
 
-        let total: i64 = sqlx::query_scalar(r#"SELECT COUNT(*) FROM grinders"#)
-            .fetch_one(self.pool)
-            .await
-            .context("Failed to count grinders")?;
+        let total: i64 =
+            sqlx::query_scalar(r#"SELECT COUNT(*) FROM grinders WHERE is_active = true"#)
+                .fetch_one(self.pool)
+                .await
+                .context("Failed to count grinders")?;
 
         let grinders = sqlx::query_as::<_, Grinder>(
             r#"
             SELECT
                 id, brand, model, grinder_type,
-                min_setting, max_setting, scale_type, description,
+                min_setting, max_setting, scale_type, description, is_active,
                 created_at, updated_at
             FROM grinders
+            WHERE is_active = true
             ORDER BY created_at DESC, brand ASC
             LIMIT $1 OFFSET $2
             "#,
@@ -59,19 +61,31 @@ impl<'a> GrinderService<'a> {
     }
 
     /// Create a new grinder.
+    ///
+    /// Ticket #166: the service OWNS the grinder invariants. The request is run
+    /// through [`CreateGrinderRequest::validate_comprehensive`] (non-empty
+    /// brand, `min_setting >= 0`, `max_setting > min_setting`) BEFORE any SQL,
+    /// so invalid data is rejected at the service layer regardless of caller;
+    /// the HTTP handler's `validate_grinder_request` stays as supplemental fast
+    /// feedback. Mirrors `BeanService::create_bean`.
     pub async fn create_grinder(&self, request: CreateGrinderRequest) -> Result<Grinder> {
+        request
+            .validate_comprehensive()
+            .map_err(|e| anyhow::anyhow!(e.to_string()))
+            .context("Grinder validation failed")?;
+
         let now = Utc::now();
 
         let grinder = sqlx::query_as::<_, Grinder>(
             r#"
             INSERT INTO grinders (
                 id, brand, model, grinder_type, min_setting, max_setting,
-                scale_type, description, created_at, updated_at
+                scale_type, description, is_active, created_at, updated_at
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
             RETURNING
                 id, brand, model, grinder_type,
-                min_setting, max_setting, scale_type, description,
+                min_setting, max_setting, scale_type, description, is_active,
                 created_at, updated_at
             "#,
         )
@@ -83,6 +97,7 @@ impl<'a> GrinderService<'a> {
         .bind(request.max_setting)
         .bind(request.scale_type)
         .bind(request.description)
+        .bind(true) // is_active
         .bind(now)
         .bind(now)
         .fetch_one(self.pool)
@@ -98,10 +113,10 @@ impl<'a> GrinderService<'a> {
             r#"
             SELECT
                 id, brand, model, grinder_type,
-                min_setting, max_setting, scale_type, description,
+                min_setting, max_setting, scale_type, description, is_active,
                 created_at, updated_at
             FROM grinders
-            WHERE id = $1
+            WHERE id = $1 AND is_active = true
             "#,
         )
         .bind(id)
@@ -114,11 +129,20 @@ impl<'a> GrinderService<'a> {
 
 
     /// Update an existing grinder.
+    ///
+    /// Ticket #166: validates the request through
+    /// [`CreateGrinderRequest::validate_comprehensive`] before any SQL, same as
+    /// `create_grinder`, so a non-HTTP caller cannot persist invalid data.
     pub async fn update_grinder(
         &self,
         id: Uuid,
         request: CreateGrinderRequest,
     ) -> Result<Option<Grinder>> {
+        request
+            .validate_comprehensive()
+            .map_err(|e| anyhow::anyhow!(e.to_string()))
+            .context("Grinder validation failed")?;
+
         let now = Utc::now();
 
         let grinder = sqlx::query_as::<_, Grinder>(
@@ -133,10 +157,10 @@ impl<'a> GrinderService<'a> {
                 scale_type = $7,
                 description = $8,
                 updated_at = $9
-            WHERE id = $1
+            WHERE id = $1 AND is_active = true
             RETURNING
                 id, brand, model, grinder_type,
-                min_setting, max_setting, scale_type, description,
+                min_setting, max_setting, scale_type, description, is_active,
                 created_at, updated_at
             "#,
         )
@@ -156,13 +180,28 @@ impl<'a> GrinderService<'a> {
         Ok(grinder)
     }
 
-    /// Delete a grinder (hard delete; grinders have no soft-delete column).
+    /// Delete a grinder (SOFT delete).
+    ///
+    /// Ticket #165: a grinder is equipment that can be retired, but the brewing
+    /// sessions (and the bean usage history they feed) logged against it are
+    /// records that must survive. So this flips `is_active = false` instead of
+    /// issuing a `DELETE`, exactly like `BeanService::delete_bean`. Migration
+    /// 0004 also replaces the destructive `ON DELETE CASCADE` on
+    /// `brewing_sessions.grinder_id` with `ON DELETE RESTRICT`, so even a direct
+    /// hard delete can no longer erase sessions.
     pub async fn delete_grinder(&self, id: Uuid) -> Result<bool> {
-        let result = sqlx::query(r#"DELETE FROM grinders WHERE id = $1"#)
-            .bind(id)
-            .execute(self.pool)
-            .await
-            .context("Failed to delete grinder")?;
+        let result = sqlx::query(
+            r#"
+            UPDATE grinders
+            SET is_active = false, updated_at = $2
+            WHERE id = $1 AND is_active = true
+            "#,
+        )
+        .bind(id)
+        .bind(Utc::now())
+        .execute(self.pool)
+        .await
+        .context("Failed to delete grinder")?;
 
         Ok(result.rows_affected() > 0)
     }

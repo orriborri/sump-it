@@ -12,8 +12,9 @@
 //! ```
 //!
 //! The schema is created from the single source of truth under `migrations/`
-//! (0001_init.sql + 0002_relax_session_bounds.sql) via `sqlx::migrate!`. Each
-//! test cleans up the rows it inserts so the suite can run repeatedly.
+//! (0001_init.sql + 0002_relax_session_bounds.sql + ... + 0004) via
+//! `sqlx::migrate!`. Each test cleans up the rows it inserts so the suite can
+//! run repeatedly.
 //!
 //! WHY THIS TEST CALLS THE REAL SERVICE: the production save path
 //! (`SessionService::log_brew` / `duplicate` / `list_filtered`) lives in the
@@ -398,6 +399,97 @@ async fn untracked_bean_never_blocks_and_is_not_decremented() {
             .await
             .expect("read grams");
     assert_eq!(after, None, "untracked grams stay NULL");
+
+    cleanup(&pool, bean, grinder).await;
+}
+
+/// Ticket #168 invariant: a session cannot be persisted against a grind setting
+/// that is out of range for the grinder's CURRENT setting range.
+///
+/// `log_brew` now loads and locks the grinder `FOR UPDATE` INSIDE the
+/// transaction and validates `recipe::validate` against THAT snapshot (see the
+/// documented snapshot/lock policy on `log_brew`), so a range the save no
+/// longer satisfies is rejected before any row is written. Here we narrow the
+/// grinder's range so the Espresso request's grind setting (12) falls outside
+/// it, then assert the brew is rejected with `SaveError::Recipe(..)` and no
+/// session is inserted.
+///
+/// A live concurrent-edit race cannot be expressed without threads against a
+/// shared DB, but this encodes the post-condition the lock guarantees: the
+/// grinder range read under the transaction is the one validation uses, so a
+/// grind setting outside the current range can never be persisted.
+#[tokio::test]
+#[ignore = "requires a live Postgres (DATABASE_URL); run with --ignored"]
+async fn grind_setting_out_of_grinder_range_is_rejected_under_tx() {
+    let Some(pool) = pool().await else { return };
+    let grinder = insert_grinder(&pool).await; // range 0..40
+    let bean = insert_bean(&pool, Some(100.0)).await;
+
+    // Narrow the grinder's range so the request's grind setting (12) is now out
+    // of range, modelling a concurrent range change that happened before this
+    // save's transaction locks and reads the grinder row.
+    sqlx::query("UPDATE grinders SET max_setting = 5 WHERE id = $1")
+        .bind(grinder)
+        .execute(&pool)
+        .await
+        .expect("narrow grinder range");
+
+    let service = SessionService::new(&pool);
+    let err = service
+        .log_brew(espresso_request(bean, grinder))
+        .await
+        .expect_err("grind setting 12 is out of the narrowed 0..5 range");
+    match err {
+        SaveError::Recipe(_) => {}
+        other => panic!("expected SaveError::Recipe, got {other:?}"),
+    }
+
+    // The whole save rolled back: no session, grams untouched.
+    let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM brewing_sessions WHERE bean_id = $1")
+        .bind(bean)
+        .fetch_one(&pool)
+        .await
+        .expect("count sessions");
+    assert_eq!(count, 0, "no session may be inserted for an out-of-range grind setting");
+
+    let after: Option<f32> =
+        sqlx::query_scalar("SELECT remaining_grams FROM coffee_beans WHERE id = $1")
+            .bind(bean)
+            .fetch_one(&pool)
+            .await
+            .expect("read grams");
+    assert_eq!(after, Some(100.0), "grams unchanged after a rejected save");
+
+    cleanup(&pool, bean, grinder).await;
+}
+
+/// Ticket #168: a retired grinder (ticket #165 soft delete) cannot have new
+/// brews logged against it. `log_brew` locks the grinder with
+/// `WHERE is_active = true ... FOR UPDATE`, so a grinder flipped inactive is
+/// treated as not found and the save rolls back with `GrinderNotFound`.
+#[tokio::test]
+#[ignore = "requires a live Postgres (DATABASE_URL); run with --ignored"]
+async fn retired_grinder_cannot_log_new_brews() {
+    let Some(pool) = pool().await else { return };
+    let grinder = insert_grinder(&pool).await;
+    let bean = insert_bean(&pool, Some(100.0)).await;
+
+    // Retire the grinder (what GrinderService::delete_grinder does).
+    sqlx::query("UPDATE grinders SET is_active = false WHERE id = $1")
+        .bind(grinder)
+        .execute(&pool)
+        .await
+        .expect("retire grinder");
+
+    let service = SessionService::new(&pool);
+    let err = service
+        .log_brew(espresso_request(bean, grinder))
+        .await
+        .expect_err("a retired grinder cannot accept new brews");
+    match err {
+        SaveError::GrinderNotFound => {}
+        other => panic!("expected SaveError::GrinderNotFound, got {other:?}"),
+    }
 
     cleanup(&pool, bean, grinder).await;
 }
