@@ -7,6 +7,23 @@ use uuid::Uuid;
 use anyhow::{Result, Context};
 
 use crate::models::{BeanUsageRecord, CoffeeBean, CreateCoffeeBeanRequest};
+use crate::pagination::Pagination;
+use crate::validation::ValidationErrorType;
+
+/// Why a bean create/update failed. Mirrors `services::sessions::SaveError`:
+/// the service interface is the authoritative invariant seam (ticket #166), so
+/// it distinguishes a business-rule VALIDATION failure (which the API maps to
+/// `400 Bad Request`) from an underlying DATABASE failure (`500`). Any caller
+/// of the service - not just the HTTP handler - therefore cannot persist an
+/// invalid bean.
+#[derive(Debug)]
+pub enum BeanServiceError {
+    /// A business rule was violated (empty name/origin, future date, negative
+    /// grams). The API renders this as a `400` with the error's message.
+    Validation(ValidationErrorType),
+    /// Any underlying database failure.
+    Database(anyhow::Error),
+}
 
 /// Service for managing coffee beans
 pub struct BeanService<'a> {
@@ -20,9 +37,9 @@ impl<'a> BeanService<'a> {
     
     /// List all coffee beans with pagination
     pub async fn list_beans(&self, page: Option<i32>, limit: Option<i32>) -> Result<(Vec<CoffeeBean>, i64)> {
-        let page = page.unwrap_or(1).max(1);
-        let limit = limit.unwrap_or(50).clamp(1, 100);
-        let offset = (page - 1) * limit;
+        // Clamp once via the shared pagination policy (ticket #167) so the
+        // query and the handler's response metadata agree on the page size.
+        let Pagination { limit, offset, .. } = Pagination::from_request(page, limit);
         
         // Get total count
         let total: i64 = sqlx::query_scalar(
@@ -54,8 +71,19 @@ impl<'a> BeanService<'a> {
         Ok((beans, total))
     }
     
-    /// Create a new coffee bean
-    pub async fn create_bean(&self, request: CreateCoffeeBeanRequest) -> Result<CoffeeBean> {
+    /// Create a new coffee bean.
+    ///
+    /// Ticket #166: business-rule validation runs HERE, at the service seam,
+    /// before any DB access, so an invalid bean can never be persisted no
+    /// matter which caller invokes the service.
+    pub async fn create_bean(
+        &self,
+        request: CreateCoffeeBeanRequest,
+    ) -> std::result::Result<CoffeeBean, BeanServiceError> {
+        request
+            .validate_comprehensive()
+            .map_err(BeanServiceError::Validation)?;
+
         let now = Utc::now();
         
         let bean = sqlx::query_as::<_, CoffeeBean>(
@@ -85,7 +113,8 @@ impl<'a> BeanService<'a> {
         .bind(now)
         .fetch_one(self.pool)
         .await
-        .context("Failed to create bean")?;
+        .context("Failed to create bean")
+        .map_err(BeanServiceError::Database)?;
         
         Ok(bean)
     }
@@ -110,8 +139,19 @@ impl<'a> BeanService<'a> {
         Ok(bean)
     }
     
-    /// Update a coffee bean
-    pub async fn update_bean(&self, id: Uuid, request: CreateCoffeeBeanRequest) -> Result<Option<CoffeeBean>> {
+    /// Update a coffee bean.
+    ///
+    /// Ticket #166: the same service-seam validation as `create_bean` runs
+    /// first, before any DB access.
+    pub async fn update_bean(
+        &self,
+        id: Uuid,
+        request: CreateCoffeeBeanRequest,
+    ) -> std::result::Result<Option<CoffeeBean>, BeanServiceError> {
+        request
+            .validate_comprehensive()
+            .map_err(BeanServiceError::Validation)?;
+
         let now = Utc::now();
         
         let bean = sqlx::query_as::<_, CoffeeBean>(
@@ -144,7 +184,8 @@ impl<'a> BeanService<'a> {
         .bind(now)
         .fetch_optional(self.pool)
         .await
-        .context("Failed to update bean")?;
+        .context("Failed to update bean")
+        .map_err(BeanServiceError::Database)?;
         
         Ok(bean)
     }
@@ -212,5 +253,61 @@ impl<'a> BeanService<'a> {
         .context("Failed to fetch bean usage history")?;
         
         Ok(history)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::NaiveDate;
+    use sqlx::postgres::PgPoolOptions;
+
+    /// Builds a lazy pool that never actually connects. `create_bean`/
+    /// `update_bean` validate BEFORE touching the pool (ticket #166), so these
+    /// DB-free tests prove the service seam rejects invalid input without a
+    /// live Postgres. The URL is syntactically valid but never dialled.
+    fn lazy_pool() -> PgPool {
+        PgPoolOptions::new()
+            .connect_lazy("postgres://invalid:invalid@127.0.0.1:1/none")
+            .expect("build lazy pool")
+    }
+
+    fn invalid_request() -> CreateCoffeeBeanRequest {
+        // Empty name is a business-rule violation caught by
+        // `validate_comprehensive`.
+        CreateCoffeeBeanRequest {
+            name: "   ".to_string(),
+            origin: "Ethiopia".to_string(),
+            roast_date: NaiveDate::from_ymd_opt(2020, 1, 1).unwrap(),
+            purchase_date: NaiveDate::from_ymd_opt(2020, 1, 2).unwrap(),
+            remaining_grams: Some(100.0),
+            variety: None,
+            processing_method: None,
+        }
+    }
+
+    /// The service itself (not the HTTP handler) rejects an invalid bean on
+    /// create, returning a typed validation error before any DB access.
+    #[tokio::test]
+    async fn create_bean_rejects_invalid_at_service_seam() {
+        let pool = lazy_pool();
+        let service = BeanService::new(&pool);
+        let err = service
+            .create_bean(invalid_request())
+            .await
+            .expect_err("invalid bean must be rejected by the service");
+        assert!(matches!(err, BeanServiceError::Validation(_)));
+    }
+
+    /// Same guarantee on update: the service validates before the DB.
+    #[tokio::test]
+    async fn update_bean_rejects_invalid_at_service_seam() {
+        let pool = lazy_pool();
+        let service = BeanService::new(&pool);
+        let err = service
+            .update_bean(Uuid::new_v4(), invalid_request())
+            .await
+            .expect_err("invalid bean must be rejected by the service");
+        assert!(matches!(err, BeanServiceError::Validation(_)));
     }
 }

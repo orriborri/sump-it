@@ -12,6 +12,22 @@ use uuid::Uuid;
 use anyhow::{Result, Context};
 
 use crate::models::{Grinder, CreateGrinderRequest};
+use crate::pagination::Pagination;
+use crate::validation::ValidationErrorType;
+
+/// Why a grinder create/update failed. Mirrors
+/// `services::sessions::SaveError` and `services::beans::BeanServiceError`: the
+/// service interface is the authoritative invariant seam (ticket #166), so it
+/// distinguishes a business-rule VALIDATION failure (mapped by the API to
+/// `400 Bad Request`) from an underlying DATABASE failure (`500`).
+#[derive(Debug)]
+pub enum GrinderServiceError {
+    /// A business rule was violated (empty brand, non-positive setting range).
+    /// The API renders this as a `400` with the error's message.
+    Validation(ValidationErrorType),
+    /// Any underlying database failure.
+    Database(anyhow::Error),
+}
 
 /// Service for managing grinders.
 pub struct GrinderService<'a> {
@@ -29,9 +45,9 @@ impl<'a> GrinderService<'a> {
         page: Option<i32>,
         limit: Option<i32>,
     ) -> Result<(Vec<Grinder>, i64)> {
-        let page = page.unwrap_or(1).max(1);
-        let limit = limit.unwrap_or(50).clamp(1, 100);
-        let offset = (page - 1) * limit;
+        // Clamp once via the shared pagination policy (ticket #167) so the
+        // query and the handler's response metadata agree on the page size.
+        let Pagination { limit, offset, .. } = Pagination::from_request(page, limit);
 
         let total: i64 =
             sqlx::query_scalar(r#"SELECT COUNT(*) FROM grinders WHERE is_active = true"#)
@@ -61,7 +77,18 @@ impl<'a> GrinderService<'a> {
     }
 
     /// Create a new grinder.
-    pub async fn create_grinder(&self, request: CreateGrinderRequest) -> Result<Grinder> {
+    ///
+    /// Ticket #166: business-rule validation runs HERE, at the service seam,
+    /// before any DB access, so an invalid grinder can never be persisted no
+    /// matter which caller invokes the service.
+    pub async fn create_grinder(
+        &self,
+        request: CreateGrinderRequest,
+    ) -> std::result::Result<Grinder, GrinderServiceError> {
+        request
+            .validate_comprehensive()
+            .map_err(GrinderServiceError::Validation)?;
+
         let now = Utc::now();
 
         let grinder = sqlx::query_as::<_, Grinder>(
@@ -89,7 +116,8 @@ impl<'a> GrinderService<'a> {
         .bind(now)
         .fetch_one(self.pool)
         .await
-        .context("Failed to create grinder")?;
+        .context("Failed to create grinder")
+        .map_err(GrinderServiceError::Database)?;
 
         Ok(grinder)
     }
@@ -116,11 +144,18 @@ impl<'a> GrinderService<'a> {
 
 
     /// Update an existing grinder.
+    ///
+    /// Ticket #166: the same service-seam validation as `create_grinder` runs
+    /// first, before any DB access.
     pub async fn update_grinder(
         &self,
         id: Uuid,
         request: CreateGrinderRequest,
-    ) -> Result<Option<Grinder>> {
+    ) -> std::result::Result<Option<Grinder>, GrinderServiceError> {
+        request
+            .validate_comprehensive()
+            .map_err(GrinderServiceError::Validation)?;
+
         let now = Utc::now();
 
         let grinder = sqlx::query_as::<_, Grinder>(
@@ -153,7 +188,8 @@ impl<'a> GrinderService<'a> {
         .bind(now)
         .fetch_optional(self.pool)
         .await
-        .context("Failed to update grinder")?;
+        .context("Failed to update grinder")
+        .map_err(GrinderServiceError::Database)?;
 
         Ok(grinder)
     }
@@ -184,5 +220,61 @@ impl<'a> GrinderService<'a> {
         .context("Failed to delete grinder")?;
 
         Ok(result.rows_affected() > 0)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::models::GrinderType;
+    use sqlx::postgres::PgPoolOptions;
+
+    /// Builds a lazy pool that never actually connects. `create_grinder`/
+    /// `update_grinder` validate BEFORE touching the pool (ticket #166), so
+    /// these DB-free tests prove the service seam rejects invalid input
+    /// without a live Postgres.
+    fn lazy_pool() -> PgPool {
+        PgPoolOptions::new()
+            .connect_lazy("postgres://invalid:invalid@127.0.0.1:1/none")
+            .expect("build lazy pool")
+    }
+
+    fn invalid_request() -> CreateGrinderRequest {
+        // `max_setting <= min_setting` is a business-rule violation caught by
+        // `validate_comprehensive` via `validate_grinder_setting_range`.
+        CreateGrinderRequest {
+            brand: "Comandante".to_string(),
+            model: "C40".to_string(),
+            grinder_type: GrinderType::Manual,
+            min_setting: 40,
+            max_setting: 10,
+            scale_type: None,
+            description: None,
+        }
+    }
+
+    /// The service itself (not the HTTP handler) rejects an invalid grinder on
+    /// create, returning a typed validation error before any DB access.
+    #[tokio::test]
+    async fn create_grinder_rejects_invalid_at_service_seam() {
+        let pool = lazy_pool();
+        let service = GrinderService::new(&pool);
+        let err = service
+            .create_grinder(invalid_request())
+            .await
+            .expect_err("invalid grinder must be rejected by the service");
+        assert!(matches!(err, GrinderServiceError::Validation(_)));
+    }
+
+    /// Same guarantee on update: the service validates before the DB.
+    #[tokio::test]
+    async fn update_grinder_rejects_invalid_at_service_seam() {
+        let pool = lazy_pool();
+        let service = GrinderService::new(&pool);
+        let err = service
+            .update_grinder(Uuid::new_v4(), invalid_request())
+            .await
+            .expect_err("invalid grinder must be rejected by the service");
+        assert!(matches!(err, GrinderServiceError::Validation(_)));
     }
 }
