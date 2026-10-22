@@ -22,10 +22,9 @@
 - **Definition**: A complete coffee brewing session record
 - **Attributes**: bean, grinder, brewing method, grind setting, water temp, brew time, coffee grams, water grams, rating, tasting notes
 - **Business Rules**:
-  - Coffee ratio must be between 15.0-17.0 (water:coffee)
+  - Coffee ratio, dose, water, temperature, and brew time must satisfy the selected method's rules in `backend/src/recipe.rs`
   - Rating must be in 0.5 increments from 1.0-10.0
-  - Coffee amount: 10.0-100.0g
-  - Water amount: 150.0-1700.0ml
+  - Coffee and water amounts use method-specific ranges
   - Grind setting must be within grinder's range
 
 ### Brewing Method
@@ -36,8 +35,8 @@
 
 ### Coffee Ratio
 - **Formula**: `water_grams / coffee_grams`
-- **Valid Range**: 15.0 to 17.0
-- **Example**: 20g coffee + 320g water = 16:1 ratio
+- **Valid Range**: Method-specific; espresso is near 1:2, while immersion and pour-over methods are commonly near 1:12-1:18
+- **Example**: 20g coffee + 320g water is a 16:1 ratio suitable for methods whose configured band includes it
 
 ### Grind Setting Validation
 - Each grinder has a valid range (min-max)
@@ -66,7 +65,7 @@
 
 ### Type Safety
 - Full TypeScript/TypeScript type safety
-- tRPC-like communication between frontend and backend
+- A thin typed REST client uses TypeScript bindings generated from the Rust models with ts-rs
 - Database constraints for data integrity
 
 ### Validation Layers
