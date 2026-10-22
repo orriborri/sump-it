@@ -18,6 +18,7 @@ use validator::Validate;
 use crate::{
     api::AppState,
     models::{CreateGrinderRequest, ErrorResponse, PaginatedResponse},
+    pagination::Pagination,
     services::grinders::GrinderService,
     validation::{validate_grinder_setting_range, validation_errors_to_string},
 };
@@ -35,19 +36,22 @@ async fn list_grinders(
 ) -> impl IntoResponse {
     let service = GrinderService::new(&state.pool);
 
-    match service.list_grinders(params.page, params.limit).await {
-        Ok((grinders, total)) => {
-            let page = params.page.unwrap_or(1);
-            let page_size = params.limit.unwrap_or(50);
-            Json(PaginatedResponse {
-                items: grinders,
-                total,
-                page,
-                page_size,
-                has_more: total > (page * page_size) as i64,
-            })
-            .into_response()
-        }
+    // Normalize paging ONCE and derive both the query inputs and the response
+    // metadata from it, so page_size/has_more always match what was fetched
+    // (even for limit=0, negative, or >100).
+    let pagination = Pagination::from_page(params.page, params.limit);
+    match service
+        .list_grinders(Some(pagination.page), Some(pagination.limit))
+        .await
+    {
+        Ok((grinders, total)) => Json(PaginatedResponse {
+            items: grinders,
+            total,
+            page: pagination.page(),
+            page_size: pagination.page_size(),
+            has_more: pagination.has_more(total),
+        })
+        .into_response(),
         Err(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(ErrorResponse::new(format!("Failed to list grinders: {}", e))),
@@ -183,9 +187,10 @@ fn validate_grinder_request(payload: &CreateGrinderRequest) -> Option<axum::resp
 
 /// Query parameters for listing grinders.
 ///
-/// Both fields are optional; the handler applies the 1/50 page/limit defaults
-/// inline via `unwrap_or`, so there is no separate `Default` impl to keep in
-/// sync (and none to leave untested).
+/// Both fields are optional; the handler normalizes them once through
+/// [`crate::pagination::Pagination::from_page`], which applies the
+/// `DEFAULT_LIMIT`/clamp policy, so there is no separate defaulting logic to
+/// keep in sync.
 #[derive(Debug, serde::Deserialize)]
 struct ListParams {
     page: Option<i32>,

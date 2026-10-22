@@ -29,6 +29,11 @@ impl<'a> GrinderService<'a> {
         page: Option<i32>,
         limit: Option<i32>,
     ) -> Result<(Vec<Grinder>, i64)> {
+        // Clamp policy is intentionally IDENTICAL to `crate::pagination`
+        // (DEFAULT_LIMIT=50, MAX_LIMIT=100, page floor 1, offset = (page-1)*limit).
+        // The handler already passes normalized values, so this clamp is
+        // idempotent; keeping it means the SQL window never diverges from the
+        // reported page_size/has_more even if called with raw values.
         let page = page.unwrap_or(1).max(1);
         let limit = limit.unwrap_or(50).clamp(1, 100);
         let offset = (page - 1) * limit;

@@ -28,6 +28,7 @@ use crate::{
         BrewingMethod, CreateBrewingSessionRequest, ErrorResponse, GrinderType, PaginatedResponse,
         SessionFilter,
     },
+    pagination::Pagination,
     services::sessions::{SaveError, SessionService},
     validation::validation_errors_to_string,
 };
@@ -140,16 +141,16 @@ async fn list_sessions(
     let filter = params.to_filter();
     match service.list_filtered(&filter, params.q.as_deref()).await {
         Ok((sessions, total)) => {
-            let page_size = crate::session_query::normalize_limit(filter.limit);
-            let offset = crate::session_query::normalize_offset(filter.offset);
-            // Page is 1-based and derived from offset/limit for the response.
-            let page = offset / page_size + 1;
+            // Derive response metadata from the SAME normalized window the
+            // filter was built from, so page/page_size/has_more cannot diverge
+            // from what was fetched.
+            let pagination = Pagination::from_offset(filter.limit, filter.offset, None);
             Json(PaginatedResponse {
                 items: sessions,
                 total,
-                page,
-                page_size,
-                has_more: ((offset + page_size) as i64) < total,
+                page: pagination.page(),
+                page_size: pagination.page_size(),
+                has_more: pagination.has_more(total),
             })
             .into_response()
         }
@@ -203,12 +204,10 @@ impl ListParams {
     /// (when given and no explicit `offset`) becomes an offset of
     /// `(page - 1) * limit`.
     fn to_filter(&self) -> SessionFilter {
-        let limit = crate::session_query::normalize_limit(self.limit);
-        let offset = match (self.offset, self.page) {
-            (Some(offset), _) => offset.max(0),
-            (None, Some(page)) => (page.max(1) - 1) * limit,
-            (None, None) => 0,
-        };
+        // Normalize once through the shared pagination value object so the
+        // filter's limit/offset match the response metadata exactly. `offset`
+        // wins over `page` when both are given (offset-based paging).
+        let pagination = Pagination::from_offset(self.limit, self.offset, self.page);
         SessionFilter {
             bean_origin: self.bean_origin.clone(),
             roast_date_from: self.roast_date_from,
@@ -216,8 +215,8 @@ impl ListParams {
             grinder_type: self.grinder_type.clone(),
             brewing_method: self.brewing_method.clone(),
             rating_min: self.rating_min,
-            limit: Some(limit),
-            offset: Some(offset),
+            limit: Some(pagination.limit),
+            offset: Some(pagination.offset),
         }
     }
 }

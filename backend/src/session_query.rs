@@ -20,11 +20,10 @@
 use chrono::NaiveDate;
 
 use crate::models::{BrewingMethod, GrinderType, SessionFilter};
-
-/// Default page size when a filter does not specify `limit`.
-pub const DEFAULT_LIMIT: i32 = 50;
-/// Hard ceiling on page size so a client cannot request an unbounded page.
-pub const MAX_LIMIT: i32 = 100;
+// Pagination normalization lives in a single source of truth (`crate::pagination`).
+// Re-export the policy so this module (and its callers/tests) keep using the
+// same clamp rules rather than a second, divergent copy.
+pub use crate::pagination::{normalize_limit, normalize_offset, DEFAULT_LIMIT, MAX_LIMIT};
 
 /// A single value to bind to a numbered placeholder, in placeholder order.
 ///
@@ -58,18 +57,6 @@ pub struct BuiltQuery {
     pub sql: String,
     /// Values to bind, in placeholder order.
     pub binds: Vec<QueryBind>,
-}
-
-/// Normalises a filter's `limit` into the inclusive range `[1, MAX_LIMIT]`,
-/// defaulting to [`DEFAULT_LIMIT`] when unset. Pure and total.
-pub fn normalize_limit(limit: Option<i32>) -> i32 {
-    limit.unwrap_or(DEFAULT_LIMIT).clamp(1, MAX_LIMIT)
-}
-
-/// Normalises a filter's `offset` to a non-negative value, defaulting to 0.
-/// Pure and total.
-pub fn normalize_offset(offset: Option<i32>) -> i32 {
-    offset.unwrap_or(0).max(0)
 }
 
 /// Trims a raw search term and returns `Some(trimmed)` only when it contains
