@@ -14,13 +14,13 @@ coffee-brewer-consolidated/
 │   │   ├── services/         # Business logic layer
 │   │   ├── database/         # Database setup with PostgreSQL enums
 │   │   └── validation/       # Combined validation from all three apps
-│   ├── prisma/               # Database schema with constraints
+│   ├── migrations/           # SQLx migrations: schema and constraints
 │   └── Cargo.toml
 │
 ├── frontend/                  # Next.js 15 frontend
 │   ├── app/
 │   │   └── brew/             # Vertical stepper brewing workflow
-│   ├── lib/trpc/             # Thin typed REST client (ts-rs generated types)
+│   ├── lib/trpc/             # Thin typed REST client over fetch (ts-rs types; dir name is historical, not tRPC)
 │   └── package.json
 │
 ├── shared/                    # Shared types (planned)
@@ -44,7 +44,7 @@ coffee-brewer-consolidated/
 - **Bean inventory management**: Automatic quantity tracking and decrementing
 - **Session filtering**: Advanced filtering by origin, date ranges, ratings
 - **Session duplication**: Easy reproduction of successful brews
-- **Database constraints**: CHECK constraints for ratio validation (15.0-17.0)
+- **Method-specific recipe rules**: ratio, dose, water, temperature, and brew-time ranges are defined in `backend/src/recipe.rs`
 
 ### ✅ Preserved from BeanIt
 - **Type safety**: Full TypeScript/Rust type safety throughout
