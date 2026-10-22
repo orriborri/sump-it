@@ -43,6 +43,13 @@ Run the full test + coverage gate with `make coverage` (needs a reachable
 
 ## Agent skills
 
+### AI SDLC loops
+See `docs/agents/ai-sdlc.md` and `REVIEW.md`. Accepted work lives under
+`docs/changes/<issue>/`: intent → spec → plan → implementation/evidence.
+CI delivery stages never approve, merge or deploy. Verify using
+`bash scripts/ai-verify.sh`; report blockers and pending visual checks honestly.
+Review fixes need evidence or a reasoned disagreement in `review-response.md`.
+
 ### Issue tracker
 Issues are tracked in GitHub Issues at https://github.com/orriborri/sump-it/issues. See `docs/agents/issue-tracker.md`.
 

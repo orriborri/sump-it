@@ -8,3 +8,6 @@ target/
 coverage/
 lcov.info
 *.profraw
+# Transient AI context, patches and logs; published as short-lived CI artifacts.
+.ai-run/
+__pycache__/

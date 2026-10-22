@@ -71,6 +71,11 @@ Only method-invariant checks stay global:
 - **CLI**: `gh` for GitHub operations
 
 ## Development Guidelines
+For GitHub automation, follow `docs/agents/ai-sdlc.md` and `REVIEW.md`.
+Accepted intent/spec/plan live under `docs/changes/<issue>/`. Use
+`bash scripts/ai-verify.sh` for the contract/types/coverage feedback loop.
+Never approve, merge or deploy through an agent stage.
+
 1. **Start with `grill-me`** for requirements alignment
 2. **Use `tdd`** for test-driven development
 3. **Apply `code-review`** before committing
