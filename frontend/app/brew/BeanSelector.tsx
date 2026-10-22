@@ -16,7 +16,8 @@ import {
   Chip,
   Alert,
 } from '@mui/material';
-import { type BrewFormData } from '@/lib/brew/recipe';
+import { BREWING_METHODS, toBrewingMethod, type BrewFormData } from '@/lib/brew/recipe';
+import { type BrewingMethod } from '@/lib/api/types';
 
 /**
  * A coffee bean option.
@@ -50,7 +51,7 @@ interface BeanSelectorProps {
   formData: {
     beanId: string;
     grinderId: string;
-    brewingMethod: string;
+    brewingMethod: BrewingMethod | '';
   };
   /** Applies a partial update to the parent brew form. */
   updateFormData: (updates: Partial<BrewFormData>) => void;
@@ -61,17 +62,6 @@ interface BeanSelectorProps {
   /** Whether the equipment data is still loading. */
   isLoading: boolean;
 }
-
-const BREWING_METHODS = [
-  { value: 'V60', label: 'V60' },
-  { value: 'Chemex', label: 'Chemex' },
-  { value: 'FrenchPress', label: 'French Press' },
-  { value: 'AeroPress', label: 'AeroPress' },
-  { value: 'Espresso', label: 'Espresso' },
-  { value: 'Moka', label: 'Moka Pot' },
-  { value: 'ColdBrew', label: 'Cold Brew' },
-  { value: 'Other', label: 'Other' },
-];
 
 /** The two-line label rendered inside a bean dropdown option. */
 const BeanOptionLabel: React.FC<{ bean: Bean }> = ({ bean }) => (
@@ -140,7 +130,7 @@ const GrinderDropdown: React.FC<{
 
 /** The brewing-method `<Select>` dropdown with one option per method. */
 const MethodDropdown: React.FC<{
-  brewingMethod: string;
+  brewingMethod: BrewingMethod | '';
   onChange: (event: SelectChangeEvent) => void;
 }> = ({ brewingMethod, onChange }) => (
   <Select
@@ -259,7 +249,7 @@ const GrinderSelectColumn: React.FC<GrinderSelectColumnProps> = ({
 /** Props for {@link MethodSelectColumn}. */
 interface MethodSelectColumnProps {
   /** The currently selected brewing method. */
-  brewingMethod: string;
+  brewingMethod: BrewingMethod | '';
   /** Handles a change of the selected brewing method. */
   onChange: (event: SelectChangeEvent) => void;
 }
@@ -291,7 +281,7 @@ interface SelectionSummaryProps {
   /** The currently selected grinder, if any. */
   selectedGrinder?: Grinder;
   /** The currently selected brewing method. */
-  brewingMethod: string;
+  brewingMethod: BrewingMethod | '';
 }
 
 /** A compact summary of the current bean / grinder / method selection. */
@@ -351,7 +341,7 @@ export function BeanSelector({
   };
 
   const handleMethodChange = (event: SelectChangeEvent) => {
-    updateFormData({ brewingMethod: event.target.value });
+    updateFormData({ brewingMethod: toBrewingMethod(event.target.value) });
   };
 
   const selectedBean = beans.find(b => b.id === formData.beanId);
