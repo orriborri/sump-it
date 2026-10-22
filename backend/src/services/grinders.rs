@@ -26,6 +26,19 @@ pub enum GrinderServiceError {
     Database(anyhow::Error),
 }
 
+#[cfg(test)]
+mod error_tests {
+    use super::*;
+
+    #[test]
+    fn service_errors_have_actionable_display_messages() {
+        let validation = GrinderServiceError::Validation(ValidationErrorType::GrinderBrandEmpty);
+        assert_eq!(validation.to_string(), "Grinder brand cannot be empty");
+        let database = GrinderServiceError::Database(anyhow::anyhow!("database unavailable"));
+        assert_eq!(database.to_string(), "database unavailable");
+    }
+}
+
 impl std::fmt::Display for GrinderServiceError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {

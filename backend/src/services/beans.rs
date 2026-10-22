@@ -21,6 +21,19 @@ pub enum BeanServiceError {
     Database(anyhow::Error),
 }
 
+#[cfg(test)]
+mod error_tests {
+    use super::*;
+
+    #[test]
+    fn service_errors_have_actionable_display_messages() {
+        let validation = BeanServiceError::Validation(ValidationErrorType::BeanNameEmpty);
+        assert_eq!(validation.to_string(), "Bean name cannot be empty");
+        let database = BeanServiceError::Database(anyhow::anyhow!("database unavailable"));
+        assert_eq!(database.to_string(), "database unavailable");
+    }
+}
+
 impl std::fmt::Display for BeanServiceError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
