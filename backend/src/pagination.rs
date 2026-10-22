@@ -61,7 +61,13 @@ impl Pagination {
     /// `(page - 1) * limit`.
     pub fn from_page(page: Option<i32>, limit: Option<i32>) -> Self {
         let limit = normalize_limit(limit);
-        let page = page.unwrap_or(1).max(1);
+        let requested_page = page.unwrap_or(1).max(1);
+        // OFFSET is represented as i32 throughout the request model. Clamp the
+        // effective page before multiplying so even i32::MAX input stays total
+        // and can never wrap into a negative SQL offset.
+        let max_page = (i64::from(i32::MAX) / i64::from(limit) + 1)
+            .min(i64::from(i32::MAX)) as i32;
+        let page = requested_page.min(max_page);
         let offset = (page - 1) * limit;
         Self {
             page,
@@ -80,7 +86,12 @@ impl Pagination {
         let limit = normalize_limit(limit);
         let offset = match (offset, page) {
             (Some(offset), _) => offset.max(0),
-            (None, Some(page)) => (page.max(1) - 1) * limit,
+            (None, Some(page)) => {
+                let max_page = (i64::from(i32::MAX) / i64::from(limit) + 1)
+                    .min(i64::from(i32::MAX)) as i32;
+                let page = page.max(1).min(max_page);
+                (page - 1) * limit
+            }
             (None, None) => 0,
         };
         let page = offset / limit + 1;
@@ -105,7 +116,7 @@ impl Pagination {
     /// count. Computed from the NORMALIZED offset/limit so it is always
     /// consistent with what was actually fetched.
     pub fn has_more(&self, total: i64) -> bool {
-        ((self.offset + self.limit) as i64) < total
+        (i64::from(self.offset) + i64::from(self.limit)) < total
     }
 }
 
@@ -170,6 +181,18 @@ mod tests {
         let p = Pagination::from_page(Some(3), Some(10));
         assert_eq!(p.page, 3);
         assert_eq!(p.offset, 20);
+    }
+
+    #[test]
+    fn page_arithmetic_never_overflows() {
+        let p = Pagination::from_page(Some(i32::MAX), Some(MAX_LIMIT));
+        assert!(p.offset >= 0);
+        assert_eq!(p.offset, (p.page - 1) * p.limit);
+        assert!(!p.has_more(i64::from(i32::MAX)));
+
+        let p = Pagination::from_offset(Some(MAX_LIMIT), None, Some(i32::MAX));
+        assert!(p.offset >= 0);
+        assert_eq!(p.offset, (p.page - 1) * p.limit);
     }
 
     #[test]

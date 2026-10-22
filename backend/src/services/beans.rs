@@ -26,9 +26,9 @@ impl<'a> BeanService<'a> {
         // uses to derive page_size/has_more. The handler already passes
         // normalized values, so this call is idempotent; keeping it means the
         // SQL window stays correct even if the service is called with raw values.
-        let page = page.unwrap_or(1).max(1);
-        let limit = crate::pagination::normalize_limit(limit);
-        let offset = (page - 1) * limit;
+        let pagination = crate::pagination::Pagination::from_page(page, limit);
+        let limit = pagination.limit;
+        let offset = pagination.offset;
         
         // Get total count
         let total: i64 = sqlx::query_scalar(
