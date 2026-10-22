@@ -1,0 +1,38 @@
+version = 1
+
+exclude_patterns = [
+  ".next/**",
+  ".stryker-tmp/**",
+  "**/node_modules/**",
+  "**/target/**",
+  "coverage/**",
+  "frontend/lib/generated/**",
+]
+
+test_patterns = [
+  "**/*.test.ts",
+  "**/*.test.tsx",
+  "**/*.spec.ts",
+  "**/*.spec.tsx",
+  "backend/tests/**",
+  "test/**",
+]
+
+[[analyzers]]
+name = "javascript"
+enabled = true
+dependency_file_paths = [".", "frontend"]
+
+  [analyzers.meta]
+  dialect = "typescript"
+  module_system = "es-modules"
+  plugins = ["react"]
+  environment = ["nodejs", "browser", "vitest"]
+
+[[analyzers]]
+name = "rust"
+enabled = true
+dependency_file_paths = ["backend"]
+
+  [analyzers.meta]
+  msrv = "stable"
