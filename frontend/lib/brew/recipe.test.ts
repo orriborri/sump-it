@@ -13,6 +13,7 @@ import {
   RATING_MAX,
   RATING_MIN,
   RATING_STEP,
+  toBrewingMethod,
   toFriendlyError,
   UNREACHABLE_MESSAGE,
   validateRating,
@@ -41,6 +42,18 @@ describe('constants', () => {
       'ColdBrew',
       'Other',
     ]);
+  });
+});
+
+describe('toBrewingMethod', () => {
+  it('returns a known method value unchanged', () => {
+    expect(toBrewingMethod('Espresso')).toBe('Espresso');
+    expect(toBrewingMethod('FrenchPress')).toBe('FrenchPress');
+  });
+
+  it('collapses an unknown value to the empty string', () => {
+    expect(toBrewingMethod('')).toBe('');
+    expect(toBrewingMethod('NotAMethod')).toBe('');
   });
 });
 
@@ -203,6 +216,12 @@ describe('formToSessionRequest', () => {
       suggestions: null,
       isTemplate: false,
     });
+  });
+
+  it('throws when the brewing method is still empty', () => {
+    expect(() => formToSessionRequest(form({ beanId: 'bean-1', grinderId: 'grinder-1' }))).toThrow(
+      'Cannot build a brewing session request without a brewing method'
+    );
   });
 
   it('preserves provided optionals and trims text', () => {

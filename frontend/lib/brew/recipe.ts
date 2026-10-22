@@ -28,12 +28,23 @@ export const BREWING_METHODS: readonly { value: BrewingMethod; label: string }[]
   { value: 'Other', label: 'Other' },
 ] as const;
 
+/**
+ * Narrow a raw string (e.g. the value carried by a MUI `SelectChangeEvent`) to
+ * the generated `BrewingMethod` union, or `''` when it is not a known method.
+ * The method picker only offers values from {@link BREWING_METHODS}, so this
+ * keeps the form field typed as the union without an unchecked `as` cast.
+ */
+export function toBrewingMethod(value: string): BrewingMethod | '' {
+  const match = BREWING_METHODS.find((method) => method.value === value);
+  return match ? match.value : '';
+}
+
 /** The mutable brew form backing the whole stepper. */
 export interface BrewFormData {
   // Step 1: equipment selection.
   beanId: string;
   grinderId: string;
-  brewingMethod: string;
+  brewingMethod: BrewingMethod | '';
   // Step 2: brewing parameters.
   coffeeGrams: number;
   waterGrams: number;
@@ -168,10 +179,19 @@ export function toFriendlyError(error: string): string {
 /**
  * Build the typed `CreateBrewingSessionRequest` body from the form. Optional
  * numeric fields collapse to `null`, and empty/whitespace text fields collapse
- * to `null`, matching the Rust `Option<T>` serialization. The brewing method
- * is narrowed from the form's plain string to the generated union.
+ * to `null`, matching the Rust `Option<T>` serialization.
+ *
+ * The brewing method is already typed `BrewingMethod | ''` on the form; the
+ * empty case is guarded here rather than cast away, so the generated-union
+ * target is satisfied without an unchecked cast. Callers only reach this after
+ * {@link isEquipmentComplete} has gated the submit (which requires a non-empty
+ * method), so the guard never fires in normal flow but keeps the function total.
  */
 export function formToSessionRequest(form: BrewFormData): CreateBrewingSessionRequest {
+  if (form.brewingMethod === '') {
+    throw new Error('Cannot build a brewing session request without a brewing method');
+  }
+  const brewingMethod: BrewingMethod = form.brewingMethod;
   const trim = (value: string | undefined): string | null => {
     const trimmed = (value ?? '').trim();
     return trimmed === '' ? null : trimmed;
@@ -179,7 +199,7 @@ export function formToSessionRequest(form: BrewFormData): CreateBrewingSessionRe
   return {
     beanId: form.beanId,
     grinderId: form.grinderId,
-    brewingMethod: form.brewingMethod as BrewingMethod,
+    brewingMethod,
     grindSetting: form.grindSetting,
     waterTempCelsius: form.waterTempCelsius ?? null,
     brewTimeSeconds: form.brewTimeSeconds ?? null,
