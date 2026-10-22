@@ -12,8 +12,8 @@
 //! ```
 //!
 //! The schema is created from the single source of truth under `migrations/`
-//! (0001_init.sql + 0002_relax_session_bounds.sql) via `sqlx::migrate!`. Each
-//! test cleans up the rows it inserts so the suite can run repeatedly.
+//! (the full directory, 0001 through 0004) via `sqlx::migrate!`. Each test
+//! cleans up the rows it inserts so the suite can run repeatedly.
 //!
 //! WHY THIS TEST CALLS THE REAL SERVICE: the production save path
 //! (`SessionService::log_brew` / `duplicate` / `list_filtered`) lives in the
@@ -48,6 +48,7 @@ use coffee_brewer_backend::models::{BrewingMethod, CreateBrewingSessionRequest};
 // `BrewingSession` `FromRow` mapping - so a bind-order or column drift in the
 // real query still fails this test when a DB is available.
 use coffee_brewer_backend::services::sessions::{SaveError, SessionService};
+use coffee_brewer_backend::validation::ValidationErrorType;
 
 /// Connects to `DATABASE_URL` (falling back to `TEST_DATABASE_URL`) and ensures
 /// the schema is present. Returns `None` when neither variable is set so the
@@ -78,6 +79,22 @@ async fn insert_grinder(pool: &PgPool) -> Uuid {
     .execute(pool)
     .await
     .expect("insert grinder");
+    id
+}
+
+/// Inserts a RETIRED grinder (`is_active = false`), mirroring what
+/// `GrinderService::delete_grinder` leaves behind. Used to prove a brand-new
+/// brew cannot reference a retired grinder (issue #168 / FEAT-002 consistency).
+async fn insert_retired_grinder(pool: &PgPool) -> Uuid {
+    let id = Uuid::new_v4();
+    sqlx::query(
+        r#"INSERT INTO grinders (id, brand, model, grinder_type, min_setting, max_setting, is_active)
+           VALUES ($1, 'Comandante', 'C40', 'BurrConical', 0, 40, false)"#,
+    )
+    .bind(id)
+    .execute(pool)
+    .await
+    .expect("insert retired grinder");
     id
 }
 
@@ -398,6 +415,97 @@ async fn untracked_bean_never_blocks_and_is_not_decremented() {
             .await
             .expect("read grams");
     assert_eq!(after, None, "untracked grams stay NULL");
+
+    cleanup(&pool, bean, grinder).await;
+}
+
+/// Issue #168 (TOCTOU): the grinder is now loaded and `recipe::validate`d
+/// INSIDE the brew transaction, on the grinder row locked `FOR UPDATE`. This
+/// test exercises that in-transaction grinder load + range-validation path end
+/// to end: a grind setting OUTSIDE the grinder's physical range (0-40) must
+/// fail the WHOLE save with `SaveError::Recipe(GrindSettingOutOfRange)`, and
+/// the rollback must leave NO session and the tracked grams UNCHANGED (the
+/// range check and the would-be decrement share one transaction).
+#[tokio::test]
+#[ignore = "requires a live Postgres (DATABASE_URL); run with --ignored"]
+async fn out_of_range_grind_setting_rolls_back_entire_save() {
+    let Some(pool) = pool().await else { return };
+    let grinder = insert_grinder(&pool).await; // range 0-40
+    let bean = insert_bean(&pool, Some(100.0)).await;
+
+    // Start from a valid Espresso request, then push the grind setting past the
+    // grinder's max (40) so only the grinder-range check can reject it.
+    let mut request = espresso_request(bean, grinder);
+    request.grind_setting = 99;
+
+    let service = SessionService::new(&pool);
+    let err = service
+        .log_brew(request)
+        .await
+        .expect_err("grind setting 99 is outside the grinder's 0-40 range");
+    match err {
+        SaveError::Recipe(ValidationErrorType::GrindSettingOutOfRange {
+            setting,
+            min,
+            max,
+            ..
+        }) => {
+            assert_eq!(setting, 99);
+            assert_eq!(min, 0);
+            assert_eq!(max, 40);
+        }
+        other => panic!("expected SaveError::Recipe(GrindSettingOutOfRange), got {other:?}"),
+    }
+
+    // The whole save rolled back: no session, grams untouched.
+    let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM brewing_sessions WHERE bean_id = $1")
+        .bind(bean)
+        .fetch_one(&pool)
+        .await
+        .expect("count sessions");
+    assert_eq!(count, 0, "no session may be inserted when the grind setting is out of range");
+
+    let after: Option<f32> =
+        sqlx::query_scalar("SELECT remaining_grams FROM coffee_beans WHERE id = $1")
+            .bind(bean)
+            .fetch_one(&pool)
+            .await
+            .expect("read grams");
+    assert_eq!(after, Some(100.0), "grams must be unchanged after rollback");
+
+    cleanup(&pool, bean, grinder).await;
+}
+
+/// Issue #168 / FEAT-002 consistency: a brand-new brew may NOT reference a
+/// RETIRED grinder. The in-transaction grinder load filters
+/// `WHERE is_active = true` (like `GrinderService::get_grinder`), so logging a
+/// brew against a retired grinder fails with `SaveError::GrinderNotFound` and
+/// the whole save rolls back - while historical sessions that already
+/// reference that grinder (JOINed WITHOUT the `is_active` filter) are
+/// unaffected.
+#[tokio::test]
+#[ignore = "requires a live Postgres (DATABASE_URL); run with --ignored"]
+async fn retired_grinder_is_rejected_for_new_brew() {
+    let Some(pool) = pool().await else { return };
+    let grinder = insert_retired_grinder(&pool).await;
+    let bean = insert_bean(&pool, Some(100.0)).await;
+
+    let service = SessionService::new(&pool);
+    let err = service
+        .log_brew(espresso_request(bean, grinder))
+        .await
+        .expect_err("a retired grinder must not be usable for a new brew");
+    match err {
+        SaveError::GrinderNotFound => {}
+        other => panic!("expected SaveError::GrinderNotFound, got {other:?}"),
+    }
+
+    let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM brewing_sessions WHERE bean_id = $1")
+        .bind(bean)
+        .fetch_one(&pool)
+        .await
+        .expect("count sessions");
+    assert_eq!(count, 0, "no session may be inserted against a retired grinder");
 
     cleanup(&pool, bean, grinder).await;
 }

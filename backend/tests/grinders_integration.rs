@@ -259,9 +259,11 @@ async fn list_grinders_is_newest_first_with_paging() {
     cleanup(&pool, &ids).await;
 }
 
-/// `delete_grinder` hard-deletes the row (grinders have no soft-delete column):
-/// `get_grinder` stops returning it and a re-delete reports no row affected.
-/// Exercises the shipping DELETE and its `rows_affected` return.
+/// `delete_grinder` SOFT-deletes the row (issue #165: grinders now mirror the
+/// bean `is_active` retire policy so session history is never cascade-deleted):
+/// `get_grinder` stops returning the retired grinder and a re-delete reports no
+/// row affected. Exercises the shipping soft-delete UPDATE and its
+/// `rows_affected` return.
 #[tokio::test]
 #[ignore = "requires a live Postgres (DATABASE_URL); run with --ignored"]
 async fn delete_grinder_removes_the_row() {
@@ -274,17 +276,17 @@ async fn delete_grinder_removes_the_row() {
         .expect("create grinder");
 
     let deleted = service.delete_grinder(created.id).await.expect("delete");
-    assert!(deleted, "hard delete reports it affected the row");
+    assert!(deleted, "soft delete reports it retired the active row");
 
     let after = service.get_grinder(created.id).await.expect("get grinder");
-    assert!(after.is_none(), "deleted grinder is gone");
+    assert!(after.is_none(), "retired grinder is hidden from get_grinder");
 
-    // Deleting a missing grinder affects no row.
+    // Re-retiring an already-retired grinder affects no row.
     let again = service
         .delete_grinder(created.id)
         .await
         .expect("delete again");
-    assert!(!again, "re-deleting a missing grinder affects no row");
+    assert!(!again, "re-deleting an already-retired grinder affects no row");
 
     cleanup(&pool, &[created.id]).await;
 }

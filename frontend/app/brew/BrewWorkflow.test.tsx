@@ -218,6 +218,76 @@ describe('BrewWorkflow', () => {
     expect(create.mock.calls[0][0].tastingNotes).toBe('Chocolatey');
   });
 
+  it('defends the seam when the initial load adapter REJECTS', async () => {
+    // The client contract is resolve-never-reject, but a misbehaving fake must
+    // not leave the UI stuck on the loading spinner or skip the friendly error.
+    const { client } = makeClient({
+      getActive: () => Promise.reject(new Error('boom')),
+    });
+    render(<BrewWorkflow client={client} />);
+
+    // loading is cleared (no stuck spinner): the equipment step renders...
+    await waitFor(() => expect(screen.getByLabelText('Coffee Bean')).toBeInTheDocument());
+    expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
+    // ...and the friendly unreachable message is shown rather than a raw reject.
+    expect(screen.getByText(UNREACHABLE_MESSAGE)).toBeInTheDocument();
+  });
+
+  it('routes a REJECTING save adapter through toFriendlyError', async () => {
+    const user = userEvent.setup();
+    const { client } = makeClient({
+      create: vi.fn(() => Promise.reject(new Error('Failed to fetch'))),
+    });
+    render(<BrewWorkflow client={client} />);
+    await waitFor(() => screen.getByLabelText('Coffee Bean'));
+
+    await chooseEquipment(user);
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    await screen.findByLabelText('coffee-ratio');
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    await user.click(await screen.findByRole('button', { name: 'Save Brew Session' }));
+
+    // A bare rejection is caught at the seam and mapped through toFriendlyError
+    // (a network-style message becomes the friendly unreachable message).
+    expect(await screen.findByText(UNREACHABLE_MESSAGE)).toBeInTheDocument();
+  });
+
+  it('shows a business error when a REJECTING save adapter throws a non-network error', async () => {
+    const user = userEvent.setup();
+    const message = 'Recipe violation: water too hot';
+    const { client } = makeClient({
+      create: vi.fn(() => Promise.reject(new Error(message))),
+    });
+    render(<BrewWorkflow client={client} />);
+    await waitFor(() => screen.getByLabelText('Coffee Bean'));
+
+    await chooseEquipment(user);
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    await screen.findByLabelText('coffee-ratio');
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    await user.click(await screen.findByRole('button', { name: 'Save Brew Session' }));
+
+    // Non-network rejection messages pass through toFriendlyError unchanged.
+    expect(await screen.findByText(message)).toBeInTheDocument();
+  });
+
+  it('maps a REJECTING save adapter throwing a non-Error to a generic message', async () => {
+    const user = userEvent.setup();
+    const { client } = makeClient({
+      create: vi.fn(() => Promise.reject('boom')),
+    });
+    render(<BrewWorkflow client={client} />);
+    await waitFor(() => screen.getByLabelText('Coffee Bean'));
+
+    await chooseEquipment(user);
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    await screen.findByLabelText('coffee-ratio');
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    await user.click(await screen.findByRole('button', { name: 'Save Brew Session' }));
+
+    expect(await screen.findByText('Unknown error occurred')).toBeInTheDocument();
+  });
+
   it('defaults to the real client when none is injected', async () => {
     // No client prop: exercises the default parameter. Stub fetch so the real
     // client surfaces an error (proving the workflow mounted end to end).

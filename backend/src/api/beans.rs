@@ -14,7 +14,8 @@ use validator::Validate;
 use crate::{
     api::AppState,
     models::{CreateCoffeeBeanRequest, PaginatedResponse, ErrorResponse},
-    services::beans::BeanService,
+    pagination::Pagination,
+    services::beans::{BeanService, BeanServiceError},
     validation::validation_errors_to_string,
 };
 
@@ -35,13 +36,18 @@ async fn list_beans(
 ) -> impl IntoResponse {
     let service = BeanService::new(&state.pool);
     
+    // Normalize once (ticket #167) so page_size/has_more in the response are
+    // derived from the SAME clamped values the service paged with, not the raw
+    // request params.
+    let pagination = Pagination::from_request(params.page, params.limit);
+
     match service.list_beans(params.page, params.limit).await {
         Ok((beans, total)) => Json(PaginatedResponse {
             items: beans,
             total,
-            page: params.page.unwrap_or(1),
-            page_size: params.limit.unwrap_or(50),
-            has_more: total > (params.page.unwrap_or(1) * params.limit.unwrap_or(50)) as i64,
+            page: pagination.page,
+            page_size: pagination.limit,
+            has_more: pagination.has_more(total),
         }).into_response(),
         Err(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
@@ -66,21 +72,18 @@ async fn create_bean(
         ).into_response();
     }
     
-    // Business-rule validation: non-empty name/origin, no future roast or
-    // purchase dates, and non-negative remaining grams. Each error names the
-    // offending field clearly.
-    if let Err(e) = payload.validate_comprehensive() {
-        return (
-            StatusCode::BAD_REQUEST,
-            Json(ErrorResponse::new(e.to_string())),
-        ).into_response();
-    }
-    
     let service = BeanService::new(&state.pool);
     
     match service.create_bean(payload).await {
         Ok(bean) => (StatusCode::CREATED, Json(bean)).into_response(),
-        Err(e) => (
+        // The service seam (ticket #166) is authoritative: a validation
+        // failure there maps to the SAME 400 body the handler produces above,
+        // a DB failure to the SAME 500 body as before.
+        Err(BeanServiceError::Validation(e)) => (
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse::new(e.to_string())),
+        ).into_response(),
+        Err(BeanServiceError::Database(e)) => (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(ErrorResponse::new(format!("Failed to create bean: {}", e))),
         ).into_response(),
@@ -124,14 +127,6 @@ async fn update_bean(
         ).into_response();
     }
 
-    // Business-rule validation (same rules as create): clear, named errors.
-    if let Err(e) = payload.validate_comprehensive() {
-        return (
-            StatusCode::BAD_REQUEST,
-            Json(ErrorResponse::new(e.to_string())),
-        ).into_response();
-    }
-    
     let service = BeanService::new(&state.pool);
     
     match service.update_bean(id, payload).await {
@@ -140,7 +135,11 @@ async fn update_bean(
             StatusCode::NOT_FOUND,
             Json(ErrorResponse::new("Coffee bean not found".to_string())),
         ).into_response(),
-        Err(e) => (
+        Err(BeanServiceError::Validation(e)) => (
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse::new(e.to_string())),
+        ).into_response(),
+        Err(BeanServiceError::Database(e)) => (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(ErrorResponse::new(format!("Failed to update bean: {}", e))),
         ).into_response(),

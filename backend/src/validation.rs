@@ -61,6 +61,9 @@ pub enum ValidationErrorType {
     
     #[error("Grinder brand cannot be empty")]
     GrinderBrandEmpty,
+
+    #[error("Grinder model cannot be empty")]
+    GrinderModelEmpty,
 }
 
 /// Validates quality rating (from rustyCoffy)
@@ -175,6 +178,18 @@ pub fn validate_grinder_brand(brand: &str) -> Result<(), ValidationErrorType> {
     Ok(())
 }
 
+pub fn validate_grinder_model(model: &str) -> Result<(), ValidationErrorType> {
+    if model.trim().is_empty() {
+        return Err(ValidationErrorType::GrinderModelEmpty);
+    }
+    if model.len() > 100 {
+        return Err(ValidationErrorType::Validation(
+            "Grinder model must be 100 characters or less".to_string(),
+        ));
+    }
+    Ok(())
+}
+
 /// Validation result type for comprehensive validation
 pub type ValidationResult<T> = Result<T, ValidationErrors>;
 
@@ -273,6 +288,14 @@ mod tests {
     }
 
     #[test]
+    fn test_validate_grinder_model() {
+        assert!(validate_grinder_model("C40").is_ok());
+        assert!(validate_grinder_model("  ").is_err());
+        assert!(validate_grinder_model(&"x".repeat(101)).is_err());
+        assert!(validate_grinder_model(&"x".repeat(100)).is_ok());
+    }
+
+    #[test]
     fn test_error_display_messages() {
         // Exercise the Display implementation for every error variant so the
         // error-mapping formatting is covered.
@@ -291,6 +314,7 @@ mod tests {
             ValidationErrorType::PurchaseDateInFuture,
             ValidationErrorType::NegativeRemainingGrams { grams: -5.0 },
             ValidationErrorType::GrinderBrandEmpty,
+            ValidationErrorType::GrinderModelEmpty,
         ];
         for err in errors {
             // Formatting must produce a non-empty message for each variant.

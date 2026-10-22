@@ -11,7 +11,8 @@ use ts_rs::TS;
 
 use crate::validation::{
     validate_bean_name, validate_bean_origin, validate_remaining_grams,
-    validate_grinder_brand, validate_grinder_setting_range, ValidationErrorType,
+    validate_grinder_brand, validate_grinder_model, validate_grinder_setting_range,
+    ValidationErrorType,
 };
 
 /// Coffee bean with inventory tracking (from rustyCoffy + BeanIt)
@@ -160,6 +161,7 @@ impl Grinder {
     /// Comprehensive validation
     pub fn validate_comprehensive(&self) -> Result<(), ValidationErrorType> {
         validate_grinder_brand(&self.brand)?;
+        validate_grinder_model(&self.model)?;
         validate_grinder_setting_range(self.min_setting, self.max_setting)?;
         Ok(())
     }
@@ -181,6 +183,20 @@ pub struct CreateGrinderRequest {
     pub max_setting: i32,
     pub scale_type: Option<String>,
     pub description: Option<String>,
+}
+
+impl CreateGrinderRequest {
+    /// Applies the shared grinder business rules to an incoming create/update
+    /// request before it is persisted: non-empty brand and model, plus a valid
+    /// setting range (`min_setting >= 0`, `max_setting > min_setting`). Mirrors
+    /// [`Grinder::validate_comprehensive`] and reuses the same
+    /// [`crate::validation`] helpers so the rule has a single source of truth.
+    pub fn validate_comprehensive(&self) -> Result<(), ValidationErrorType> {
+        validate_grinder_brand(&self.brand)?;
+        validate_grinder_model(&self.model)?;
+        validate_grinder_setting_range(self.min_setting, self.max_setting)?;
+        Ok(())
+    }
 }
 
 /// Grinder type enum (from rustyCoffy + BeanIt).
@@ -731,6 +747,13 @@ mod tests {
         let mut bad_brand = sample_grinder(0, 40);
         bad_brand.brand = "  ".to_string();
         assert!(bad_brand.validate_comprehensive().is_err());
+
+        let mut bad_model = sample_grinder(0, 40);
+        bad_model.model = "  ".to_string();
+        assert!(matches!(
+            bad_model.validate_comprehensive(),
+            Err(ValidationErrorType::GrinderModelEmpty)
+        ));
 
         // Negative minimum setting is rejected.
         let negative_min = sample_grinder(-1, 40);
