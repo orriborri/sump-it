@@ -23,7 +23,7 @@ import {
   Typography,
 } from '@mui/material';
 
-import { coffeeBrewerClient } from '@/lib/trpc/client';
+import { coffeeBrewerClient, type ApiResponse } from '@/lib/trpc/client';
 import type { BrewingSession, CoffeeBean, Grinder } from '@/lib/api/types';
 import {
   areParametersComplete,
@@ -40,7 +40,18 @@ import { BeanSelector } from './BeanSelector';
 import { BrewingParameters } from './BrewingParameters';
 import { BrewFeedback } from './BrewFeedback';
 
-/** The subset of the typed client this workflow needs. */
+/**
+ * The subset of the typed client this workflow needs.
+ *
+ * Resolve/reject contract: every method is expected to RESOLVE an
+ * {@link ApiResponse} - success as `{ data }`, failure as `{ error, details }` -
+ * and MUST NOT reject. The real `coffeeBrewerClient`/`apiFetch` upholds this by
+ * catching all fetch/parse failures and converting them into a resolved
+ * `{ error }`. Because the client is injectable (tests, alternate adapters,
+ * future wrappers), the workflow still defends the seam: should an adapter
+ * reject anyway, both `loadData` and `handleSubmit` treat the thrown value as
+ * an unreachable-backend error rather than letting it break the flow.
+ */
 export interface BrewClient {
   beans: Pick<typeof coffeeBrewerClient.beans, 'getActive'>;
   grinders: Pick<typeof coffeeBrewerClient.grinders, 'list'>;
@@ -192,25 +203,36 @@ export function BrewWorkflow({ client = coffeeBrewerClient }: BrewWorkflowProps)
 
   const loadData = useCallback(async () => {
     setLoading(true);
-    const [beansRes, grindersRes, sessionsRes] = await Promise.all([
-      client.beans.getActive(),
-      client.grinders.list(),
-      client.sessions.list({ limit: 5 }),
-    ]);
+    try {
+      const [beansRes, grindersRes, sessionsRes] = await Promise.all([
+        client.beans.getActive(),
+        client.grinders.list(),
+        client.sessions.list({ limit: 5 }),
+      ]);
 
-    const firstError = beansRes.error ?? grindersRes.error ?? sessionsRes.error;
-    if (firstError) {
-      // If the very first data load fails, the backend is effectively
-      // unreachable from the user's point of view; show a friendly message
-      // rather than a raw fetch error like "Failed to fetch".
+      const firstError = beansRes.error ?? grindersRes.error ?? sessionsRes.error;
+      if (firstError) {
+        // If the very first data load fails, the backend is effectively
+        // unreachable from the user's point of view; show a friendly message
+        // rather than a raw fetch error like "Failed to fetch".
+        setLoadError(UNREACHABLE_MESSAGE);
+      } else {
+        setLoadError(null);
+      }
+      setBeans(beansRes.data ?? []);
+      setGrinders(grindersRes.data?.items ?? []);
+      setPreviousSessions(sessionsRes.data?.items ?? []);
+    } catch {
+      // The injected client is contracted never to reject, but it is still a
+      // seam we do not fully control. A rejection here means the backend is
+      // effectively unreachable; surface the friendly message and leave the
+      // bean/grinder/session state at its existing (empty) defaults.
       setLoadError(UNREACHABLE_MESSAGE);
-    } else {
-      setLoadError(null);
+    } finally {
+      // Clearing loading in `finally` guarantees a rejecting adapter can never
+      // leave the workflow stuck in its loading state.
+      setLoading(false);
     }
-    setBeans(beansRes.data ?? []);
-    setGrinders(grindersRes.data?.items ?? []);
-    setPreviousSessions(sessionsRes.data?.items ?? []);
-    setLoading(false);
   }, [client]);
 
   useEffect(() => {
@@ -247,7 +269,18 @@ export function BrewWorkflow({ client = coffeeBrewerClient }: BrewWorkflowProps)
   const handleSubmit = async () => {
     setSaveError(null);
 
-    const response = await client.sessions.create(formToSessionRequest(formData));
+    let response: ApiResponse<BrewingSession>;
+    try {
+      response = await client.sessions.create(formToSessionRequest(formData));
+    } catch (error) {
+      // The injected client is contracted never to reject, but we still defend
+      // the seam: route a thrown value through the same friendly-error handling
+      // as a resolved error, and do not reset the form or show success.
+      const message = error instanceof Error ? error.message : 'Failed to save brew session';
+      setSaveError(toFriendlyError(message));
+      return;
+    }
+
     if (response.error) {
       // Business errors (insufficient quantity, recipe violations) are already
       // actionable; a bare network failure becomes the friendly unreachable

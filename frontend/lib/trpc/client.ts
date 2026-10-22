@@ -99,8 +99,17 @@ export async function apiFetch<T>(
       return { data: undefined };
     }
 
-    const data = (await response.json()) as T;
-    return { data };
+    // Runtime validation of the success payload lives here, at the single REST
+    // seam, rather than being duplicated in every component: every endpoint in
+    // this client returns a JSON object or array, so a parsed primitive/null is
+    // a malformed response. Guarding once keeps the never-throw guarantee and
+    // avoids blindly casting untrusted external JSON straight to `T`.
+    const parsed: unknown = await response.json();
+    if (parsed === null || typeof parsed !== 'object') {
+      return { error: 'Malformed response from server' };
+    }
+
+    return { data: parsed as T };
   } catch (error) {
     return {
       error: error instanceof Error ? error.message : 'Unknown error occurred',

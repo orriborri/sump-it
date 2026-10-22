@@ -131,6 +131,65 @@ describe('apiFetch', () => {
 
     expect(result).toEqual({ error: 'Unknown error occurred' });
   });
+
+  // Adapter contract: apiFetch is documented (on the BrewClient seam) to always
+  // RESOLVE an ApiResponse and never reject. These tests pin that guarantee so
+  // callers (and the workflow seam) can rely on it.
+  it('resolves (never rejects) when fetch itself rejects', async () => {
+    fetchMock.mockRejectedValueOnce(new Error('network down'));
+
+    // `.resolves` would also pass on a throw-free resolve, but asserting the
+    // shape proves the rejection was converted rather than propagated.
+    await expect(apiFetch('/beans')).resolves.toEqual({ error: 'network down' });
+  });
+
+  it('resolves (never rejects) when response.json() rejects on a 2xx body', async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      statusText: 'OK',
+      json: async () => {
+        throw new Error('invalid json');
+      },
+    } as unknown as Response);
+
+    await expect(apiFetch('/beans')).resolves.toEqual({ error: 'invalid json' });
+  });
+
+  // Runtime validation of the success payload: the REST endpoints always return
+  // a JSON object or array, so a parsed primitive/null is malformed and must
+  // surface as an ApiResponse error rather than being cast to T.
+  it('returns an error for a 2xx body that parses to a string', async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse('just a string'));
+
+    const result = await apiFetch('/beans/abc');
+
+    expect(result).toEqual({ error: 'Malformed response from server' });
+  });
+
+  it('returns an error for a 2xx body that parses to a number', async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse(42));
+
+    const result = await apiFetch('/beans/abc');
+
+    expect(result).toEqual({ error: 'Malformed response from server' });
+  });
+
+  it('returns an error for a 2xx body that parses to null', async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse(null));
+
+    const result = await apiFetch('/beans/abc');
+
+    expect(result).toEqual({ error: 'Malformed response from server' });
+  });
+
+  it('accepts a 2xx body that parses to an array', async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse([{ id: 'a' }]));
+
+    const result = await apiFetch<{ id: string }[]>('/beans/active');
+
+    expect(result).toEqual({ data: [{ id: 'a' }] });
+  });
 });
 
 describe('coffeeBrewerClient.beans', () => {
