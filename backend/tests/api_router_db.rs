@@ -273,8 +273,10 @@ async fn grinder_validation_errors_through_router() {
     assert_eq!(body["error"], "Validation failed");
     assert!(body["details"].is_array());
 
-    // Domain setting-range failure (max <= min) -> 400. This hits
-    // `validate_grinder_request`'s second branch for both create and update.
+    // Domain setting-range failure (max <= min) -> 400. The handler fast-path
+    // no longer owns this rule; it now flows through the service layer
+    // (`CreateGrinderRequest::validate_comprehensive`) and is mapped back to a
+    // 400 by `grinder_service_error_response` for both create and update.
     let (status, _) = send(
         &pool,
         "POST",

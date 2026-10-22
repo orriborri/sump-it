@@ -346,6 +346,20 @@ async fn create_grinder_rejects_invalid_data_at_service_layer() {
         ))
     ));
 
+    // Empty/whitespace model. The schema only enforces `model NOT NULL`, so the
+    // service must own this rule or a blank model would persist (ticket #166).
+    let empty_model_request = CreateGrinderRequest {
+        model: "   ".to_string(),
+        ..grinder_request("Empty Model Brand", 0, 40)
+    };
+    let empty_model = service.create_grinder(empty_model_request).await;
+    assert!(matches!(
+        empty_model,
+        Err(GrinderServiceError::Validation(
+            ValidationErrorType::GrinderModelEmpty
+        ))
+    ));
+
     // Negative minimum setting.
     let negative_min = service
         .create_grinder(grinder_request("Negative Min", -1, 40))
@@ -369,7 +383,7 @@ async fn create_grinder_rejects_invalid_data_at_service_layer() {
     ));
 
     // Nothing was persisted: no grinder with these brands exists.
-    for brand in ["   ", "Negative Min", "Inverted"] {
+    for brand in ["   ", "Empty Model Brand", "Negative Min", "Inverted"] {
         let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM grinders WHERE brand = $1")
             .bind(brand)
             .fetch_one(&pool)

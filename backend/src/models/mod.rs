@@ -11,7 +11,8 @@ use ts_rs::TS;
 
 use crate::validation::{
     validate_bean_name, validate_bean_origin, validate_remaining_grams,
-    validate_grinder_brand, validate_grinder_setting_range, ValidationErrorType,
+    validate_grinder_brand, validate_grinder_model, validate_grinder_setting_range,
+    ValidationErrorType,
 };
 
 /// Coffee bean with inventory tracking (from rustyCoffy + BeanIt)
@@ -160,6 +161,7 @@ impl Grinder {
     /// Comprehensive validation
     pub fn validate_comprehensive(&self) -> Result<(), ValidationErrorType> {
         validate_grinder_brand(&self.brand)?;
+        validate_grinder_model(&self.model)?;
         validate_grinder_setting_range(self.min_setting, self.max_setting)?;
         Ok(())
     }
@@ -185,14 +187,16 @@ pub struct CreateGrinderRequest {
 
 impl CreateGrinderRequest {
     /// Applies the shared grinder business rules to an incoming create/update
-    /// request before it is persisted: non-empty brand, `min_setting >= 0`,
-    /// and `max_setting > min_setting`.
+    /// request before it is persisted: non-empty brand, non-empty model,
+    /// `min_setting >= 0`, and `max_setting > min_setting`.
     ///
-    /// Reuses [`validate_grinder_brand`] and [`validate_grinder_setting_range`]
-    /// so the rule lives in exactly one place and is shared by the service, the
-    /// [`Grinder`] model and the API handler.
+    /// Reuses [`validate_grinder_brand`], [`validate_grinder_model`] and
+    /// [`validate_grinder_setting_range`] so each rule lives in exactly one
+    /// place and is shared by the service, the [`Grinder`] model and the API
+    /// handler.
     pub fn validate_comprehensive(&self) -> Result<(), ValidationErrorType> {
         validate_grinder_brand(&self.brand)?;
+        validate_grinder_model(&self.model)?;
         validate_grinder_setting_range(self.min_setting, self.max_setting)?;
         Ok(())
     }
@@ -747,6 +751,11 @@ mod tests {
         bad_brand.brand = "  ".to_string();
         assert!(bad_brand.validate_comprehensive().is_err());
 
+        // Empty model is rejected (DB only enforces NOT NULL).
+        let mut bad_model = sample_grinder(0, 40);
+        bad_model.model = "  ".to_string();
+        assert!(bad_model.validate_comprehensive().is_err());
+
         // Negative minimum setting is rejected.
         let negative_min = sample_grinder(-1, 40);
         assert!(negative_min.validate_comprehensive().is_err());
@@ -778,6 +787,20 @@ mod tests {
         assert!(matches!(
             bad_brand.validate_comprehensive(),
             Err(ValidationErrorType::GrinderBrandEmpty)
+        ));
+
+        // Empty/whitespace model rejected (DB only enforces NOT NULL).
+        let bad_model = CreateGrinderRequest { model: "   ".to_string(), ..base.clone() };
+        assert!(matches!(
+            bad_model.validate_comprehensive(),
+            Err(ValidationErrorType::GrinderModelEmpty)
+        ));
+
+        // Over-long model rejected.
+        let long_model = CreateGrinderRequest { model: "x".repeat(101), ..base.clone() };
+        assert!(matches!(
+            long_model.validate_comprehensive(),
+            Err(ValidationErrorType::Validation(_))
         ));
 
         // Negative minimum setting rejected.
