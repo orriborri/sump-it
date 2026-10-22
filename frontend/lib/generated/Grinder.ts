@@ -4,4 +4,4 @@ import type { GrinderType } from "./GrinderType";
 /**
  * Grinder equipment with setting ranges (from rustyCoffy + BeanIt)
  */
-export type Grinder = { id: string, brand: string, model: string, grinderType: GrinderType, minSetting: number, maxSetting: number, scaleType: string | null, description: string | null, createdAt: string, updatedAt: string, };
+export type Grinder = { id: string, brand: string, model: string, grinderType: GrinderType, minSetting: number, maxSetting: number, scaleType: string | null, description: string | null, isActive: boolean, createdAt: string, updatedAt: string, };

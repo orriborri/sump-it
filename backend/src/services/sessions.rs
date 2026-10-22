@@ -275,16 +275,21 @@ impl<'a> SessionService<'a> {
         Ok((sessions, total))
     }
 
-    /// Loads a grinder by id (needed to validate the grind setting).
+    /// Loads an ACTIVE grinder by id (needed to validate the grind setting).
+    ///
+    /// Filters `is_active = true` so a RETIRED grinder (ticket #165 soft-delete)
+    /// cannot be used to log a NEW brew: a missing/retired grinder surfaces as
+    /// `SaveError::GrinderNotFound`. Existing sessions that already reference the
+    /// retired grinder are untouched; only new brews are blocked.
     async fn get_grinder(&self, id: Uuid) -> Result<Option<Grinder>> {
         let grinder = sqlx::query_as::<_, Grinder>(
             r#"
             SELECT
                 id, brand, model, grinder_type,
-                min_setting, max_setting, scale_type, description,
+                min_setting, max_setting, scale_type, description, is_active,
                 created_at, updated_at
             FROM grinders
-            WHERE id = $1
+            WHERE id = $1 AND is_active = true
             "#,
         )
         .bind(id)

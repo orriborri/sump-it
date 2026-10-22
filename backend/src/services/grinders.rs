@@ -33,18 +33,20 @@ impl<'a> GrinderService<'a> {
         let limit = limit.unwrap_or(50).clamp(1, 100);
         let offset = (page - 1) * limit;
 
-        let total: i64 = sqlx::query_scalar(r#"SELECT COUNT(*) FROM grinders"#)
-            .fetch_one(self.pool)
-            .await
-            .context("Failed to count grinders")?;
+        let total: i64 =
+            sqlx::query_scalar(r#"SELECT COUNT(*) FROM grinders WHERE is_active = true"#)
+                .fetch_one(self.pool)
+                .await
+                .context("Failed to count grinders")?;
 
         let grinders = sqlx::query_as::<_, Grinder>(
             r#"
             SELECT
                 id, brand, model, grinder_type,
-                min_setting, max_setting, scale_type, description,
+                min_setting, max_setting, scale_type, description, is_active,
                 created_at, updated_at
             FROM grinders
+            WHERE is_active = true
             ORDER BY created_at DESC, brand ASC
             LIMIT $1 OFFSET $2
             "#,
@@ -71,7 +73,7 @@ impl<'a> GrinderService<'a> {
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
             RETURNING
                 id, brand, model, grinder_type,
-                min_setting, max_setting, scale_type, description,
+                min_setting, max_setting, scale_type, description, is_active,
                 created_at, updated_at
             "#,
         )
@@ -98,10 +100,10 @@ impl<'a> GrinderService<'a> {
             r#"
             SELECT
                 id, brand, model, grinder_type,
-                min_setting, max_setting, scale_type, description,
+                min_setting, max_setting, scale_type, description, is_active,
                 created_at, updated_at
             FROM grinders
-            WHERE id = $1
+            WHERE id = $1 AND is_active = true
             "#,
         )
         .bind(id)
@@ -133,10 +135,10 @@ impl<'a> GrinderService<'a> {
                 scale_type = $7,
                 description = $8,
                 updated_at = $9
-            WHERE id = $1
+            WHERE id = $1 AND is_active = true
             RETURNING
                 id, brand, model, grinder_type,
-                min_setting, max_setting, scale_type, description,
+                min_setting, max_setting, scale_type, description, is_active,
                 created_at, updated_at
             "#,
         )
@@ -156,13 +158,29 @@ impl<'a> GrinderService<'a> {
         Ok(grinder)
     }
 
-    /// Delete a grinder (hard delete; grinders have no soft-delete column).
+    /// Retire a grinder (soft-delete).
+    ///
+    /// Grinders are RETIRED, not hard-deleted, so the brewing sessions that
+    /// reference them survive as immutable history (ticket #165). This mirrors
+    /// `BeanService::delete_bean` exactly: flip `is_active` to false and stamp
+    /// `updated_at`, affecting only rows that are currently active. A retired
+    /// grinder disappears from `list_grinders`/`get_grinder` (both filter
+    /// `is_active = true`) and can no longer be used to log a new brew, but the
+    /// row itself remains and the `ON DELETE RESTRICT` FK guards against any
+    /// future hard delete that would otherwise destroy session history.
     pub async fn delete_grinder(&self, id: Uuid) -> Result<bool> {
-        let result = sqlx::query(r#"DELETE FROM grinders WHERE id = $1"#)
-            .bind(id)
-            .execute(self.pool)
-            .await
-            .context("Failed to delete grinder")?;
+        let result = sqlx::query(
+            r#"
+            UPDATE grinders
+            SET is_active = false, updated_at = $2
+            WHERE id = $1 AND is_active = true
+            "#,
+        )
+        .bind(id)
+        .bind(Utc::now())
+        .execute(self.pool)
+        .await
+        .context("Failed to delete grinder")?;
 
         Ok(result.rows_affected() > 0)
     }

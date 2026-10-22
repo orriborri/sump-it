@@ -140,6 +140,7 @@ pub struct Grinder {
     pub max_setting: i32,
     pub scale_type: Option<String>, // "step" or "sliding" (from BeanIt)
     pub description: Option<String>,
+    pub is_active: bool,
     
     // Timestamps
     pub created_at: DateTime<Utc>,
@@ -561,6 +562,7 @@ mod tests {
             max_setting: max,
             scale_type: Some("step".to_string()),
             description: None,
+            is_active: true,
             created_at: Utc::now(),
             updated_at: Utc::now(),
         }

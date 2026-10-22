@@ -22,8 +22,8 @@
 //! with hand-written SQL. Because it exercises the SAME compiled service the
 //! binary and the coverage gate use, the exact INSERT/SELECT/UPDATE/DELETE
 //! column lists, the pagination/ordering in `list_grinders`, the
-//! `RETURNING`/`FromRow` mappings and the hard-delete semantics that ship are
-//! tested. A column, filter or ordering drift in a real query now fails this
+//! `RETURNING`/`FromRow` mappings and the soft-delete (retire) semantics that
+//! ship are tested. A column, filter or ordering drift in a real query now fails this
 //! test when a DB is available. The schema `CHECK` constraints
 //! (`max_setting > min_setting`, `min_setting >= 0`) are also verified through
 //! the service's create path.
@@ -259,9 +259,12 @@ async fn list_grinders_is_newest_first_with_paging() {
     cleanup(&pool, &ids).await;
 }
 
-/// `delete_grinder` hard-deletes the row (grinders have no soft-delete column):
-/// `get_grinder` stops returning it and a re-delete reports no row affected.
-/// Exercises the shipping DELETE and its `rows_affected` return.
+/// `delete_grinder` RETIRES the grinder (soft-delete) instead of hard-deleting
+/// it (ticket #165): `get_grinder` stops returning it because it filters
+/// `is_active = true`, but the row SURVIVES in the table (so the sessions that
+/// reference it are preserved), and re-retiring an already-retired grinder
+/// reports no row affected. Exercises the shipping soft-delete UPDATE and its
+/// `rows_affected` return.
 #[tokio::test]
 #[ignore = "requires a live Postgres (DATABASE_URL); run with --ignored"]
 async fn delete_grinder_removes_the_row() {
@@ -274,17 +277,30 @@ async fn delete_grinder_removes_the_row() {
         .expect("create grinder");
 
     let deleted = service.delete_grinder(created.id).await.expect("delete");
-    assert!(deleted, "hard delete reports it affected the row");
+    assert!(deleted, "soft delete reports it affected the row");
 
     let after = service.get_grinder(created.id).await.expect("get grinder");
-    assert!(after.is_none(), "deleted grinder is gone");
+    assert!(
+        after.is_none(),
+        "retired grinder is hidden from get (is_active = true filter)"
+    );
 
-    // Deleting a missing grinder affects no row.
+    // The row is NOT gone: retire is a soft-delete, so the underlying row
+    // survives (its sessions depend on it existing).
+    let still_present: i64 =
+        sqlx::query_scalar("SELECT COUNT(*) FROM grinders WHERE id = $1")
+            .bind(created.id)
+            .fetch_one(&pool)
+            .await
+            .expect("count grinder rows");
+    assert_eq!(still_present, 1, "the retired grinder row still exists");
+
+    // Re-retiring an already-retired grinder affects no row.
     let again = service
         .delete_grinder(created.id)
         .await
         .expect("delete again");
-    assert!(!again, "re-deleting a missing grinder affects no row");
+    assert!(!again, "re-retiring an already-retired grinder affects no row");
 
     cleanup(&pool, &[created.id]).await;
 }
