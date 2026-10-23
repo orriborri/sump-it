@@ -34,6 +34,7 @@ function grinder(overrides: Partial<Grinder> = {}): Grinder {
     maxSetting: 40,
     scaleType: 'step',
     description: null,
+    isActive: true,
     createdAt: '2026-01-01T00:00:00Z',
     updatedAt: '2026-01-01T00:00:00Z',
     ...overrides,
@@ -216,6 +217,58 @@ describe('BrewWorkflow', () => {
     await waitFor(() => expect(create).toHaveBeenCalledTimes(1));
     expect(create.mock.calls[0][0].rating).toBe(7.5);
     expect(create.mock.calls[0][0].tastingNotes).toBe('Chocolatey');
+  });
+
+  it('recovers from an adapter that REJECTS the initial load without sticking', async () => {
+    // The documented contract is that adapters resolve `{ error }`, but an
+    // injected adapter that rejects must not leave the workflow stuck loading.
+    const { client } = makeClient({
+      getActive: () => Promise.reject(new Error('Failed to fetch')),
+    });
+    render(<BrewWorkflow client={client} />);
+
+    // The friendly load error appears and the first step is interactive, so
+    // `loading` was cleared (the spinner would otherwise block the dropdown).
+    await waitFor(() => expect(screen.getByText(UNREACHABLE_MESSAGE)).toBeInTheDocument());
+    expect(screen.getByLabelText('Coffee Bean')).toBeInTheDocument();
+  });
+
+  it('routes an adapter that REJECTS the save through friendly error handling', async () => {
+    const user = userEvent.setup();
+    const { client } = makeClient({
+      create: vi.fn(() => Promise.reject(new Error('Failed to fetch'))),
+    });
+    render(<BrewWorkflow client={client} />);
+    await waitFor(() => screen.getByLabelText('Coffee Bean'));
+
+    await chooseEquipment(user);
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    await screen.findByLabelText('coffee-ratio');
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    await user.click(await screen.findByRole('button', { name: 'Save Brew Session' }));
+
+    // A rejection is mapped to the friendly unreachable message, not bubbled.
+    expect(await screen.findByText(UNREACHABLE_MESSAGE)).toBeInTheDocument();
+    // The success snackbar never appears on a rejected save.
+    expect(screen.queryByText('Brewing session saved.')).not.toBeInTheDocument();
+  });
+
+  it('surfaces a non-Error rejection on save as the generic unknown message', async () => {
+    const user = userEvent.setup();
+    const { client } = makeClient({
+      // Reject with a non-Error value to exercise the fallback message branch.
+      create: vi.fn(() => Promise.reject('boom')),
+    });
+    render(<BrewWorkflow client={client} />);
+    await waitFor(() => screen.getByLabelText('Coffee Bean'));
+
+    await chooseEquipment(user);
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    await screen.findByLabelText('coffee-ratio');
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    await user.click(await screen.findByRole('button', { name: 'Save Brew Session' }));
+
+    expect(await screen.findByText('Unknown error occurred')).toBeInTheDocument();
   });
 
   it('defaults to the real client when none is injected', async () => {

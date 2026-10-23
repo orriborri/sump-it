@@ -40,11 +40,30 @@ import { BeanSelector } from './BeanSelector';
 import { BrewingParameters } from './BrewingParameters';
 import { BrewFeedback } from './BrewFeedback';
 
-/** The subset of the typed client this workflow needs. */
+/**
+ * The subset of the typed client this workflow needs.
+ *
+ * Resolve/reject contract: every method is expected to RESOLVE to an
+ * {@link ApiResponse} (the real `apiFetch` adapter catches network failures and
+ * surfaces them as a resolved `{ error }`, never a rejection). The workflow,
+ * however, does not trust that: `loadData` and `handleSubmit` also catch
+ * rejections from an injected adapter so a rejecting fake, alternate adapter or
+ * future wrapper can never leave `loading` stuck true or bypass
+ * `toFriendlyError`. A rejection is treated exactly like a resolved `{ error }`
+ * with the rejection's message.
+ */
 export interface BrewClient {
   beans: Pick<typeof coffeeBrewerClient.beans, 'getActive'>;
   grinders: Pick<typeof coffeeBrewerClient.grinders, 'list'>;
   sessions: Pick<typeof coffeeBrewerClient.sessions, 'list' | 'create'>;
+}
+
+/** The message used for a rejection with no usable `Error.message`. */
+const UNKNOWN_ERROR_MESSAGE = 'Unknown error occurred';
+
+/** Extract a string message from an unknown thrown/rejected value. */
+function rejectionMessage(error: unknown): string {
+  return error instanceof Error ? error.message : UNKNOWN_ERROR_MESSAGE;
 }
 
 /** Props for {@link BrewWorkflow}. */
@@ -192,25 +211,34 @@ export function BrewWorkflow({ client = coffeeBrewerClient }: BrewWorkflowProps)
 
   const loadData = useCallback(async () => {
     setLoading(true);
-    const [beansRes, grindersRes, sessionsRes] = await Promise.all([
-      client.beans.getActive(),
-      client.grinders.list(),
-      client.sessions.list({ limit: 5 }),
-    ]);
+    try {
+      const [beansRes, grindersRes, sessionsRes] = await Promise.all([
+        client.beans.getActive(),
+        client.grinders.list(),
+        client.sessions.list({ limit: 5 }),
+      ]);
 
-    const firstError = beansRes.error ?? grindersRes.error ?? sessionsRes.error;
-    if (firstError) {
-      // If the very first data load fails, the backend is effectively
-      // unreachable from the user's point of view; show a friendly message
-      // rather than a raw fetch error like "Failed to fetch".
+      const firstError = beansRes.error ?? grindersRes.error ?? sessionsRes.error;
+      if (firstError) {
+        // If the very first data load fails, the backend is effectively
+        // unreachable from the user's point of view; show a friendly message
+        // rather than a raw fetch error like "Failed to fetch".
+        setLoadError(UNREACHABLE_MESSAGE);
+      } else {
+        setLoadError(null);
+      }
+      setBeans(beansRes.data ?? []);
+      setGrinders(grindersRes.data?.items ?? []);
+      setPreviousSessions(sessionsRes.data?.items ?? []);
+    } catch {
+      // Seam defence: the documented contract is that adapters resolve
+      // `{ error }` rather than reject, but an injected fake or future wrapper
+      // could reject. Treat a rejection like a failed load so `loading` is
+      // never left stuck true and the user sees the friendly message.
       setLoadError(UNREACHABLE_MESSAGE);
-    } else {
-      setLoadError(null);
+    } finally {
+      setLoading(false);
     }
-    setBeans(beansRes.data ?? []);
-    setGrinders(grindersRes.data?.items ?? []);
-    setPreviousSessions(sessionsRes.data?.items ?? []);
-    setLoading(false);
   }, [client]);
 
   useEffect(() => {
@@ -247,7 +275,17 @@ export function BrewWorkflow({ client = coffeeBrewerClient }: BrewWorkflowProps)
   const handleSubmit = async () => {
     setSaveError(null);
 
-    const response = await client.sessions.create(formToSessionRequest(formData));
+    let response;
+    try {
+      response = await client.sessions.create(formToSessionRequest(formData));
+    } catch (error) {
+      // Seam defence: a rejecting adapter must still route through
+      // `toFriendlyError` and clear submission state, exactly like a resolved
+      // `{ error }`, rather than bubbling an unhandled rejection.
+      setSaveError(toFriendlyError(rejectionMessage(error)));
+      return;
+    }
+
     if (response.error) {
       // Business errors (insufficient quantity, recipe violations) are already
       // actionable; a bare network failure becomes the friendly unreachable

@@ -7,6 +7,7 @@ use uuid::Uuid;
 use anyhow::{Result, Context};
 
 use crate::models::{BeanUsageRecord, CoffeeBean, CreateCoffeeBeanRequest};
+use crate::pagination::Pagination;
 
 /// Service for managing coffee beans
 pub struct BeanService<'a> {
@@ -18,11 +19,20 @@ impl<'a> BeanService<'a> {
         Self { pool }
     }
     
-    /// List all coffee beans with pagination
-    pub async fn list_beans(&self, page: Option<i32>, limit: Option<i32>) -> Result<(Vec<CoffeeBean>, i64)> {
-        let page = page.unwrap_or(1).max(1);
-        let limit = limit.unwrap_or(50).clamp(1, 100);
-        let offset = (page - 1) * limit;
+    /// List all coffee beans with pagination.
+    ///
+    /// Normalization goes through the shared [`Pagination`] value object
+    /// (ticket #167): the same clamped `page_size`/`offset` drive BOTH the SQL
+    /// below and the handler's response metadata, so a client can never see a
+    /// `page_size`/`has_more` computed from an unclamped request.
+    pub async fn list_beans(
+        &self,
+        page: Option<i32>,
+        limit: Option<i32>,
+    ) -> Result<(Vec<CoffeeBean>, i64, Pagination)> {
+        let pagination = Pagination::from_request(page, limit);
+        let limit = pagination.limit();
+        let offset = pagination.offset;
         
         // Get total count
         let total: i64 = sqlx::query_scalar(
@@ -51,11 +61,22 @@ impl<'a> BeanService<'a> {
         .await
         .context("Failed to fetch beans")?;
         
-        Ok((beans, total))
+        Ok((beans, total, pagination))
     }
     
-    /// Create a new coffee bean
+    /// Create a new coffee bean.
+    ///
+    /// Business-rule validation runs HERE at the service seam (ticket #166):
+    /// the request is checked with `validate_comprehensive` (non-empty
+    /// name/origin, no future roast/purchase dates, non-negative remaining
+    /// grams) before any SQL, so a create through the service rejects invalid
+    /// data regardless of the HTTP handler. Handler-level validation remains
+    /// only as supplemental fast feedback.
     pub async fn create_bean(&self, request: CreateCoffeeBeanRequest) -> Result<CoffeeBean> {
+        request
+            .validate_comprehensive()
+            .map_err(|e| anyhow::anyhow!(e.to_string()))?;
+
         let now = Utc::now();
         
         let bean = sqlx::query_as::<_, CoffeeBean>(
@@ -110,8 +131,15 @@ impl<'a> BeanService<'a> {
         Ok(bean)
     }
     
-    /// Update a coffee bean
+    /// Update a coffee bean.
+    ///
+    /// Validates the request at the service seam (ticket #166) before the SQL,
+    /// identically to [`Self::create_bean`].
     pub async fn update_bean(&self, id: Uuid, request: CreateCoffeeBeanRequest) -> Result<Option<CoffeeBean>> {
+        request
+            .validate_comprehensive()
+            .map_err(|e| anyhow::anyhow!(e.to_string()))?;
+
         let now = Utc::now();
         
         let bean = sqlx::query_as::<_, CoffeeBean>(
@@ -212,5 +240,95 @@ impl<'a> BeanService<'a> {
         .context("Failed to fetch bean usage history")?;
         
         Ok(history)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::Duration;
+
+    /// A lazily-connected pool to a URL that is NEVER contacted: the
+    /// service-layer validation (ticket #166) rejects an invalid request
+    /// BEFORE any SQL runs, so these tests prove the service is the
+    /// authoritative seam without needing a live database.
+    fn lazy_pool() -> PgPool {
+        PgPool::connect_lazy("postgres://invalid:invalid@127.0.0.1:1/nonexistent")
+            .expect("lazy pool construction never connects")
+    }
+
+    fn valid_request() -> CreateCoffeeBeanRequest {
+        let today = Utc::now().naive_utc().date();
+        CreateCoffeeBeanRequest {
+            name: "Ethiopia Yirgacheffe".to_string(),
+            origin: "Ethiopia".to_string(),
+            roast_date: today - Duration::days(5),
+            purchase_date: today - Duration::days(3),
+            remaining_grams: Some(250.0),
+            variety: Some("Heirloom".to_string()),
+            processing_method: Some("Washed".to_string()),
+        }
+    }
+
+    #[tokio::test]
+    async fn create_bean_rejects_empty_name_at_service_layer() {
+        let pool = lazy_pool();
+        let service = BeanService::new(&pool);
+        let err = service
+            .create_bean(CreateCoffeeBeanRequest {
+                name: "   ".to_string(),
+                ..valid_request()
+            })
+            .await
+            .expect_err("empty name must be rejected by the service");
+        assert!(err.to_string().to_lowercase().contains("name"));
+    }
+
+    #[tokio::test]
+    async fn create_bean_rejects_future_roast_date_at_service_layer() {
+        let pool = lazy_pool();
+        let service = BeanService::new(&pool);
+        let today = Utc::now().naive_utc().date();
+        let err = service
+            .create_bean(CreateCoffeeBeanRequest {
+                roast_date: today + Duration::days(1),
+                ..valid_request()
+            })
+            .await
+            .expect_err("future roast date must be rejected by the service");
+        assert!(err.to_string().to_lowercase().contains("future"));
+    }
+
+    #[tokio::test]
+    async fn create_bean_rejects_negative_remaining_grams_at_service_layer() {
+        let pool = lazy_pool();
+        let service = BeanService::new(&pool);
+        let err = service
+            .create_bean(CreateCoffeeBeanRequest {
+                remaining_grams: Some(-10.0),
+                ..valid_request()
+            })
+            .await
+            .expect_err("negative remaining grams must be rejected by the service");
+        assert!(err.to_string().to_lowercase().contains("negative"));
+    }
+
+    #[tokio::test]
+    async fn update_bean_rejects_invalid_data_at_service_layer() {
+        let pool = lazy_pool();
+        let service = BeanService::new(&pool);
+        // Update enforces the same invariants as create, independent of the
+        // HTTP handler.
+        let err = service
+            .update_bean(
+                Uuid::new_v4(),
+                CreateCoffeeBeanRequest {
+                    origin: "".to_string(),
+                    ..valid_request()
+                },
+            )
+            .await
+            .expect_err("empty origin must be rejected by the service on update");
+        assert!(err.to_string().to_lowercase().contains("origin"));
     }
 }

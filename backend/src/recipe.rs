@@ -318,6 +318,7 @@ mod tests {
             max_setting: max,
             scale_type: Some("step".to_string()),
             description: None,
+            is_active: true,
             created_at: Utc::now(),
             updated_at: Utc::now(),
         }

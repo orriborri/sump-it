@@ -16,7 +16,16 @@ export const RATING_MIN = 1.0;
 export const RATING_MAX = 10.0;
 export const RATING_STEP = 0.5;
 
-/** Brewing methods offered in the equipment step, in display order. */
+/**
+ * Brewing methods offered in the equipment step, in display order.
+ *
+ * This is the SINGLE canonical frontend method-options list: both the equipment
+ * selector (`app/brew/BeanSelector.tsx`) and `formToSessionRequest` below
+ * consume it, so adding or renaming a method is a one-line edit here. The
+ * `value` is the generated `BrewingMethod` union, which keeps this list in sync
+ * with the backend contract at compile time; the backend `rules_for` table
+ * stays the single recipe authority.
+ */
 export const BREWING_METHODS: readonly { value: BrewingMethod; label: string }[] = [
   { value: 'V60', label: 'V60' },
   { value: 'Chemex', label: 'Chemex' },
@@ -28,12 +37,28 @@ export const BREWING_METHODS: readonly { value: BrewingMethod; label: string }[]
   { value: 'Other', label: 'Other' },
 ] as const;
 
+/**
+ * Type guard: true when `value` is one of the canonical `BrewingMethod`
+ * variants. Used to narrow the method `<Select>`'s raw string value back to the
+ * generated union without an unchecked cast (the selector only offers values
+ * from {@link BREWING_METHODS}, so an unknown value is a programming error and
+ * is treated as "no method chosen").
+ */
+export function isBrewingMethod(value: string): value is BrewingMethod {
+  return BREWING_METHODS.some((method) => method.value === value);
+}
+
 /** The mutable brew form backing the whole stepper. */
 export interface BrewFormData {
   // Step 1: equipment selection.
   beanId: string;
   grinderId: string;
-  brewingMethod: string;
+  /**
+   * The chosen brewing method, or `''` before one is picked. Typing the field
+   * as `BrewingMethod | ''` (rather than a plain `string`) lets
+   * `formToSessionRequest` narrow to `BrewingMethod` without an unchecked cast.
+   */
+  brewingMethod: BrewingMethod | '';
   // Step 2: brewing parameters.
   coffeeGrams: number;
   waterGrams: number;
@@ -168,18 +193,26 @@ export function toFriendlyError(error: string): string {
 /**
  * Build the typed `CreateBrewingSessionRequest` body from the form. Optional
  * numeric fields collapse to `null`, and empty/whitespace text fields collapse
- * to `null`, matching the Rust `Option<T>` serialization. The brewing method
- * is narrowed from the form's plain string to the generated union.
+ * to `null`, matching the Rust `Option<T>` serialization.
+ *
+ * The form field is `BrewingMethod | ''`; this narrows it to the generated
+ * `BrewingMethod` union with a guard instead of an unchecked cast. The
+ * equipment-step gate (`isEquipmentComplete`) prevents submission until a
+ * method is chosen, so the guard throwing signals a programming error (submit
+ * reached with no method) rather than a user-reachable state.
  */
 export function formToSessionRequest(form: BrewFormData): CreateBrewingSessionRequest {
   const trim = (value: string | undefined): string | null => {
     const trimmed = (value ?? '').trim();
     return trimmed === '' ? null : trimmed;
   };
+  if (form.brewingMethod === '') {
+    throw new Error('Cannot build a session request without a brewing method.');
+  }
   return {
     beanId: form.beanId,
     grinderId: form.grinderId,
-    brewingMethod: form.brewingMethod as BrewingMethod,
+    brewingMethod: form.brewingMethod,
     grindSetting: form.grindSetting,
     waterTempCelsius: form.waterTempCelsius ?? null,
     brewTimeSeconds: form.brewTimeSeconds ?? null,

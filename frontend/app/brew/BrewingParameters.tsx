@@ -8,7 +8,7 @@
 'use client';
 
 import React from 'react';
-import { Alert, Box, Grid, InputAdornment, TextField, Typography } from '@mui/material';
+import { Alert, Box, Grid2 as Grid, InputAdornment, TextField, Typography } from '@mui/material';
 import type { BrewingSession, Grinder } from '@/lib/api/types';
 import {
   clampGrindSetting,
@@ -63,7 +63,7 @@ export function BrewingParameters({
       </Typography>
 
       <Grid container spacing={3}>
-        <Grid item xs={12} sm={6}>
+        <Grid size={{ xs: 12, sm: 6 }}>
           <TextField
             label="Coffee"
             type="number"
@@ -73,7 +73,7 @@ export function BrewingParameters({
             InputProps={{ endAdornment: <InputAdornment position="end">g</InputAdornment> }}
           />
         </Grid>
-        <Grid item xs={12} sm={6}>
+        <Grid size={{ xs: 12, sm: 6 }}>
           <TextField
             label="Water"
             type="number"
@@ -84,7 +84,7 @@ export function BrewingParameters({
           />
         </Grid>
 
-        <Grid item xs={12} sm={6}>
+        <Grid size={{ xs: 12, sm: 6 }}>
           <TextField
             label="Grind setting"
             type="number"
@@ -99,7 +99,7 @@ export function BrewingParameters({
             }
           />
         </Grid>
-        <Grid item xs={12} sm={6}>
+        <Grid size={{ xs: 12, sm: 6 }}>
           <TextField
             label="Water temperature"
             type="number"
@@ -109,7 +109,7 @@ export function BrewingParameters({
             InputProps={{ endAdornment: <InputAdornment position="end">°C</InputAdornment> }}
           />
         </Grid>
-        <Grid item xs={12} sm={6}>
+        <Grid size={{ xs: 12, sm: 6 }}>
           <TextField
             label="Brew time"
             type="number"
