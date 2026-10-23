@@ -10,7 +10,7 @@ import React from 'react';
 import {
   Box,
   FormControl,
-  Grid,
+  Grid2,
   InputLabel,
   MenuItem,
   Select,
@@ -49,7 +49,7 @@ interface RatingFieldProps {
 
 /** The rating dropdown (1.0 to 10.0 in 0.5 steps, plus a "No rating" option). */
 const RatingField: React.FC<RatingFieldProps> = ({ rating, onChange }) => (
-  <Grid item xs={12} sm={6}>
+  <Grid2 size={{ xs: 12, sm: 6 }}>
     <FormControl fullWidth>
       <InputLabel id="rating-label">Rating</InputLabel>
       <Select
@@ -69,7 +69,7 @@ const RatingField: React.FC<RatingFieldProps> = ({ rating, onChange }) => (
         ))}
       </Select>
     </FormControl>
-  </Grid>
+  </Grid2>
 );
 
 /** Props for {@link NotesField}. */
@@ -84,7 +84,7 @@ interface NotesFieldProps {
 
 /** A full-width multiline text field for one of the free-text note sections. */
 const NotesField: React.FC<NotesFieldProps> = ({ label, value, onChange }) => (
-  <Grid item xs={12}>
+  <Grid2 size={{ xs: 12 }}>
     <TextField
       label={label}
       fullWidth
@@ -93,7 +93,7 @@ const NotesField: React.FC<NotesFieldProps> = ({ label, value, onChange }) => (
       value={value}
       onChange={(e) => onChange(e.target.value)}
     />
-  </Grid>
+  </Grid2>
 );
 
 /**
@@ -113,7 +113,7 @@ export function BrewFeedback({ formData, updateFormData }: BrewFeedbackProps) {
         Brew &amp; Rate
       </Typography>
 
-      <Grid container spacing={3}>
+      <Grid2 container spacing={3}>
         <RatingField rating={formData.rating} onChange={handleRatingChange} />
 
         <NotesField
@@ -131,7 +131,7 @@ export function BrewFeedback({ formData, updateFormData }: BrewFeedbackProps) {
           value={formData.suggestions ?? ''}
           onChange={(value) => updateFormData({ suggestions: value })}
         />
-      </Grid>
+      </Grid2>
     </Box>
   );
 }
