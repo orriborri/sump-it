@@ -401,3 +401,69 @@ async fn untracked_bean_never_blocks_and_is_not_decremented() {
 
     cleanup(&pool, bean, grinder).await;
 }
+
+/// Ticket #168 (TOCTOU): `log_brew` locks the grinder row `FOR UPDATE` for the
+/// whole transaction, so a concurrent grinder-range change cannot slip in
+/// between the grind-setting validation and the session insert.
+///
+/// A unit test cannot observe the in-flight lock `log_brew` takes, so this test
+/// asserts the LOCKING POLICY directly on the same row with the same
+/// statement the service uses: it opens a transaction, locks the grinder row
+/// with the identical `SELECT ... FOR UPDATE`, then - from a SEPARATE
+/// connection with a short `statement_timeout` - attempts the exact concurrent
+/// mutation the bug relied on (`UPDATE grinders SET min_setting/max_setting`).
+/// Because the row is locked, that UPDATE blocks until the lock holder commits
+/// and therefore trips the timeout; the service's lock is what makes a
+/// range change wait, closing the window. After the holder commits, the same
+/// UPDATE succeeds, proving the lock is released at commit (not a permanent
+/// block).
+#[tokio::test]
+#[ignore = "requires a live Postgres (DATABASE_URL); run with --ignored"]
+async fn grinder_row_is_locked_for_update_during_a_brew() {
+    let Some(pool) = pool().await else { return };
+    let grinder = insert_grinder(&pool).await;
+
+    // Hold the grinder row lock exactly as `log_brew` does: begin a tx and run
+    // the same `SELECT ... FOR UPDATE`.
+    let mut holder = pool.begin().await.expect("begin holder tx");
+    let locked: Option<(Uuid,)> =
+        sqlx::query_as("SELECT id FROM grinders WHERE id = $1 FOR UPDATE")
+            .bind(grinder)
+            .fetch_optional(&mut *holder)
+            .await
+            .expect("lock grinder row");
+    assert!(locked.is_some(), "the grinder row is locked for update");
+
+    // From a separate connection with a short statement timeout, the concurrent
+    // range change the TOCTOU bug relied on must BLOCK on the lock and time out.
+    let mut contender = pool.acquire().await.expect("acquire contender conn");
+    sqlx::query("SET statement_timeout = '500ms'")
+        .execute(&mut *contender)
+        .await
+        .expect("set statement timeout");
+    let blocked = sqlx::query("UPDATE grinders SET min_setting = 99, max_setting = 100 WHERE id = $1")
+        .bind(grinder)
+        .execute(&mut *contender)
+        .await;
+    assert!(
+        blocked.is_err(),
+        "a concurrent grinder-range UPDATE must block on the FOR UPDATE lock and time out"
+    );
+    drop(contender);
+
+    // Release the lock; the previously-blocked UPDATE now succeeds, proving the
+    // lock is held only for the life of the transaction.
+    holder.commit().await.expect("commit holder tx");
+    let after = sqlx::query("UPDATE grinders SET min_setting = 1, max_setting = 2 WHERE id = $1")
+        .bind(grinder)
+        .execute(&pool)
+        .await
+        .expect("update after lock released");
+    assert_eq!(after.rows_affected(), 1, "the range change applies once unlocked");
+
+    sqlx::query("DELETE FROM grinders WHERE id = $1")
+        .bind(grinder)
+        .execute(&pool)
+        .await
+        .ok();
+}

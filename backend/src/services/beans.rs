@@ -7,6 +7,7 @@ use uuid::Uuid;
 use anyhow::{Result, Context};
 
 use crate::models::{BeanUsageRecord, CoffeeBean, CreateCoffeeBeanRequest};
+use crate::pagination::Pagination;
 
 /// Service for managing coffee beans
 pub struct BeanService<'a> {
@@ -18,12 +19,16 @@ impl<'a> BeanService<'a> {
         Self { pool }
     }
     
-    /// List all coffee beans with pagination
-    pub async fn list_beans(&self, page: Option<i32>, limit: Option<i32>) -> Result<(Vec<CoffeeBean>, i64)> {
-        let page = page.unwrap_or(1).max(1);
-        let limit = limit.unwrap_or(50).clamp(1, 100);
-        let offset = (page - 1) * limit;
-        
+    /// List all coffee beans with pagination.
+    ///
+    /// The caller passes a normalized [`Pagination`] (the single source of
+    /// truth for `limit`/`offset`), so the `LIMIT`/`OFFSET` used here and the
+    /// `page_size`/`has_more` the handler reports are derived from the SAME
+    /// clamped values and cannot drift (ticket #167).
+    pub async fn list_beans(&self, pagination: Pagination) -> Result<(Vec<CoffeeBean>, i64)> {
+        let limit = pagination.limit();
+        let offset = pagination.offset();
+
         // Get total count
         let total: i64 = sqlx::query_scalar(
             r#"SELECT COUNT(*) FROM coffee_beans WHERE is_active = true"#
@@ -54,8 +59,19 @@ impl<'a> BeanService<'a> {
         Ok((beans, total))
     }
     
-    /// Create a new coffee bean
+    /// Create a new coffee bean.
+    ///
+    /// The service OWNS the bean invariants (ticket #166): it validates the
+    /// request through the shared [`CreateCoffeeBeanRequest::validate_comprehensive`]
+    /// rules BEFORE issuing the INSERT, so invalid data is rejected at the
+    /// service seam independent of any HTTP handler. The handler keeps its own
+    /// validation as supplemental fast feedback; both call the same shared
+    /// check, so the rule body is not duplicated.
     pub async fn create_bean(&self, request: CreateCoffeeBeanRequest) -> Result<CoffeeBean> {
+        request
+            .validate_comprehensive()
+            .context("Bean validation failed")?;
+
         let now = Utc::now();
         
         let bean = sqlx::query_as::<_, CoffeeBean>(
@@ -110,8 +126,15 @@ impl<'a> BeanService<'a> {
         Ok(bean)
     }
     
-    /// Update a coffee bean
+    /// Update a coffee bean.
+    ///
+    /// Mirrors [`Self::create_bean`]: the same shared bean invariants are
+    /// enforced at the service seam before the UPDATE (ticket #166).
     pub async fn update_bean(&self, id: Uuid, request: CreateCoffeeBeanRequest) -> Result<Option<CoffeeBean>> {
+        request
+            .validate_comprehensive()
+            .context("Bean validation failed")?;
+
         let now = Utc::now();
         
         let bean = sqlx::query_as::<_, CoffeeBean>(

@@ -12,6 +12,7 @@ use uuid::Uuid;
 use anyhow::{Result, Context};
 
 use crate::models::{Grinder, CreateGrinderRequest};
+use crate::pagination::Pagination;
 
 /// Service for managing grinders.
 pub struct GrinderService<'a> {
@@ -24,27 +25,32 @@ impl<'a> GrinderService<'a> {
     }
 
     /// List grinders with pagination, newest first.
-    pub async fn list_grinders(
-        &self,
-        page: Option<i32>,
-        limit: Option<i32>,
-    ) -> Result<(Vec<Grinder>, i64)> {
-        let page = page.unwrap_or(1).max(1);
-        let limit = limit.unwrap_or(50).clamp(1, 100);
-        let offset = (page - 1) * limit;
+    ///
+    /// The caller passes a normalized [`Pagination`] (the single source of
+    /// truth for `limit`/`offset`), so the `LIMIT`/`OFFSET` used here and the
+    /// `page_size`/`has_more` the handler reports are derived from the SAME
+    /// clamped values and cannot drift (ticket #167).
+    pub async fn list_grinders(&self, pagination: Pagination) -> Result<(Vec<Grinder>, i64)> {
+        let limit = pagination.limit();
+        let offset = pagination.offset();
 
-        let total: i64 = sqlx::query_scalar(r#"SELECT COUNT(*) FROM grinders"#)
-            .fetch_one(self.pool)
-            .await
-            .context("Failed to count grinders")?;
+        // Only ACTIVE grinders appear in listings; retired (soft-deleted)
+        // grinders are filtered out here but remain joinable from historical
+        // sessions (ticket #165).
+        let total: i64 =
+            sqlx::query_scalar(r#"SELECT COUNT(*) FROM grinders WHERE is_active = true"#)
+                .fetch_one(self.pool)
+                .await
+                .context("Failed to count grinders")?;
 
         let grinders = sqlx::query_as::<_, Grinder>(
             r#"
             SELECT
                 id, brand, model, grinder_type,
-                min_setting, max_setting, scale_type, description,
+                min_setting, max_setting, scale_type, description, is_active,
                 created_at, updated_at
             FROM grinders
+            WHERE is_active = true
             ORDER BY created_at DESC, brand ASC
             LIMIT $1 OFFSET $2
             "#,
@@ -59,7 +65,18 @@ impl<'a> GrinderService<'a> {
     }
 
     /// Create a new grinder.
+    ///
+    /// The service OWNS the grinder invariants (ticket #166): it validates the
+    /// request through the shared [`CreateGrinderRequest::validate_comprehensive`]
+    /// rules (non-empty brand, `min_setting >= 0`, `max_setting > min_setting`)
+    /// BEFORE the INSERT, so invalid data is rejected at the service seam
+    /// independent of any HTTP handler. The handler keeps its own validation as
+    /// supplemental fast feedback; both call the same shared check.
     pub async fn create_grinder(&self, request: CreateGrinderRequest) -> Result<Grinder> {
+        request
+            .validate_comprehensive()
+            .context("Grinder validation failed")?;
+
         let now = Utc::now();
 
         let grinder = sqlx::query_as::<_, Grinder>(
@@ -71,7 +88,7 @@ impl<'a> GrinderService<'a> {
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
             RETURNING
                 id, brand, model, grinder_type,
-                min_setting, max_setting, scale_type, description,
+                min_setting, max_setting, scale_type, description, is_active,
                 created_at, updated_at
             "#,
         )
@@ -92,16 +109,21 @@ impl<'a> GrinderService<'a> {
         Ok(grinder)
     }
 
-    /// Get a specific grinder by ID.
+    /// Get a specific ACTIVE grinder by ID.
+    ///
+    /// Mirrors `BeanService::get_bean`: a retired (soft-deleted) grinder is
+    /// treated as "not found" by the API surface (ticket #165), so the handler
+    /// returns 404 for it. Historical sessions still reach the row through the
+    /// session service's own unfiltered lookup, keeping their joins intact.
     pub async fn get_grinder(&self, id: Uuid) -> Result<Option<Grinder>> {
         let grinder = sqlx::query_as::<_, Grinder>(
             r#"
             SELECT
                 id, brand, model, grinder_type,
-                min_setting, max_setting, scale_type, description,
+                min_setting, max_setting, scale_type, description, is_active,
                 created_at, updated_at
             FROM grinders
-            WHERE id = $1
+            WHERE id = $1 AND is_active = true
             "#,
         )
         .bind(id)
@@ -114,11 +136,18 @@ impl<'a> GrinderService<'a> {
 
 
     /// Update an existing grinder.
+    ///
+    /// Mirrors [`Self::create_grinder`]: the same shared grinder invariants are
+    /// enforced at the service seam before the UPDATE (ticket #166).
     pub async fn update_grinder(
         &self,
         id: Uuid,
         request: CreateGrinderRequest,
     ) -> Result<Option<Grinder>> {
+        request
+            .validate_comprehensive()
+            .context("Grinder validation failed")?;
+
         let now = Utc::now();
 
         let grinder = sqlx::query_as::<_, Grinder>(
@@ -133,10 +162,10 @@ impl<'a> GrinderService<'a> {
                 scale_type = $7,
                 description = $8,
                 updated_at = $9
-            WHERE id = $1
+            WHERE id = $1 AND is_active = true
             RETURNING
                 id, brand, model, grinder_type,
-                min_setting, max_setting, scale_type, description,
+                min_setting, max_setting, scale_type, description, is_active,
                 created_at, updated_at
             "#,
         )
@@ -156,13 +185,29 @@ impl<'a> GrinderService<'a> {
         Ok(grinder)
     }
 
-    /// Delete a grinder (hard delete; grinders have no soft-delete column).
+    /// Retire a grinder (SOFT delete).
+    ///
+    /// Mirrors `BeanService::delete_bean` (ticket #165): instead of removing
+    /// the row - which, under the old `ON DELETE CASCADE` foreign key, silently
+    /// destroyed every brewing session that referenced the grinder - this flips
+    /// `is_active` to false. The grinder disappears from active listings
+    /// (`list_grinders` filters `is_active = true`) but stays joinable from
+    /// historical sessions, so NO `brewing_sessions` row is ever deleted.
+    /// Returns whether an active grinder was retired (false if already retired
+    /// or missing).
     pub async fn delete_grinder(&self, id: Uuid) -> Result<bool> {
-        let result = sqlx::query(r#"DELETE FROM grinders WHERE id = $1"#)
-            .bind(id)
-            .execute(self.pool)
-            .await
-            .context("Failed to delete grinder")?;
+        let result = sqlx::query(
+            r#"
+            UPDATE grinders
+            SET is_active = false, updated_at = $2
+            WHERE id = $1 AND is_active = true
+            "#,
+        )
+        .bind(id)
+        .bind(Utc::now())
+        .execute(self.pool)
+        .await
+        .context("Failed to retire grinder")?;
 
         Ok(result.rows_affected() > 0)
     }
