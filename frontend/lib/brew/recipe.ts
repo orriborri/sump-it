@@ -33,7 +33,10 @@ export interface BrewFormData {
   // Step 1: equipment selection.
   beanId: string;
   grinderId: string;
-  brewingMethod: string;
+  // A chosen BrewingMethod, or '' before the user picks one. Typing it as the
+  // generated union (rather than a plain string) removes the unchecked cast in
+  // formToSessionRequest below.
+  brewingMethod: BrewingMethod | '';
   // Step 2: brewing parameters.
   coffeeGrams: number;
   waterGrams: number;
@@ -168,10 +171,17 @@ export function toFriendlyError(error: string): string {
 /**
  * Build the typed `CreateBrewingSessionRequest` body from the form. Optional
  * numeric fields collapse to `null`, and empty/whitespace text fields collapse
- * to `null`, matching the Rust `Option<T>` serialization. The brewing method
- * is narrowed from the form's plain string to the generated union.
+ * to `null`, matching the Rust `Option<T>` serialization.
+ *
+ * The form field is typed `BrewingMethod | ''`; the empty placeholder only
+ * exists before the user has chosen a method. The workflow gates submission on
+ * {@link isEquipmentComplete}, so a request is only built once a real method is
+ * selected. The field is therefore typed `BrewingMethod` here, narrowed by the
+ * caller's gate rather than an unchecked type assertion.
  */
-export function formToSessionRequest(form: BrewFormData): CreateBrewingSessionRequest {
+export function formToSessionRequest(
+  form: Omit<BrewFormData, 'brewingMethod'> & { brewingMethod: BrewingMethod }
+): CreateBrewingSessionRequest {
   const trim = (value: string | undefined): string | null => {
     const trimmed = (value ?? '').trim();
     return trimmed === '' ? null : trimmed;
@@ -179,7 +189,7 @@ export function formToSessionRequest(form: BrewFormData): CreateBrewingSessionRe
   return {
     beanId: form.beanId,
     grinderId: form.grinderId,
-    brewingMethod: form.brewingMethod as BrewingMethod,
+    brewingMethod: form.brewingMethod,
     grindSetting: form.grindSetting,
     waterTempCelsius: form.waterTempCelsius ?? null,
     brewTimeSeconds: form.brewTimeSeconds ?? null,

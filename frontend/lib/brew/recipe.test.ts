@@ -18,8 +18,20 @@ import {
   validateRating,
   type BrewFormData,
 } from './recipe';
+import type { BrewingMethod } from '@/lib/api/types';
 
 function form(overrides: Partial<BrewFormData> = {}): BrewFormData {
+  return { ...emptyBrewForm(), ...overrides };
+}
+
+/**
+ * A brew form whose brewing method is narrowed to a concrete BrewingMethod, as
+ * formToSessionRequest requires (the workflow only builds a request once the
+ * equipment gate has confirmed a method is chosen).
+ */
+function requestForm(
+  overrides: Partial<Omit<BrewFormData, 'brewingMethod'>> & { brewingMethod: BrewingMethod }
+): Omit<BrewFormData, 'brewingMethod'> & { brewingMethod: BrewingMethod } {
   return { ...emptyBrewForm(), ...overrides };
 }
 
@@ -179,7 +191,7 @@ describe('parseOptionalNumber', () => {
 describe('formToSessionRequest', () => {
   it('maps numeric fields and collapses empty optionals to null', () => {
     const request = formToSessionRequest(
-      form({
+      requestForm({
         beanId: 'bean-1',
         grinderId: 'grinder-1',
         brewingMethod: 'Espresso',
@@ -207,7 +219,7 @@ describe('formToSessionRequest', () => {
 
   it('preserves provided optionals and trims text', () => {
     const request = formToSessionRequest(
-      form({
+      requestForm({
         beanId: 'bean-1',
         grinderId: 'grinder-1',
         brewingMethod: 'V60',

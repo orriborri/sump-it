@@ -140,16 +140,16 @@ async fn list_sessions(
     let filter = params.to_filter();
     match service.list_filtered(&filter, params.q.as_deref()).await {
         Ok((sessions, total)) => {
-            let page_size = crate::session_query::normalize_limit(filter.limit);
-            let offset = crate::session_query::normalize_offset(filter.offset);
-            // Page is 1-based and derived from offset/limit for the response.
-            let page = offset / page_size + 1;
+            // Normalize ONCE through the shared module: the SAME value drives
+            // the query's LIMIT/OFFSET (via `to_filter`) and the response
+            // metadata, so `page_size`/`has_more` cannot drift (ticket #167).
+            let pagination = crate::pagination::Pagination::from_offset(filter.limit, filter.offset);
             Json(PaginatedResponse {
                 items: sessions,
                 total,
-                page,
-                page_size,
-                has_more: ((offset + page_size) as i64) < total,
+                page: pagination.page(),
+                page_size: pagination.page_size(),
+                has_more: pagination.has_more(total),
             })
             .into_response()
         }
