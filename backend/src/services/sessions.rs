@@ -129,7 +129,22 @@ impl<'a> SessionService<'a> {
         // CURRENT range inside the transaction. Holding this lock is what closes
         // the #168 TOCTOU: any concurrent grinder-range UPDATE must wait behind
         // it, so the range validated below is the range that persists.
-        let grinder = match lock_grinder(&mut tx, grinder_id).await? {
+        let grinder = match sqlx::query_as::<_, Grinder>(
+            r#"
+            SELECT
+                id, brand, model, grinder_type,
+                min_setting, max_setting, scale_type, description,
+                created_at, updated_at
+            FROM grinders
+            WHERE id = $1
+            FOR UPDATE
+            "#,
+        )
+        .bind(grinder_id)
+        .fetch_optional(&mut *tx)
+        .await
+        .map_err(|e| db_error(e, "Failed to lock grinder row"))?
+        {
             Some(grinder) => grinder,
             None => {
                 let _ = tx.rollback().await;
@@ -310,37 +325,6 @@ impl<'a> SessionService<'a> {
         Ok((sessions, total))
     }
 
-}
-
-/// Locks the grinder row `FOR UPDATE` inside the brew transaction and reads its
-/// CURRENT setting range, returning `None` when the grinder does not exist.
-///
-/// Ticket #168: this is the second lock in the fixed BEAN-then-GRINDER order
-/// (see [`SessionService::log_brew`]). Taking the row lock here serializes the
-/// save against any concurrent grinder-range UPDATE, so the range
-/// `recipe::validate` checks against the returned grinder is guaranteed to be
-/// the range that is still in force when the session is inserted and committed.
-/// A read WITHOUT this lock (the pre-#168 behaviour) would reintroduce the
-/// time-of-check/time-of-use gap.
-async fn lock_grinder(
-    tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
-    id: Uuid,
-) -> std::result::Result<Option<Grinder>, SaveError> {
-    sqlx::query_as::<_, Grinder>(
-        r#"
-        SELECT
-            id, brand, model, grinder_type,
-            min_setting, max_setting, scale_type, description,
-            created_at, updated_at
-        FROM grinders
-        WHERE id = $1
-        FOR UPDATE
-        "#,
-    )
-    .bind(id)
-    .fetch_optional(&mut **tx)
-    .await
-    .map_err(|e| db_error(e, "Failed to lock grinder row"))
 }
 
 /// Wraps a sqlx error as [`SaveError::Database`] with a human-readable context.

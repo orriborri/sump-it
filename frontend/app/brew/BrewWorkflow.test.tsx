@@ -269,6 +269,25 @@ describe('BrewWorkflow', () => {
     expect(await screen.findByText('Insufficient bean quantity')).toBeInTheDocument();
   });
 
+  it('handles a non-Error rejection on submit', async () => {
+    const user = userEvent.setup();
+    const { client } = makeClient({
+      // Intentional: pins the fallback for an unknown rejected value.
+      // skipcq: JS-0114
+      create: vi.fn(() => Promise.reject('unexpected rejection')),
+    });
+    render(<BrewWorkflow client={client} />);
+    await waitFor(() => screen.getByLabelText('Coffee Bean'));
+
+    await chooseEquipment(user);
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    await screen.findByLabelText('coffee-ratio');
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    await user.click(await screen.findByRole('button', { name: 'Save Brew Session' }));
+
+    expect(await screen.findByText(UNREACHABLE_MESSAGE)).toBeInTheDocument();
+  });
+
   it('defaults to the real client when none is injected', async () => {
     // No client prop: exercises the default parameter. Stub fetch so the real
     // client surfaces an error (proving the workflow mounted end to end).

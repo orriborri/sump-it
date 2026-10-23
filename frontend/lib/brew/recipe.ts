@@ -172,13 +172,16 @@ export function toFriendlyError(error: string): string {
  * numeric fields collapse to `null`, and empty/whitespace text fields collapse
  * to `null`, matching the Rust `Option<T>` serialization.
  *
- * The form's `brewingMethod` is `BrewingMethod | ''`. This mapping is only
- * meaningful once the equipment step is complete (see `isEquipmentComplete`),
- * at which point the method is a real `BrewingMethod`; the `|| 'Other'` fallback
- * keeps the type honest for the "not yet chosen" state without an unchecked
- * cast, and the backend remains the single recipe authority for the request.
+ * The form's `brewingMethod` is `BrewingMethod | ''`. Request conversion is
+ * only valid once the equipment step is complete (see `isEquipmentComplete`),
+ * so an empty method is rejected explicitly instead of silently becoming a
+ * different brewing method.
  */
 export function formToSessionRequest(form: BrewFormData): CreateBrewingSessionRequest {
+  if (!form.brewingMethod) {
+    throw new Error('Brewing method is required');
+  }
+
   const trim = (value: string | undefined): string | null => {
     const trimmed = (value ?? '').trim();
     return trimmed === '' ? null : trimmed;
@@ -186,7 +189,7 @@ export function formToSessionRequest(form: BrewFormData): CreateBrewingSessionRe
   return {
     beanId: form.beanId,
     grinderId: form.grinderId,
-    brewingMethod: form.brewingMethod || 'Other',
+    brewingMethod: form.brewingMethod,
     grindSetting: form.grindSetting,
     waterTempCelsius: form.waterTempCelsius ?? null,
     brewTimeSeconds: form.brewTimeSeconds ?? null,

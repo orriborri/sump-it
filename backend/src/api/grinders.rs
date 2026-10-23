@@ -20,7 +20,7 @@ use crate::{
     models::{CreateGrinderRequest, ErrorResponse, PaginatedResponse},
     pagination::Page,
     services::grinders::{DeleteError, GrinderService},
-    validation::{validate_grinder_setting_range, validation_errors_to_string},
+    validation::validation_errors_to_string,
 };
 
 pub fn router() -> Router<AppState> {
@@ -163,12 +163,12 @@ async fn delete_grinder(
     }
 }
 
-/// Run both the derive-based field validation and the domain setting-range
-/// validation for a grinder request. Returns `Some(response)` with a
+/// Run the derive-based request-shape validation for a grinder request.
+/// Returns `Some(response)` with a
 /// `400 Bad Request` body when invalid, or `None` when the request is valid.
 ///
-/// Kept as a private helper so create and update share the exact same rules
-/// (brand/model length, `min_setting >= 0`, `max_setting > min_setting`).
+/// Domain validation (including the setting range and model) remains in the
+/// service so every caller shares one authoritative rule set.
 fn validate_grinder_request(payload: &CreateGrinderRequest) -> Option<axum::response::Response> {
     if let Err(validation_errors) = payload.validate() {
         return Some(
@@ -178,16 +178,6 @@ fn validate_grinder_request(payload: &CreateGrinderRequest) -> Option<axum::resp
                     "Validation failed".to_string(),
                     vec![validation_errors_to_string(&validation_errors)],
                 )),
-            )
-                .into_response(),
-        );
-    }
-
-    if let Err(e) = validate_grinder_setting_range(payload.min_setting, payload.max_setting) {
-        return Some(
-            (
-                StatusCode::BAD_REQUEST,
-                Json(ErrorResponse::new(e.to_string())),
             )
                 .into_response(),
         );

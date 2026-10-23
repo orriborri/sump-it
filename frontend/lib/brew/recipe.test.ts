@@ -177,6 +177,12 @@ describe('parseOptionalNumber', () => {
 });
 
 describe('formToSessionRequest', () => {
+  it('rejects an empty brewing method instead of silently choosing one', () => {
+    expect(() => formToSessionRequest(form({ brewingMethod: '' }))).toThrow(
+      'Brewing method is required'
+    );
+  });
+
   it('maps numeric fields and collapses empty optionals to null', () => {
     const request = formToSessionRequest(
       form({
