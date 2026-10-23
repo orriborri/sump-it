@@ -36,18 +36,17 @@ async fn list_grinders(
     let service = GrinderService::new(&state.pool);
 
     match service.list_grinders(params.page, params.limit).await {
-        Ok((grinders, total)) => {
-            let page = params.page.unwrap_or(1);
-            let page_size = params.limit.unwrap_or(50);
-            Json(PaginatedResponse {
-                items: grinders,
-                total,
-                page,
-                page_size,
-                has_more: total > (page * page_size) as i64,
-            })
-            .into_response()
-        }
+        // `page`, `page_size` and `has_more` all come from the NORMALIZED
+        // `Pagination` the service used for the query (ticket #167), so the
+        // metadata can never disagree with the rows actually fetched.
+        Ok((grinders, total, pagination)) => Json(PaginatedResponse {
+            items: grinders,
+            total,
+            page: pagination.page,
+            page_size: pagination.page_size,
+            has_more: pagination.has_more(total),
+        })
+        .into_response(),
         Err(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(ErrorResponse::new(format!("Failed to list grinders: {}", e))),

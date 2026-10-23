@@ -27,6 +27,7 @@
 pub mod api;
 pub mod database;
 pub mod models;
+pub mod pagination;
 pub mod recipe;
 pub mod services;
 pub mod session_query;

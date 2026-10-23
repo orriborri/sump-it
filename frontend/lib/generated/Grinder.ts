@@ -4,4 +4,12 @@ import type { GrinderType } from "./GrinderType";
 /**
  * Grinder equipment with setting ranges (from rustyCoffy + BeanIt)
  */
-export type Grinder = { id: string, brand: string, model: string, grinderType: GrinderType, minSetting: number, maxSetting: number, scaleType: string | null, description: string | null, createdAt: string, updatedAt: string, };
+export type Grinder = { id: string, brand: string, model: string, grinderType: GrinderType, minSetting: number, maxSetting: number, scaleType: string | null, description: string | null, 
+/**
+ * Whether this grinder is active (ticket #165). Grinders are
+ * soft-deleted (retired) by setting this to `false` instead of being
+ * removed, mirroring the bean soft-delete policy, so the brewing sessions
+ * that reference them survive as immutable history. Inactive grinders are
+ * excluded from list/get just as inactive beans are.
+ */
+isActive: boolean, createdAt: string, updatedAt: string, };

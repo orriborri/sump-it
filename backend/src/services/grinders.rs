@@ -12,6 +12,7 @@ use uuid::Uuid;
 use anyhow::{Result, Context};
 
 use crate::models::{Grinder, CreateGrinderRequest};
+use crate::pagination::Pagination;
 
 /// Service for managing grinders.
 pub struct GrinderService<'a> {
@@ -24,16 +25,21 @@ impl<'a> GrinderService<'a> {
     }
 
     /// List grinders with pagination, newest first.
+    ///
+    /// Normalization goes through the shared [`Pagination`] value object
+    /// (ticket #167): the same clamped `page_size`/`offset` drive BOTH the SQL
+    /// below and the handler's response metadata. Inactive (retired) grinders
+    /// are excluded, mirroring the bean soft-delete policy (ticket #165).
     pub async fn list_grinders(
         &self,
         page: Option<i32>,
         limit: Option<i32>,
-    ) -> Result<(Vec<Grinder>, i64)> {
-        let page = page.unwrap_or(1).max(1);
-        let limit = limit.unwrap_or(50).clamp(1, 100);
-        let offset = (page - 1) * limit;
+    ) -> Result<(Vec<Grinder>, i64, Pagination)> {
+        let pagination = Pagination::from_request(page, limit);
+        let limit = pagination.limit();
+        let offset = pagination.offset;
 
-        let total: i64 = sqlx::query_scalar(r#"SELECT COUNT(*) FROM grinders"#)
+        let total: i64 = sqlx::query_scalar(r#"SELECT COUNT(*) FROM grinders WHERE is_active = true"#)
             .fetch_one(self.pool)
             .await
             .context("Failed to count grinders")?;
@@ -42,9 +48,10 @@ impl<'a> GrinderService<'a> {
             r#"
             SELECT
                 id, brand, model, grinder_type,
-                min_setting, max_setting, scale_type, description,
+                min_setting, max_setting, scale_type, description, is_active,
                 created_at, updated_at
             FROM grinders
+            WHERE is_active = true
             ORDER BY created_at DESC, brand ASC
             LIMIT $1 OFFSET $2
             "#,
@@ -55,23 +62,34 @@ impl<'a> GrinderService<'a> {
         .await
         .context("Failed to fetch grinders")?;
 
-        Ok((grinders, total))
+        Ok((grinders, total, pagination))
     }
 
     /// Create a new grinder.
+    ///
+    /// Business-rule validation runs HERE at the service seam (ticket #166):
+    /// the request is checked with `validate_comprehensive` (non-empty brand,
+    /// `min_setting >= 0`, `max_setting > min_setting`) before any SQL, so a
+    /// create through the service rejects invalid data regardless of the HTTP
+    /// handler. Handler-level validation remains only as supplemental fast
+    /// feedback.
     pub async fn create_grinder(&self, request: CreateGrinderRequest) -> Result<Grinder> {
+        request
+            .validate_comprehensive()
+            .map_err(|e| anyhow::anyhow!(e.to_string()))?;
+
         let now = Utc::now();
 
         let grinder = sqlx::query_as::<_, Grinder>(
             r#"
             INSERT INTO grinders (
                 id, brand, model, grinder_type, min_setting, max_setting,
-                scale_type, description, created_at, updated_at
+                scale_type, description, is_active, created_at, updated_at
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true, $9, $10)
             RETURNING
                 id, brand, model, grinder_type,
-                min_setting, max_setting, scale_type, description,
+                min_setting, max_setting, scale_type, description, is_active,
                 created_at, updated_at
             "#,
         )
@@ -98,10 +116,10 @@ impl<'a> GrinderService<'a> {
             r#"
             SELECT
                 id, brand, model, grinder_type,
-                min_setting, max_setting, scale_type, description,
+                min_setting, max_setting, scale_type, description, is_active,
                 created_at, updated_at
             FROM grinders
-            WHERE id = $1
+            WHERE id = $1 AND is_active = true
             "#,
         )
         .bind(id)
@@ -114,11 +132,18 @@ impl<'a> GrinderService<'a> {
 
 
     /// Update an existing grinder.
+    ///
+    /// Validates the request at the service seam (ticket #166) before the SQL,
+    /// identically to [`Self::create_grinder`].
     pub async fn update_grinder(
         &self,
         id: Uuid,
         request: CreateGrinderRequest,
     ) -> Result<Option<Grinder>> {
+        request
+            .validate_comprehensive()
+            .map_err(|e| anyhow::anyhow!(e.to_string()))?;
+
         let now = Utc::now();
 
         let grinder = sqlx::query_as::<_, Grinder>(
@@ -133,10 +158,10 @@ impl<'a> GrinderService<'a> {
                 scale_type = $7,
                 description = $8,
                 updated_at = $9
-            WHERE id = $1
+            WHERE id = $1 AND is_active = true
             RETURNING
                 id, brand, model, grinder_type,
-                min_setting, max_setting, scale_type, description,
+                min_setting, max_setting, scale_type, description, is_active,
                 created_at, updated_at
             "#,
         )
@@ -156,14 +181,104 @@ impl<'a> GrinderService<'a> {
         Ok(grinder)
     }
 
-    /// Delete a grinder (hard delete; grinders have no soft-delete column).
+    /// Retire a grinder (soft delete; ticket #165).
+    ///
+    /// Grinders are retired by setting `is_active = false` rather than being
+    /// removed, exactly like beans (`services/beans.rs::delete_bean`). This
+    /// treats brewing sessions as immutable history: a grinder that has logged
+    /// brews keeps its row so those sessions (and the bean-usage history that
+    /// joins them) survive, while list/get stop surfacing the retired grinder.
+    /// Returns `true` when an active grinder was retired, `false` when there
+    /// was no active grinder with that id (already retired or never existed).
     pub async fn delete_grinder(&self, id: Uuid) -> Result<bool> {
-        let result = sqlx::query(r#"DELETE FROM grinders WHERE id = $1"#)
-            .bind(id)
-            .execute(self.pool)
-            .await
-            .context("Failed to delete grinder")?;
+        let result = sqlx::query(
+            r#"
+            UPDATE grinders
+            SET is_active = false, updated_at = $2
+            WHERE id = $1 AND is_active = true
+            "#,
+        )
+        .bind(id)
+        .bind(Utc::now())
+        .execute(self.pool)
+        .await
+        .context("Failed to delete grinder")?;
 
         Ok(result.rows_affected() > 0)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::models::GrinderType;
+
+    /// A lazily-connected pool to a URL that is NEVER contacted: the
+    /// service-layer validation (ticket #166) rejects an invalid request
+    /// BEFORE any SQL runs, so these tests prove the service is the
+    /// authoritative seam without needing a live database. `connect_lazy`
+    /// defers connecting until the first query, which never happens on the
+    /// validation-failure path.
+    fn lazy_pool() -> PgPool {
+        PgPool::connect_lazy("postgres://invalid:invalid@127.0.0.1:1/nonexistent")
+            .expect("lazy pool construction never connects")
+    }
+
+    fn request(brand: &str, min: i32, max: i32) -> CreateGrinderRequest {
+        CreateGrinderRequest {
+            brand: brand.to_string(),
+            model: "C40".to_string(),
+            grinder_type: GrinderType::BurrConical,
+            min_setting: min,
+            max_setting: max,
+            scale_type: Some("step".to_string()),
+            description: None,
+        }
+    }
+
+    #[tokio::test]
+    async fn create_grinder_rejects_empty_brand_at_service_layer() {
+        let pool = lazy_pool();
+        let service = GrinderService::new(&pool);
+        let err = service
+            .create_grinder(request("   ", 0, 40))
+            .await
+            .expect_err("empty brand must be rejected by the service");
+        assert!(err.to_string().to_lowercase().contains("brand"));
+    }
+
+    #[tokio::test]
+    async fn create_grinder_rejects_inverted_range_at_service_layer() {
+        let pool = lazy_pool();
+        let service = GrinderService::new(&pool);
+        let err = service
+            .create_grinder(request("Comandante", 40, 40))
+            .await
+            .expect_err("max_setting <= min_setting must be rejected by the service");
+        assert!(err.to_string().to_lowercase().contains("maximum"));
+    }
+
+    #[tokio::test]
+    async fn create_grinder_rejects_negative_min_at_service_layer() {
+        let pool = lazy_pool();
+        let service = GrinderService::new(&pool);
+        let err = service
+            .create_grinder(request("Comandante", -1, 40))
+            .await
+            .expect_err("negative min_setting must be rejected by the service");
+        assert!(err.to_string().to_lowercase().contains("non-negative"));
+    }
+
+    #[tokio::test]
+    async fn update_grinder_rejects_invalid_data_at_service_layer() {
+        let pool = lazy_pool();
+        let service = GrinderService::new(&pool);
+        // Update must enforce the same invariants as create, independent of
+        // the HTTP handler.
+        let err = service
+            .update_grinder(Uuid::new_v4(), request("", 0, 40))
+            .await
+            .expect_err("empty brand must be rejected by the service on update");
+        assert!(err.to_string().to_lowercase().contains("brand"));
     }
 }

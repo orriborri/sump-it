@@ -140,6 +140,13 @@ pub struct Grinder {
     pub max_setting: i32,
     pub scale_type: Option<String>, // "step" or "sliding" (from BeanIt)
     pub description: Option<String>,
+
+    /// Whether this grinder is active (ticket #165). Grinders are
+    /// soft-deleted (retired) by setting this to `false` instead of being
+    /// removed, mirroring the bean soft-delete policy, so the brewing sessions
+    /// that reference them survive as immutable history. Inactive grinders are
+    /// excluded from list/get just as inactive beans are.
+    pub is_active: bool,
     
     // Timestamps
     pub created_at: DateTime<Utc>,
@@ -181,6 +188,21 @@ pub struct CreateGrinderRequest {
     pub max_setting: i32,
     pub scale_type: Option<String>,
     pub description: Option<String>,
+}
+
+impl CreateGrinderRequest {
+    /// Applies the shared grinder business rules to an incoming create/update
+    /// request before it is persisted: non-empty brand, non-negative
+    /// `min_setting`, and `max_setting > min_setting`.
+    ///
+    /// This mirrors [`CreateCoffeeBeanRequest::validate_comprehensive`] and is
+    /// the rule the SERVICE layer enforces (ticket #166), so a create/update
+    /// through the service rejects invalid data regardless of the HTTP handler.
+    pub fn validate_comprehensive(&self) -> Result<(), ValidationErrorType> {
+        validate_grinder_brand(&self.brand)?;
+        validate_grinder_setting_range(self.min_setting, self.max_setting)?;
+        Ok(())
+    }
 }
 
 /// Grinder type enum (from rustyCoffy + BeanIt).
@@ -561,6 +583,7 @@ mod tests {
             max_setting: max,
             scale_type: Some("step".to_string()),
             description: None,
+            is_active: true,
             created_at: Utc::now(),
             updated_at: Utc::now(),
         }

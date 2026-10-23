@@ -36,12 +36,15 @@ async fn list_beans(
     let service = BeanService::new(&state.pool);
     
     match service.list_beans(params.page, params.limit).await {
-        Ok((beans, total)) => Json(PaginatedResponse {
+        // `page`, `page_size` and `has_more` all come from the NORMALIZED
+        // `Pagination` the service used for the query (ticket #167), so the
+        // metadata can never disagree with the rows actually fetched.
+        Ok((beans, total, pagination)) => Json(PaginatedResponse {
             items: beans,
             total,
-            page: params.page.unwrap_or(1),
-            page_size: params.limit.unwrap_or(50),
-            has_more: total > (params.page.unwrap_or(1) * params.limit.unwrap_or(50)) as i64,
+            page: pagination.page,
+            page_size: pagination.page_size,
+            has_more: pagination.has_more(total),
         }).into_response(),
         Err(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
