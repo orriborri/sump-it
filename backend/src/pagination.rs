@@ -89,7 +89,7 @@ impl Pagination {
             (None, Some(page)) => {
                 let max_page = (i64::from(i32::MAX) / i64::from(limit) + 1)
                     .min(i64::from(i32::MAX)) as i32;
-                let page = page.max(1).min(max_page);
+                let page = page.clamp(1, max_page);
                 (page - 1) * limit
             }
             (None, None) => 0,

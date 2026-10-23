@@ -27,6 +27,7 @@
 pub mod api;
 pub mod database;
 pub mod models;
+/// Shared pagination normalization and response metadata.
 pub mod pagination;
 pub mod recipe;
 pub mod services;
