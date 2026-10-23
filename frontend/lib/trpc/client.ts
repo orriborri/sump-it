@@ -69,6 +69,13 @@ function buildQuery(params?: Record<string, string | number | undefined>): strin
  * Perform a typed request against the backend. The caller declares the success
  * payload type `T`; errors are surfaced through the `error`/`details` fields
  * (shaped like the generated `ErrorResponse`) rather than thrown.
+ *
+ * Resolve/reject contract: this adapter ALWAYS resolves to an `ApiResponse` and
+ * never rejects. Network-level failures (a thrown `fetch`) are caught here and
+ * returned as a resolved `{ error }`, so callers only ever branch on the
+ * `data`/`error` fields. Consumers that accept an injected client (for example
+ * `BrewWorkflow`) still defend the seam against an alternate adapter that
+ * rejects; see the `BrewClient` interface for that contract.
  */
 export async function apiFetch<T>(
   endpoint: string,

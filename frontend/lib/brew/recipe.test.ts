@@ -6,6 +6,7 @@ import {
   clampGrindSetting,
   emptyBrewForm,
   formToSessionRequest,
+  isBrewingMethod,
   isEquipmentComplete,
   liveCoffeeRatio,
   parseNumber,
@@ -41,6 +42,20 @@ describe('constants', () => {
       'ColdBrew',
       'Other',
     ]);
+  });
+});
+
+describe('isBrewingMethod', () => {
+  it('accepts every canonical method value', () => {
+    for (const method of BREWING_METHODS) {
+      expect(isBrewingMethod(method.value)).toBe(true);
+    }
+  });
+
+  it('rejects values that are not canonical methods', () => {
+    expect(isBrewingMethod('')).toBe(false);
+    expect(isBrewingMethod('Pourover')).toBe(false);
+    expect(isBrewingMethod('v60')).toBe(false);
   });
 });
 
@@ -203,6 +218,14 @@ describe('formToSessionRequest', () => {
       suggestions: null,
       isTemplate: false,
     });
+  });
+
+  it('throws when no brewing method has been chosen', () => {
+    // The equipment gate prevents this at runtime, but the guard replaces the
+    // old unchecked `as BrewingMethod` cast and must be covered.
+    expect(() => formToSessionRequest(form({ beanId: 'b', grinderId: 'g' }))).toThrow(
+      'Cannot build a session request without a brewing method.'
+    );
   });
 
   it('preserves provided optionals and trims text', () => {
