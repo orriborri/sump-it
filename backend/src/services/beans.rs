@@ -7,6 +7,7 @@ use uuid::Uuid;
 use anyhow::{Result, Context};
 
 use crate::models::{BeanUsageRecord, CoffeeBean, CreateCoffeeBeanRequest};
+use crate::pagination::Page;
 
 /// Service for managing coffee beans
 pub struct BeanService<'a> {
@@ -18,11 +19,15 @@ impl<'a> BeanService<'a> {
         Self { pool }
     }
     
-    /// List all coffee beans with pagination
+    /// List all coffee beans with pagination.
+    ///
+    /// Normalization is delegated to the shared [`crate::pagination::Page`]
+    /// (ticket #167) so the `LIMIT`/`OFFSET` used for the query match the
+    /// `page_size`/`has_more` the handler reports.
     pub async fn list_beans(&self, page: Option<i32>, limit: Option<i32>) -> Result<(Vec<CoffeeBean>, i64)> {
-        let page = page.unwrap_or(1).max(1);
-        let limit = limit.unwrap_or(50).clamp(1, 100);
-        let offset = (page - 1) * limit;
+        let paging = Page::from_request(page, limit);
+        let limit = paging.page_size();
+        let offset = paging.offset();
         
         // Get total count
         let total: i64 = sqlx::query_scalar(
@@ -54,8 +59,18 @@ impl<'a> BeanService<'a> {
         Ok((beans, total))
     }
     
-    /// Create a new coffee bean
+    /// Create a new coffee bean.
+    ///
+    /// The service is the authoritative invariant seam (ticket #166): business
+    /// rules are validated HERE before any row is written, so a non-HTTP caller
+    /// cannot persist an invalid bean. The handler's validation is supplemental
+    /// fast feedback only.
     pub async fn create_bean(&self, request: CreateCoffeeBeanRequest) -> Result<CoffeeBean> {
+        request
+            .validate_comprehensive()
+            .map_err(|e| anyhow::anyhow!(e.to_string()))
+            .context("Invalid bean")?;
+
         let now = Utc::now();
         
         let bean = sqlx::query_as::<_, CoffeeBean>(
@@ -110,8 +125,16 @@ impl<'a> BeanService<'a> {
         Ok(bean)
     }
     
-    /// Update a coffee bean
+    /// Update a coffee bean.
+    ///
+    /// Like [`Self::create_bean`], the same business rules are enforced at the
+    /// service layer before any write (ticket #166).
     pub async fn update_bean(&self, id: Uuid, request: CreateCoffeeBeanRequest) -> Result<Option<CoffeeBean>> {
+        request
+            .validate_comprehensive()
+            .map_err(|e| anyhow::anyhow!(e.to_string()))
+            .context("Invalid bean")?;
+
         let now = Utc::now();
         
         let bean = sqlx::query_as::<_, CoffeeBean>(

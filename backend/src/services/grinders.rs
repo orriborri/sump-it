@@ -12,6 +12,7 @@ use uuid::Uuid;
 use anyhow::{Result, Context};
 
 use crate::models::{Grinder, CreateGrinderRequest};
+use crate::pagination::Page;
 
 /// Why a grinder delete failed.
 ///
@@ -43,14 +44,18 @@ impl<'a> GrinderService<'a> {
     }
 
     /// List grinders with pagination, newest first.
+    ///
+    /// Normalization is delegated to the shared [`crate::pagination::Page`]
+    /// (ticket #167) so the `LIMIT`/`OFFSET` used for the query match the
+    /// `page_size`/`has_more` the handler reports.
     pub async fn list_grinders(
         &self,
         page: Option<i32>,
         limit: Option<i32>,
     ) -> Result<(Vec<Grinder>, i64)> {
-        let page = page.unwrap_or(1).max(1);
-        let limit = limit.unwrap_or(50).clamp(1, 100);
-        let offset = (page - 1) * limit;
+        let paging = Page::from_request(page, limit);
+        let limit = paging.page_size();
+        let offset = paging.offset();
 
         let total: i64 = sqlx::query_scalar(r#"SELECT COUNT(*) FROM grinders"#)
             .fetch_one(self.pool)
@@ -78,7 +83,17 @@ impl<'a> GrinderService<'a> {
     }
 
     /// Create a new grinder.
+    ///
+    /// The service is the authoritative invariant seam (ticket #166): the
+    /// brand/setting-range business rules are validated HERE before any row is
+    /// written, so a non-HTTP caller cannot persist an invalid grinder. The
+    /// handler's validation is supplemental fast feedback only.
     pub async fn create_grinder(&self, request: CreateGrinderRequest) -> Result<Grinder> {
+        request
+            .validate_comprehensive()
+            .map_err(|e| anyhow::anyhow!(e.to_string()))
+            .context("Invalid grinder")?;
+
         let now = Utc::now();
 
         let grinder = sqlx::query_as::<_, Grinder>(
@@ -133,11 +148,19 @@ impl<'a> GrinderService<'a> {
 
 
     /// Update an existing grinder.
+    ///
+    /// Like [`Self::create_grinder`], the same business rules are enforced at
+    /// the service layer before any write (ticket #166).
     pub async fn update_grinder(
         &self,
         id: Uuid,
         request: CreateGrinderRequest,
     ) -> Result<Option<Grinder>> {
+        request
+            .validate_comprehensive()
+            .map_err(|e| anyhow::anyhow!(e.to_string()))
+            .context("Invalid grinder")?;
+
         let now = Utc::now();
 
         let grinder = sqlx::query_as::<_, Grinder>(

@@ -327,6 +327,74 @@ async fn schema_rejects_negative_min_setting() {
     assert!(result.is_err(), "schema must reject negative min_setting");
 }
 
+/// Ticket #166: the SERVICE is the authoritative invariant seam. A direct
+/// `create_grinder` with invalid data (empty brand, or an inverted/negative
+/// setting range) must fail at the service layer, independent of the HTTP
+/// handler, and persist NOTHING. The `COUNT(*)` before/after proves the reject
+/// happens before any INSERT, so a non-HTTP caller cannot bypass validation.
+#[tokio::test]
+#[ignore = "requires a live Postgres (DATABASE_URL); run with --ignored"]
+async fn create_grinder_rejects_invalid_data_at_service_layer() {
+    let Some(pool) = pool().await else { return };
+    let service = GrinderService::new(&pool);
+
+    let before: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM grinders")
+        .fetch_one(&pool)
+        .await
+        .expect("count grinders");
+
+    // Empty brand is a business-rule violation, caught by the service.
+    let empty_brand = service
+        .create_grinder(grinder_request("   ", 0, 40))
+        .await;
+    assert!(empty_brand.is_err(), "service rejects an empty grinder brand");
+
+    // Inverted range (max <= min) is rejected before any INSERT.
+    let inverted = service
+        .create_grinder(grinder_request("Comandante", 40, 10))
+        .await;
+    assert!(inverted.is_err(), "service rejects an inverted setting range");
+
+    let after: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM grinders")
+        .fetch_one(&pool)
+        .await
+        .expect("count grinders");
+    assert_eq!(
+        before, after,
+        "no invalid grinder row is persisted when the service rejects it"
+    );
+}
+
+/// Ticket #166: `update_grinder` enforces the same invariants at the service
+/// layer. Updating an existing grinder with invalid data must fail without
+/// mutating the stored row.
+#[tokio::test]
+#[ignore = "requires a live Postgres (DATABASE_URL); run with --ignored"]
+async fn update_grinder_rejects_invalid_data_at_service_layer() {
+    let Some(pool) = pool().await else { return };
+    let service = GrinderService::new(&pool);
+
+    let created = service
+        .create_grinder(grinder_request("Original", 0, 40))
+        .await
+        .expect("create grinder");
+
+    let result = service
+        .update_grinder(created.id, grinder_request("  ", 0, 40))
+        .await;
+    assert!(result.is_err(), "service rejects an empty brand on update");
+
+    // The stored row is unchanged.
+    let fetched = service
+        .get_grinder(created.id)
+        .await
+        .expect("get grinder")
+        .expect("grinder still exists");
+    assert_eq!(fetched.brand, "Original", "a rejected update does not mutate the row");
+
+    cleanup(&pool, &[created.id]).await;
+}
+
 /// Inserts a quantity-tracked bean (so `log_brew` can decrement it) and returns
 /// its id. Dates are in the past so the app-level future-date guard is happy.
 async fn insert_bean(pool: &PgPool) -> Uuid {

@@ -18,6 +18,7 @@ use validator::Validate;
 use crate::{
     api::AppState,
     models::{CreateGrinderRequest, ErrorResponse, PaginatedResponse},
+    pagination::Page,
     services::grinders::{DeleteError, GrinderService},
     validation::{validate_grinder_setting_range, validation_errors_to_string},
 };
@@ -37,14 +38,17 @@ async fn list_grinders(
 
     match service.list_grinders(params.page, params.limit).await {
         Ok((grinders, total)) => {
-            let page = params.page.unwrap_or(1);
-            let page_size = params.limit.unwrap_or(50);
+            // Metadata is derived from the SAME normalized pagination the
+            // service used for the query (ticket #167), so an out-of-range
+            // limit (0, negative, >100) cannot report a page_size/has_more
+            // that disagrees with what was fetched.
+            let paging = Page::from_request(params.page, params.limit);
             Json(PaginatedResponse {
                 items: grinders,
                 total,
-                page,
-                page_size,
-                has_more: total > (page * page_size) as i64,
+                page: paging.page(),
+                page_size: paging.page_size(),
+                has_more: paging.has_more(total),
             })
             .into_response()
         }

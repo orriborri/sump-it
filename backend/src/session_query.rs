@@ -21,10 +21,11 @@ use chrono::NaiveDate;
 
 use crate::models::{BrewingMethod, GrinderType, SessionFilter};
 
-/// Default page size when a filter does not specify `limit`.
-pub const DEFAULT_LIMIT: i32 = 50;
-/// Hard ceiling on page size so a client cannot request an unbounded page.
-pub const MAX_LIMIT: i32 = 100;
+// Pagination normalization lives in `crate::pagination` (ticket #167), the
+// single source of truth shared by beans, grinders and sessions. The session
+// path re-exports the offset-based helpers and the limit bounds it already used
+// so existing callers (and this module's query assembly below) are unchanged.
+pub use crate::pagination::{normalize_limit, normalize_offset, DEFAULT_LIMIT, MAX_LIMIT};
 
 /// A single value to bind to a numbered placeholder, in placeholder order.
 ///
@@ -58,18 +59,6 @@ pub struct BuiltQuery {
     pub sql: String,
     /// Values to bind, in placeholder order.
     pub binds: Vec<QueryBind>,
-}
-
-/// Normalises a filter's `limit` into the inclusive range `[1, MAX_LIMIT]`,
-/// defaulting to [`DEFAULT_LIMIT`] when unset. Pure and total.
-pub fn normalize_limit(limit: Option<i32>) -> i32 {
-    limit.unwrap_or(DEFAULT_LIMIT).clamp(1, MAX_LIMIT)
-}
-
-/// Normalises a filter's `offset` to a non-negative value, defaulting to 0.
-/// Pure and total.
-pub fn normalize_offset(offset: Option<i32>) -> i32 {
-    offset.unwrap_or(0).max(0)
 }
 
 /// Trims a raw search term and returns `Some(trimmed)` only when it contains
@@ -246,29 +235,6 @@ mod tests {
             limit: None,
             offset: None,
         }
-    }
-
-    #[test]
-    fn normalize_limit_defaults_and_clamps() {
-        assert_eq!(normalize_limit(None), DEFAULT_LIMIT);
-        assert_eq!(normalize_limit(Some(10)), 10);
-        // Below 1 clamps up to 1.
-        assert_eq!(normalize_limit(Some(0)), 1);
-        assert_eq!(normalize_limit(Some(-5)), 1);
-        // Above the ceiling clamps down.
-        assert_eq!(normalize_limit(Some(1000)), MAX_LIMIT);
-        // Boundaries are kept.
-        assert_eq!(normalize_limit(Some(1)), 1);
-        assert_eq!(normalize_limit(Some(MAX_LIMIT)), MAX_LIMIT);
-    }
-
-    #[test]
-    fn normalize_offset_defaults_and_floors() {
-        assert_eq!(normalize_offset(None), 0);
-        assert_eq!(normalize_offset(Some(0)), 0);
-        assert_eq!(normalize_offset(Some(25)), 25);
-        // Negative offsets floor to 0.
-        assert_eq!(normalize_offset(Some(-1)), 0);
     }
 
     #[test]
