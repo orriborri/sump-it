@@ -4,8 +4,10 @@ import {
   areParametersComplete,
   BREWING_METHODS,
   clampGrindSetting,
+  coerceBrewingMethod,
   emptyBrewForm,
   formToSessionRequest,
+  isBrewingMethod,
   isEquipmentComplete,
   liveCoffeeRatio,
   parseNumber,
@@ -17,9 +19,22 @@ import {
   UNREACHABLE_MESSAGE,
   validateRating,
   type BrewFormData,
+  type CompleteBrewForm,
 } from './recipe';
+import type { BrewingMethod } from '@/lib/api/types';
 
 function form(overrides: Partial<BrewFormData> = {}): BrewFormData {
+  return { ...emptyBrewForm(), ...overrides };
+}
+
+/**
+ * A brew form whose equipment step is complete: `brewingMethod` is a concrete
+ * `BrewingMethod`, so the result is assignable to {@link CompleteBrewForm} and
+ * can be passed to `formToSessionRequest` without any cast.
+ */
+function completeForm(
+  overrides: Partial<BrewFormData> & { brewingMethod: BrewingMethod }
+): CompleteBrewForm {
   return { ...emptyBrewForm(), ...overrides };
 }
 
@@ -179,7 +194,7 @@ describe('parseOptionalNumber', () => {
 describe('formToSessionRequest', () => {
   it('maps numeric fields and collapses empty optionals to null', () => {
     const request = formToSessionRequest(
-      form({
+      completeForm({
         beanId: 'bean-1',
         grinderId: 'grinder-1',
         brewingMethod: 'Espresso',
@@ -207,7 +222,7 @@ describe('formToSessionRequest', () => {
 
   it('preserves provided optionals and trims text', () => {
     const request = formToSessionRequest(
-      form({
+      completeForm({
         beanId: 'bean-1',
         grinderId: 'grinder-1',
         brewingMethod: 'V60',
@@ -226,5 +241,39 @@ describe('formToSessionRequest', () => {
     expect(request.feedback).toBe('Balanced');
     // Whitespace-only suggestions collapse to null.
     expect(request.suggestions).toBeNull();
+  });
+
+  it('carries the chosen BrewingMethod through as the typed union value', () => {
+    // A form whose method is a `BrewingMethod` produces a request whose
+    // `brewingMethod` is that same typed value, with no `as` cast in the path.
+    const method: BrewingMethod = 'Chemex';
+    const request = formToSessionRequest(
+      completeForm({ beanId: 'b', grinderId: 'g', brewingMethod: method })
+    );
+    const roundTripped: BrewingMethod = request.brewingMethod;
+    expect(roundTripped).toBe('Chemex');
+  });
+});
+
+describe('brewing-method canonical list (#169)', () => {
+  it('is the single source consumed as the form field type', () => {
+    // Every canonical value is a valid BrewingMethod the form can hold.
+    for (const { value } of BREWING_METHODS) {
+      const chosen: BrewFormData = form({ brewingMethod: value });
+      expect(chosen.brewingMethod).toBe(value);
+    }
+  });
+
+  it('isBrewingMethod accepts canonical values and rejects others', () => {
+    expect(isBrewingMethod('Espresso')).toBe(true);
+    expect(isBrewingMethod('V60')).toBe(true);
+    expect(isBrewingMethod('')).toBe(false);
+    expect(isBrewingMethod('NotAMethod')).toBe(false);
+  });
+
+  it('coerceBrewingMethod narrows valid strings and collapses unknown ones to empty', () => {
+    expect(coerceBrewingMethod('AeroPress')).toBe('AeroPress');
+    expect(coerceBrewingMethod('bogus')).toBe('');
+    expect(coerceBrewingMethod('')).toBe('');
   });
 });

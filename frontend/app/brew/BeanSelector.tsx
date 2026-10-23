@@ -16,7 +16,8 @@ import {
   Chip,
   Alert,
 } from '@mui/material';
-import { type BrewFormData } from '@/lib/brew/recipe';
+import { BREWING_METHODS, coerceBrewingMethod, type BrewFormData } from '@/lib/brew/recipe';
+import type { BrewingMethod } from '@/lib/api/types';
 
 /**
  * A coffee bean option.
@@ -50,7 +51,7 @@ interface BeanSelectorProps {
   formData: {
     beanId: string;
     grinderId: string;
-    brewingMethod: string;
+    brewingMethod: BrewingMethod | '';
   };
   /** Applies a partial update to the parent brew form. */
   updateFormData: (updates: Partial<BrewFormData>) => void;
@@ -61,17 +62,6 @@ interface BeanSelectorProps {
   /** Whether the equipment data is still loading. */
   isLoading: boolean;
 }
-
-const BREWING_METHODS = [
-  { value: 'V60', label: 'V60' },
-  { value: 'Chemex', label: 'Chemex' },
-  { value: 'FrenchPress', label: 'French Press' },
-  { value: 'AeroPress', label: 'AeroPress' },
-  { value: 'Espresso', label: 'Espresso' },
-  { value: 'Moka', label: 'Moka Pot' },
-  { value: 'ColdBrew', label: 'Cold Brew' },
-  { value: 'Other', label: 'Other' },
-];
 
 /** The two-line label rendered inside a bean dropdown option. */
 const BeanOptionLabel: React.FC<{ bean: Bean }> = ({ bean }) => (
@@ -138,12 +128,18 @@ const GrinderDropdown: React.FC<{
   </Select>
 );
 
-/** The brewing-method `<Select>` dropdown with one option per method. */
+/**
+ * The brewing-method `<Select>` dropdown with one option per method.
+ *
+ * Typed as `Select<BrewingMethod | ''>` so the change event's value is already
+ * a `BrewingMethod` (the options come from the canonical `BREWING_METHODS`
+ * list); no `as BrewingMethod` cast is needed to narrow it.
+ */
 const MethodDropdown: React.FC<{
-  brewingMethod: string;
-  onChange: (event: SelectChangeEvent) => void;
+  brewingMethod: BrewingMethod | '';
+  onChange: (event: SelectChangeEvent<BrewingMethod | ''>) => void;
 }> = ({ brewingMethod, onChange }) => (
-  <Select
+  <Select<BrewingMethod | ''>
     labelId="method-select-label"
     id="method-select"
     value={brewingMethod}
@@ -259,9 +255,9 @@ const GrinderSelectColumn: React.FC<GrinderSelectColumnProps> = ({
 /** Props for {@link MethodSelectColumn}. */
 interface MethodSelectColumnProps {
   /** The currently selected brewing method. */
-  brewingMethod: string;
+  brewingMethod: BrewingMethod | '';
   /** Handles a change of the selected brewing method. */
-  onChange: (event: SelectChangeEvent) => void;
+  onChange: (event: SelectChangeEvent<BrewingMethod | ''>) => void;
 }
 
 /** The brewing-method selection column: the dropdown plus a method chip. */
@@ -291,7 +287,7 @@ interface SelectionSummaryProps {
   /** The currently selected grinder, if any. */
   selectedGrinder?: Grinder;
   /** The currently selected brewing method. */
-  brewingMethod: string;
+  brewingMethod: BrewingMethod | '';
 }
 
 /** A compact summary of the current bean / grinder / method selection. */
@@ -350,8 +346,10 @@ export function BeanSelector({
     updateFormData({ grinderId: event.target.value });
   };
 
-  const handleMethodChange = (event: SelectChangeEvent) => {
-    updateFormData({ brewingMethod: event.target.value });
+  const handleMethodChange = (event: SelectChangeEvent<BrewingMethod | ''>) => {
+    // The options come from the canonical `BREWING_METHODS` list, so the value
+    // is validated against it (rather than cast) before updating the form.
+    updateFormData({ brewingMethod: coerceBrewingMethod(event.target.value) });
   };
 
   const selectedBean = beans.find(b => b.id === formData.beanId);

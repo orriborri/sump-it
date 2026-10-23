@@ -247,6 +247,18 @@ export function BrewWorkflow({ client = coffeeBrewerClient }: BrewWorkflowProps)
   const handleSubmit = async () => {
     setSaveError(null);
 
+    // The submit action only becomes reachable on the final step, which the
+    // stepper gates behind a complete equipment step. The `isEquipmentComplete`
+    // type guard narrows `brewingMethod` from `BrewingMethod | ''` to a concrete
+    // `BrewingMethod`, so the request is built without an unchecked cast.
+    /* v8 ignore start -- coverage: the final-step submit button is only
+       reachable once equipment selection is complete, so the `false` branch is
+       unreachable through the UI; it exists only to narrow the method type. */
+    if (!isEquipmentComplete(formData)) {
+      return;
+    }
+    /* v8 ignore stop */
+
     const response = await client.sessions.create(formToSessionRequest(formData));
     if (response.error) {
       // Business errors (insufficient quantity, recipe violations) are already
