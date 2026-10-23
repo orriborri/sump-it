@@ -15,7 +15,7 @@ use crate::{
     api::AppState,
     models::{CreateCoffeeBeanRequest, PaginatedResponse, ErrorResponse},
     pagination::Page,
-    services::beans::BeanService,
+    services::beans::{BeanService, BeanServiceError},
     validation::validation_errors_to_string,
 };
 
@@ -84,7 +84,11 @@ async fn create_bean(
     
     match service.create_bean(payload).await {
         Ok(bean) => (StatusCode::CREATED, Json(bean)).into_response(),
-        Err(e) => (
+        Err(BeanServiceError::Validation(e)) => (
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse::new(e.to_string())),
+        ).into_response(),
+        Err(BeanServiceError::Database(e)) => (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(ErrorResponse::new(format!("Failed to create bean: {}", e))),
         ).into_response(),
@@ -144,7 +148,11 @@ async fn update_bean(
             StatusCode::NOT_FOUND,
             Json(ErrorResponse::new("Coffee bean not found".to_string())),
         ).into_response(),
-        Err(e) => (
+        Err(BeanServiceError::Validation(e)) => (
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse::new(e.to_string())),
+        ).into_response(),
+        Err(BeanServiceError::Database(e)) => (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(ErrorResponse::new(format!("Failed to update bean: {}", e))),
         ).into_response(),

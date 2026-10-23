@@ -19,7 +19,7 @@ use crate::{
     api::AppState,
     models::{CreateGrinderRequest, ErrorResponse, PaginatedResponse},
     pagination::Page,
-    services::grinders::GrinderService,
+    services::grinders::{GrinderService, GrinderServiceError},
     validation::{validate_grinder_setting_range, validation_errors_to_string},
 };
 
@@ -69,7 +69,12 @@ async fn create_grinder(
 
     match service.create_grinder(payload).await {
         Ok(grinder) => (StatusCode::CREATED, Json(grinder)).into_response(),
-        Err(e) => (
+        Err(GrinderServiceError::Validation(e)) => (
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse::new(e.to_string())),
+        )
+            .into_response(),
+        Err(GrinderServiceError::Database(e)) => (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(ErrorResponse::new(format!("Failed to create grinder: {}", e))),
         )
@@ -118,7 +123,12 @@ async fn update_grinder(
             Json(ErrorResponse::new("Grinder not found".to_string())),
         )
             .into_response(),
-        Err(e) => (
+        Err(GrinderServiceError::Validation(e)) => (
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse::new(e.to_string())),
+        )
+            .into_response(),
+        Err(GrinderServiceError::Database(e)) => (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(ErrorResponse::new(format!("Failed to update grinder: {}", e))),
         )

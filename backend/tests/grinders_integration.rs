@@ -293,9 +293,12 @@ async fn delete_grinder_removes_the_row() {
     cleanup(&pool, &[created.id]).await;
 }
 
-/// The schema `CHECK (max_setting > min_setting)` must reject an invalid range
-/// even when it reaches the database through the shipping `create_grinder`
-/// INSERT. This mirrors the API-level validation surfaced to the user.
+/// An invalid range (`max_setting <= min_setting`) must be rejected through the
+/// shipping `create_grinder`. Since ticket #166 the service validates the
+/// setting range BEFORE any INSERT (the invariant-owning seam), so this is
+/// caught at the service layer; the schema `CHECK (max_setting > min_setting)`
+/// remains as a backstop. Either way the create fails, which is what this
+/// asserts, mirroring the API-level validation surfaced to the user.
 #[tokio::test]
 #[ignore = "requires a live Postgres (DATABASE_URL); run with --ignored"]
 async fn schema_rejects_max_not_greater_than_min() {
@@ -311,8 +314,10 @@ async fn schema_rejects_max_not_greater_than_min() {
     );
 }
 
-/// The schema `CHECK (min_setting >= 0)` must reject a negative minimum through
-/// the shipping `create_grinder` INSERT.
+/// A negative minimum must be rejected through the shipping `create_grinder`.
+/// Since ticket #166 the service validates `min_setting >= 0` BEFORE any INSERT;
+/// the schema `CHECK (min_setting >= 0)` remains as a backstop. Either way the
+/// create fails, which is what this asserts.
 #[tokio::test]
 #[ignore = "requires a live Postgres (DATABASE_URL); run with --ignored"]
 async fn schema_rejects_negative_min_setting() {
