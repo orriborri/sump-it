@@ -13,6 +13,25 @@ use anyhow::{Result, Context};
 
 use crate::models::{Grinder, CreateGrinderRequest};
 
+/// Why a grinder delete failed.
+///
+/// Ticket #165: brewing sessions are immutable historical records, so a grinder
+/// that is still referenced by any session cannot be removed (the FK is
+/// `ON DELETE RESTRICT`, migration 0004). The API layer maps each variant to an
+/// HTTP status: `Referenced` -> `409 Conflict`, `Database` -> `500`.
+#[derive(Debug)]
+pub enum DeleteError {
+    /// The grinder is still referenced by at least one brewing session, so the
+    /// `ON DELETE RESTRICT` foreign key refused the delete. Removing it would
+    /// destroy session history, which is not allowed.
+    Referenced,
+    /// Any other underlying database failure.
+    Database(anyhow::Error),
+}
+
+/// Postgres SQLSTATE for a foreign-key violation (`ON DELETE RESTRICT` refusal).
+const FK_VIOLATION: &str = "23503";
+
 /// Service for managing grinders.
 pub struct GrinderService<'a> {
     pool: &'a PgPool,
@@ -157,13 +176,41 @@ impl<'a> GrinderService<'a> {
     }
 
     /// Delete a grinder (hard delete; grinders have no soft-delete column).
-    pub async fn delete_grinder(&self, id: Uuid) -> Result<bool> {
+    ///
+    /// Ticket #165 policy: brewing sessions are immutable historical records.
+    /// The `brewing_sessions.grinder_id` foreign key is `ON DELETE RESTRICT`
+    /// (migration 0004), so the database REFUSES to delete a grinder that is
+    /// still referenced by any session rather than cascade-deleting that
+    /// history. Such a refusal arrives as a Postgres foreign-key violation
+    /// (SQLSTATE 23503); it is translated here into
+    /// [`DeleteError::Referenced`] so the API can answer `409 Conflict` instead
+    /// of a 500, and no session is ever destroyed. An unreferenced grinder
+    /// deletes normally and `Ok(true)` is returned; deleting a missing grinder
+    /// returns `Ok(false)`.
+    pub async fn delete_grinder(&self, id: Uuid) -> std::result::Result<bool, DeleteError> {
         let result = sqlx::query(r#"DELETE FROM grinders WHERE id = $1"#)
             .bind(id)
             .execute(self.pool)
-            .await
-            .context("Failed to delete grinder")?;
+            .await;
 
-        Ok(result.rows_affected() > 0)
+        match result {
+            Ok(done) => Ok(done.rows_affected() > 0),
+            Err(e) => {
+                // A RESTRICT foreign key refusing the delete (the grinder is
+                // still used by a session) is a clean, expected conflict, not a
+                // 500. Every other DB error is surfaced as `Database`.
+                if e.as_database_error()
+                    .and_then(|db| db.code())
+                    .as_deref()
+                    == Some(FK_VIOLATION)
+                {
+                    Err(DeleteError::Referenced)
+                } else {
+                    Err(DeleteError::Database(
+                        anyhow::Error::new(e).context("Failed to delete grinder"),
+                    ))
+                }
+            }
+        }
     }
 }

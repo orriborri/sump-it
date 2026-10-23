@@ -40,6 +40,7 @@ use uuid::Uuid;
 
 // Use the models from the library crate.
 use coffee_brewer_backend::models::{BrewingMethod, CreateBrewingSessionRequest};
+use coffee_brewer_backend::validation::ValidationErrorType;
 
 // The production service now lives in the library crate (`services::sessions`),
 // so this test calls it directly rather than re-compiling the source via
@@ -366,6 +367,111 @@ async fn commit_failure_maps_to_database_error() {
         .execute(&pool)
         .await
         .expect("drop deferred-failure trigger function");
+    cleanup(&pool, bean, grinder).await;
+}
+
+/// Ticket #168 (TOCTOU): a grinder-range change that is concurrent with a brew
+/// save must NOT be able to persist a session that violates the range the save
+/// validates. `log_brew` now locks the grinder row `FOR UPDATE` INSIDE the
+/// transaction and validates against that locked row, so a concurrent writer is
+/// serialized behind the lock and `log_brew` always sees the range that is
+/// actually in force.
+///
+/// This test makes the race DETERMINISTIC to prove the invariant:
+///   1. A grinder is created with a wide range (0..40) and a brew is prepared
+///      with `grind_setting = 30`, valid only while the range stays wide.
+///   2. A separate transaction locks the grinder row `FOR UPDATE` and NARROWS
+///      the range to 0..10 (making 30 invalid), but does NOT commit yet.
+///   3. `log_brew` is started concurrently. Because it must take the grinder
+///      `FOR UPDATE` lock, it BLOCKS behind the still-open narrowing tx rather
+///      than validating against the stale wide range.
+///   4. The narrowing tx commits. `log_brew` then acquires the lock, re-reads
+///      the NOW-NARROWED range inside its own transaction, and rejects the brew
+///      with `Recipe(GrindSettingOutOfRange)`.
+///   5. No session is persisted.
+///
+/// Before the fix, `log_brew` read and validated the grinder BEFORE any lock, so
+/// it would have validated 30 against the stale 0..40 range and inserted a
+/// session that violates the committed 0..10 range: step 4 would return `Ok`
+/// and step 5 would find a row. The lock closes exactly that window.
+#[tokio::test]
+#[ignore = "requires a live Postgres (DATABASE_URL); run with --ignored"]
+async fn concurrent_grinder_narrowing_cannot_persist_out_of_range_session() {
+    use coffee_brewer_backend::models::BrewingMethod;
+
+    let Some(pool) = pool().await else { return };
+    let grinder = insert_grinder(&pool).await; // range 0..40
+    let bean = insert_bean(&pool, Some(100.0)).await;
+
+    // A V60 brew whose grind setting (30) is valid at 0..40 but not at 0..10.
+    let request = CreateBrewingSessionRequest {
+        bean_id: bean,
+        grinder_id: grinder,
+        brewing_method: BrewingMethod::V60,
+        grind_setting: 30,
+        water_temp_celsius: Some(93),
+        brew_time_seconds: Some(180),
+        coffee_grams: 20.0,
+        water_grams: 320.0, // 1:16, inside the V60 band
+        tasting_notes: None,
+        rating: None,
+        feedback: None,
+        suggestions: None,
+        is_template: false,
+    };
+
+    // (2) Lock the grinder row and narrow its range, but hold the transaction
+    // open so the change is not yet visible/committed.
+    let mut narrow_tx = pool.begin().await.expect("begin narrowing tx");
+    sqlx::query("SELECT id FROM grinders WHERE id = $1 FOR UPDATE")
+        .bind(grinder)
+        .execute(&mut *narrow_tx)
+        .await
+        .expect("lock grinder for narrowing");
+    sqlx::query("UPDATE grinders SET max_setting = 10 WHERE id = $1")
+        .bind(grinder)
+        .execute(&mut *narrow_tx)
+        .await
+        .expect("narrow grinder range");
+
+    // (3) Start the brew concurrently. It must block on the grinder lock the
+    // narrowing tx holds; give it a moment to reach and wait on that lock.
+    let brew_pool = pool.clone();
+    let brew = tokio::spawn(async move {
+        SessionService::new(&brew_pool).log_brew(request).await
+    });
+    tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+    assert!(
+        !brew.is_finished(),
+        "log_brew must block on the grinder FOR UPDATE lock, not validate a stale range"
+    );
+
+    // (4) Commit the narrowing; log_brew can now proceed against 0..10.
+    narrow_tx.commit().await.expect("commit narrowing");
+
+    let result = brew.await.expect("join brew task");
+    match result {
+        Err(SaveError::Recipe(ValidationErrorType::GrindSettingOutOfRange {
+            setting,
+            min,
+            max,
+            ..
+        })) => {
+            assert_eq!(setting, 30);
+            assert_eq!(min, 0);
+            assert_eq!(max, 10, "log_brew validated against the committed range");
+        }
+        other => panic!("expected GrindSettingOutOfRange against the narrowed range, got {other:?}"),
+    }
+
+    // (5) No range-violating session may exist.
+    let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM brewing_sessions WHERE bean_id = $1")
+        .bind(bean)
+        .fetch_one(&pool)
+        .await
+        .expect("count sessions");
+    assert_eq!(count, 0, "no session may persist against a range it violates");
+
     cleanup(&pool, bean, grinder).await;
 }
 

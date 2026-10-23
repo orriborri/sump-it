@@ -18,7 +18,7 @@ use validator::Validate;
 use crate::{
     api::AppState,
     models::{CreateGrinderRequest, ErrorResponse, PaginatedResponse},
-    services::grinders::GrinderService,
+    services::grinders::{DeleteError, GrinderService},
     validation::{validate_grinder_setting_range, validation_errors_to_string},
 };
 
@@ -140,7 +140,18 @@ async fn delete_grinder(
             Json(ErrorResponse::new("Grinder not found".to_string())),
         )
             .into_response(),
-        Err(e) => (
+        // Ticket #165: the grinder is still referenced by brewing sessions, so
+        // the `ON DELETE RESTRICT` foreign key refused the delete to protect
+        // that immutable history. Surface a clean 409 Conflict, not a 500.
+        Err(DeleteError::Referenced) => (
+            StatusCode::CONFLICT,
+            Json(ErrorResponse::new(
+                "Cannot delete a grinder that has brewing sessions; its history is preserved."
+                    .to_string(),
+            )),
+        )
+            .into_response(),
+        Err(DeleteError::Database(e)) => (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(ErrorResponse::new(format!("Failed to delete grinder: {}", e))),
         )
