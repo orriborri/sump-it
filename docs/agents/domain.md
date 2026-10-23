@@ -31,4 +31,4 @@ This is a consolidated coffee brewing application that combines three separate r
 - Brewing sessions with comprehensive parameters
 - Brewing methods (V60, Chemex, French Press, etc.)
 - Feedback and tasting notes
-- Coffee-to-water ratio validation (15.0-17.0)
+- Per-method recipe validation: each brewing method has its own water:coffee ratio, coffee/water weight, and temperature bands (see `rules_for` in `backend/src/recipe.rs`)
