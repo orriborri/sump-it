@@ -19,7 +19,7 @@ use crate::{
     api::AppState,
     models::{CreateGrinderRequest, ErrorResponse, PaginatedResponse},
     services::grinders::GrinderService,
-    validation::{validate_grinder_setting_range, validation_errors_to_string},
+    validation::validation_errors_to_string,
 };
 
 pub fn router() -> Router<AppState> {
@@ -147,12 +147,18 @@ async fn delete_grinder(
     }
 }
 
-/// Run both the derive-based field validation and the domain setting-range
+/// Run both the derive-based field validation and the full business-rule
 /// validation for a grinder request. Returns `Some(response)` with a
 /// `400 Bad Request` body when invalid, or `None` when the request is valid.
 ///
-/// Kept as a private helper so create and update share the exact same rules
-/// (brand/model length, `min_setting >= 0`, `max_setting > min_setting`).
+/// Mirrors the beans handler (ticket #166): derive `validate()` for field
+/// shape (brand/model length) followed by `validate_comprehensive()` for the
+/// domain rules (non-empty brand, `min_setting >= 0`,
+/// `max_setting > min_setting`) - the SAME `validate_comprehensive` the service
+/// seam now enforces as the authoritative backstop. Running it here too keeps
+/// the two handlers symmetric and the 400 body shapes consistent.
+///
+/// Kept as a private helper so create and update share the exact same rules.
 fn validate_grinder_request(payload: &CreateGrinderRequest) -> Option<axum::response::Response> {
     if let Err(validation_errors) = payload.validate() {
         return Some(
@@ -167,7 +173,7 @@ fn validate_grinder_request(payload: &CreateGrinderRequest) -> Option<axum::resp
         );
     }
 
-    if let Err(e) = validate_grinder_setting_range(payload.min_setting, payload.max_setting) {
+    if let Err(e) = payload.validate_comprehensive() {
         return Some(
             (
                 StatusCode::BAD_REQUEST,

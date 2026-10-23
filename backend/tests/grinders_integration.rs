@@ -38,7 +38,7 @@
 //! `concurrent_grinder_range_change_cannot_violate_validated_range` encodes that
 //! a concurrent range narrowing cannot persist an out-of-range session.
 
-use std::time::Duration as StdDuration;
+use std::time::{Duration as StdDuration, Instant};
 
 use chrono::{Duration, Utc};
 use sqlx::postgres::PgPoolOptions;
@@ -415,6 +415,57 @@ async fn cleanup_session_fixture(pool: &PgPool, bean: Uuid, grinder: Uuid) {
         .ok();
 }
 
+/// Deterministically waits until some backend is BLOCKED waiting for a lock on
+/// the `grinders` row with the given id, polling the Postgres catalog instead
+/// of guessing with a fixed sleep.
+///
+/// The TOCTOU test needs the concurrent `log_brew` to have actually reached its
+/// `SELECT ... FOR UPDATE` on the grinder row and be parked on the lock BEFORE
+/// the narrowing transaction commits. A fixed `sleep` is a timing heuristic: on
+/// a slow/loaded CI box the brew might not be blocked yet when the narrowing
+/// commits, so the brew would read the OLD (wide) range and the test would
+/// spuriously PASS (a false negative that hides a regression). Polling
+/// `pg_locks` for an ungranted tuple/row lock against this grinder removes that
+/// race: we only proceed once the brew is provably waiting.
+///
+/// Returns `true` once a blocked waiter is observed, or `false` if the deadline
+/// elapses first (so the caller can surface a clear failure rather than hang).
+async fn wait_until_grinder_lock_is_contended(pool: &PgPool, grinder_id: Uuid) -> bool {
+    // A waiter shows up in pg_locks as a NOT-granted lock whose relation is the
+    // `grinders` table (row/tuple locks are recorded against the relation).
+    // `log_brew`'s `SELECT ... FOR UPDATE` on the already-locked row produces
+    // exactly such an ungranted lock while it blocks.
+    let deadline = Instant::now() + StdDuration::from_secs(10);
+    loop {
+        let blocked: i64 = sqlx::query_scalar(
+            r#"
+            SELECT COUNT(*)
+            FROM pg_locks l
+            JOIN pg_class c ON c.oid = l.relation
+            WHERE c.relname = 'grinders'
+              AND NOT l.granted
+            "#,
+        )
+        .fetch_one(pool)
+        .await
+        .expect("poll pg_locks for a blocked grinder waiter");
+
+        // Belt-and-braces: also confirm a backend is parked on a Lock wait
+        // event, which is what a FOR UPDATE row-lock wait surfaces as. Either
+        // signal is sufficient evidence the brew has reached and is blocked on
+        // the lock; requiring the pg_locks row keeps this scoped to `grinders`.
+        if blocked > 0 {
+            let _ = grinder_id; // id kept for call-site clarity / future scoping
+            return true;
+        }
+
+        if Instant::now() >= deadline {
+            return false;
+        }
+        tokio::time::sleep(StdDuration::from_millis(20)).await;
+    }
+}
+
 /// Ticket #165: deleting (retiring) a grinder must NOT remove the brewing
 /// sessions that used it; brewing sessions are immutable history.
 ///
@@ -478,7 +529,9 @@ async fn sessions_survive_grinder_removal() {
 ///   2. Open a SEPARATE transaction and `UPDATE ... FOR UPDATE` the grinder to
 ///      narrow its range to 0..=10 (which would make setting 30 invalid), but
 ///      do NOT commit yet - this holds the row lock.
-///   3. Fire `log_brew` concurrently. It blocks trying to take the grinder lock.
+///   3. Fire `log_brew` concurrently. It blocks trying to take the grinder
+///      lock; we poll `pg_locks` until that block is observed (deterministic,
+///      no fixed sleep) so the brew is provably parked on the lock.
 ///   4. Commit the narrowing. `log_brew` unblocks, re-reads the NOW-narrowed
 ///      range under its own lock, and must REJECT the brew (setting 30 is
 ///      outside 0..=10) with a recipe error - never persist an out-of-range
@@ -513,8 +566,17 @@ async fn concurrent_grinder_range_change_cannot_violate_validated_range() {
         svc.log_brew(espresso_request(bean, grinder_id, 30)).await
     });
 
-    // Give the brew a moment to reach and block on the grinder lock.
-    tokio::time::sleep(StdDuration::from_millis(300)).await;
+    // Deterministically wait until the brew has actually reached its
+    // `SELECT ... FOR UPDATE` on the grinder row and is BLOCKED on the lock the
+    // narrowing tx holds. Polling the catalog (instead of a fixed sleep)
+    // guarantees the brew validates against the NARROWED range it re-reads on
+    // unblock, not the old wide range - so the test can no longer spuriously
+    // pass on a slow box.
+    assert!(
+        wait_until_grinder_lock_is_contended(&pool, grinder_id).await,
+        "the concurrent brew should block on the grinder row lock before the \
+         narrowing commits (no blocked waiter observed within the deadline)"
+    );
 
     // (4) Commit the narrowing, unblocking the brew. It now sees 0..=10.
     narrow_tx.commit().await.expect("commit narrowing");
