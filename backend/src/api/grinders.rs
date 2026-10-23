@@ -19,7 +19,7 @@ use crate::{
     api::AppState,
     models::{CreateGrinderRequest, ErrorResponse, PaginatedResponse},
     pagination::Page,
-    services::grinders::{DeleteError, GrinderService},
+    services::grinders::{DeleteError, GrinderService, GrinderServiceError},
     validation::validation_errors_to_string,
 };
 
@@ -73,11 +73,7 @@ async fn create_grinder(
 
     match service.create_grinder(payload).await {
         Ok(grinder) => (StatusCode::CREATED, Json(grinder)).into_response(),
-        Err(e) => (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ErrorResponse::new(format!("Failed to create grinder: {}", e))),
-        )
-            .into_response(),
+        Err(e) => grinder_service_error_response(e, "Failed to create grinder"),
     }
 }
 
@@ -122,11 +118,7 @@ async fn update_grinder(
             Json(ErrorResponse::new("Grinder not found".to_string())),
         )
             .into_response(),
-        Err(e) => (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ErrorResponse::new(format!("Failed to update grinder: {}", e))),
-        )
-            .into_response(),
+        Err(e) => grinder_service_error_response(e, "Failed to update grinder"),
     }
 }
 
@@ -184,6 +176,25 @@ fn validate_grinder_request(payload: &CreateGrinderRequest) -> Option<axum::resp
     }
 
     None
+}
+
+/// Convert authoritative service errors into their HTTP representation.
+fn grinder_service_error_response(
+    error: GrinderServiceError,
+    context: &str,
+) -> axum::response::Response {
+    match error {
+        GrinderServiceError::Validation(error) => (
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse::new(error.to_string())),
+        )
+            .into_response(),
+        GrinderServiceError::Database(error) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ErrorResponse::new(format!("{context}: {error}"))),
+        )
+            .into_response(),
+    }
 }
 
 /// Query parameters for listing grinders.

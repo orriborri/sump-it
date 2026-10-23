@@ -11,8 +11,27 @@ use sqlx::PgPool;
 use uuid::Uuid;
 use anyhow::{Result, Context};
 
-use crate::models::{Grinder, CreateGrinderRequest};
+use crate::models::{CreateGrinderRequest, Grinder};
 use crate::pagination::Page;
+use crate::validation::ValidationErrorType;
+
+/// Why a grinder create or update failed.
+#[derive(Debug)]
+pub enum GrinderServiceError {
+    /// A grinder business rule was violated before any row was written.
+    Validation(ValidationErrorType),
+    /// An underlying database operation failed.
+    Database(anyhow::Error),
+}
+
+impl std::fmt::Display for GrinderServiceError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Validation(error) => write!(f, "{error}"),
+            Self::Database(error) => write!(f, "{error}"),
+        }
+    }
+}
 
 /// Why a grinder delete failed.
 ///
@@ -88,11 +107,13 @@ impl<'a> GrinderService<'a> {
     /// brand/setting-range business rules are validated HERE before any row is
     /// written, so a non-HTTP caller cannot persist an invalid grinder. The
     /// handler's validation is supplemental fast feedback only.
-    pub async fn create_grinder(&self, request: CreateGrinderRequest) -> Result<Grinder> {
+    pub async fn create_grinder(
+        &self,
+        request: CreateGrinderRequest,
+    ) -> std::result::Result<Grinder, GrinderServiceError> {
         request
             .validate_comprehensive()
-            .map_err(|e| anyhow::anyhow!(e.to_string()))
-            .context("Invalid grinder")?;
+            .map_err(GrinderServiceError::Validation)?;
 
         let now = Utc::now();
 
@@ -121,7 +142,8 @@ impl<'a> GrinderService<'a> {
         .bind(now)
         .fetch_one(self.pool)
         .await
-        .context("Failed to create grinder")?;
+        .context("Failed to create grinder")
+        .map_err(GrinderServiceError::Database)?;
 
         Ok(grinder)
     }
@@ -155,11 +177,10 @@ impl<'a> GrinderService<'a> {
         &self,
         id: Uuid,
         request: CreateGrinderRequest,
-    ) -> Result<Option<Grinder>> {
+    ) -> std::result::Result<Option<Grinder>, GrinderServiceError> {
         request
             .validate_comprehensive()
-            .map_err(|e| anyhow::anyhow!(e.to_string()))
-            .context("Invalid grinder")?;
+            .map_err(GrinderServiceError::Validation)?;
 
         let now = Utc::now();
 
@@ -193,7 +214,8 @@ impl<'a> GrinderService<'a> {
         .bind(now)
         .fetch_optional(self.pool)
         .await
-        .context("Failed to update grinder")?;
+        .context("Failed to update grinder")
+        .map_err(GrinderServiceError::Database)?;
 
         Ok(grinder)
     }
@@ -235,5 +257,21 @@ impl<'a> GrinderService<'a> {
                 }
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod error_tests {
+    use super::*;
+
+    #[test]
+    fn service_errors_have_actionable_messages() {
+        let validation = GrinderServiceError::Validation(ValidationErrorType::Validation(
+            "Maximum setting must be greater than minimum setting".to_string(),
+        ));
+        assert!(validation.to_string().contains("greater than"));
+
+        let database = GrinderServiceError::Database(anyhow::anyhow!("database unavailable"));
+        assert_eq!(database.to_string(), "database unavailable");
     }
 }
