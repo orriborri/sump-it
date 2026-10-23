@@ -218,6 +218,8 @@ describe('BrewWorkflow', () => {
   it('routes a rejecting save with a non-Error value through a generic message', async () => {
     const user = userEvent.setup();
     const { client } = makeClient({
+      // Intentional: this pins the adapter boundary's unknown-rejection fallback.
+      // skipcq: JS-0114
       create: vi.fn(() => Promise.reject('boom')),
     });
     render(<BrewWorkflow client={client} />);

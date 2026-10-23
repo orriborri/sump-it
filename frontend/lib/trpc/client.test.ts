@@ -148,9 +148,7 @@ describe('apiFetch', () => {
       ok: true,
       status: 200,
       statusText: 'OK',
-      json: async () => {
-        throw new Error('invalid json');
-      },
+      json: () => Promise.reject(new Error('invalid json')),
     } as unknown as Response);
 
     await expect(apiFetch('/beans')).resolves.toEqual({ error: 'invalid json' });
