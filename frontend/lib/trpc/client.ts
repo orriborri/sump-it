@@ -20,7 +20,17 @@ import type {
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
-/** Discriminated result wrapper returned by every client call. */
+/**
+ * Discriminated result wrapper returned by every client call.
+ *
+ * Resolve/reject contract: `apiFetch` (and therefore every method of
+ * `coffeeBrewerClient`) is designed to **always resolve** an `ApiResponse` and
+ * never reject. Network/parse failures are caught and surfaced through the
+ * `error`/`details` fields, so callers read `.error` instead of using
+ * `try/catch`. Consumers that inject an alternate adapter should preserve this
+ * contract; `BrewWorkflow` additionally defends against a rejecting adapter at
+ * its seam (ticket #170).
+ */
 export type ApiResponse<T> = {
   data?: T;
   error?: string;

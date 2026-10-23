@@ -401,3 +401,116 @@ async fn untracked_bean_never_blocks_and_is_not_decremented() {
 
     cleanup(&pool, bean, grinder).await;
 }
+
+/// Ticket #168: `log_brew` loads and validates the grinder INSIDE the
+/// transaction, so a brew logged against a RETIRED grinder is rejected rather
+/// than validated against a stale, pre-transaction read.
+///
+/// The grinder is retired (soft-deleted) before `log_brew` runs. Because the
+/// grinder is now selected `WHERE is_active = true ... FOR UPDATE` from inside
+/// the transaction, the row is not found and the save fails with
+/// `GrinderNotFound` with no session inserted.
+#[tokio::test]
+#[ignore = "requires a live Postgres (DATABASE_URL); run with --ignored"]
+async fn retired_grinder_is_rejected_inside_the_transaction() {
+    let Some(pool) = pool().await else { return };
+    let grinder = insert_grinder(&pool).await;
+    let bean = insert_bean(&pool, Some(100.0)).await;
+
+    // Retire the grinder (the #165 soft-delete path).
+    sqlx::query("UPDATE grinders SET is_active = false WHERE id = $1")
+        .bind(grinder)
+        .execute(&pool)
+        .await
+        .expect("retire grinder");
+
+    let service = SessionService::new(&pool);
+    let err = service
+        .log_brew(espresso_request(bean, grinder))
+        .await
+        .expect_err("a retired grinder must not accept a brew");
+    match err {
+        SaveError::GrinderNotFound => {}
+        other => panic!("expected GrinderNotFound, got {other:?}"),
+    }
+
+    // No session was inserted and the grams are untouched (the save rolled back).
+    let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM brewing_sessions WHERE bean_id = $1")
+        .bind(bean)
+        .fetch_one(&pool)
+        .await
+        .expect("count sessions");
+    assert_eq!(count, 0, "no session on a missing grinder");
+
+    cleanup(&pool, bean, grinder).await;
+}
+
+/// Ticket #168 (TOCTOU / lock ordering): a grind setting that is valid for the
+/// grinder's CURRENT range persists, and the grinder row is locked `FOR UPDATE`
+/// for the life of the save so a concurrent range change cannot slip in between
+/// validation and insert.
+///
+/// This test pins the ordering guarantee deterministically: a COMPETING
+/// transaction grabs the grinder's row lock first and NARROWS the range so the
+/// brew's grind setting (20) falls outside it, then commits. `log_brew` runs
+/// concurrently; because it must take the SAME grinder `FOR UPDATE` lock (bean
+/// first, then grinder - the fixed order documented on `log_brew`), it BLOCKS
+/// until the competitor commits, then validates against the NEW, narrowed range
+/// and rejects the brew with a `Recipe` error. Before #168 the grinder was read
+/// and validated BEFORE any lock, so the brew would have been validated against
+/// the stale wide range and wrongly persisted.
+#[tokio::test]
+#[ignore = "requires a live Postgres (DATABASE_URL); run with --ignored"]
+async fn concurrent_grinder_range_change_is_serialized_by_the_lock() {
+    let Some(pool) = pool().await else { return };
+    // Wide range initially admits the espresso grind setting of 12.
+    let grinder = insert_grinder(&pool).await;
+    let bean = insert_bean(&pool, Some(100.0)).await;
+
+    // Competitor: open a transaction, lock the grinder FOR UPDATE and narrow
+    // its range so grind setting 12 becomes invalid, but DO NOT commit yet.
+    let mut competitor = pool.begin().await.expect("begin competitor tx");
+    sqlx::query("SELECT id FROM grinders WHERE id = $1 FOR UPDATE")
+        .bind(grinder)
+        .fetch_one(&mut *competitor)
+        .await
+        .expect("competitor locks grinder");
+    sqlx::query("UPDATE grinders SET min_setting = 20, max_setting = 40 WHERE id = $1")
+        .bind(grinder)
+        .execute(&mut *competitor)
+        .await
+        .expect("competitor narrows range");
+
+    // Start the brew concurrently. It locks the bean, then blocks trying to
+    // lock the grinder the competitor still holds.
+    let brew_pool = pool.clone();
+    let brew = tokio::spawn(async move {
+        let service = SessionService::new(&brew_pool);
+        // grind setting 12 is valid for the ORIGINAL range (0..=40) but NOT for
+        // the competitor's narrowed range (20..=40).
+        service.log_brew(espresso_request(bean, grinder)).await
+    });
+
+    // Give the brew task time to take the bean lock and start waiting on the
+    // grinder lock, then let the competitor commit its narrowing.
+    tokio::time::sleep(std::time::Duration::from_millis(200)).await;
+    competitor.commit().await.expect("competitor commits narrowing");
+
+    // The brew now unblocks, re-reads the NARROWED range under its own lock, and
+    // rejects grind setting 12 as out of range (TOCTOU closed).
+    let result = brew.await.expect("brew task joins");
+    match result {
+        Err(SaveError::Recipe(_)) => {}
+        other => panic!("expected a Recipe validation error from the narrowed range, got {other:?}"),
+    }
+
+    // The rejected brew inserted no session and did not decrement the grams.
+    let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM brewing_sessions WHERE bean_id = $1")
+        .bind(bean)
+        .fetch_one(&pool)
+        .await
+        .expect("count sessions");
+    assert_eq!(count, 0, "a brew invalid under the committed range is not persisted");
+
+    cleanup(&pool, bean, grinder).await;
+}

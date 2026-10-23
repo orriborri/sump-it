@@ -2,7 +2,7 @@
 //!
 //! This crate exposes the whole application surface that is worth testing: the
 //! database-independent domain core (`validation`, `models`, `recipe`,
-//! `session_query`) AND the database-backed layers that sit on top of it: the
+//! `session_query`, `pagination`) AND the database-backed layers that sit on top of it: the
 //! service layer (`services`) that owns the SQL and transactions, and the axum
 //! API handlers (`api`) that map requests/responses and errors to HTTP. Only
 //! the process bootstrap (HTTP server start, env loading) and the pool creation
@@ -27,6 +27,7 @@
 pub mod api;
 pub mod database;
 pub mod models;
+pub mod pagination;
 pub mod recipe;
 pub mod services;
 pub mod session_query;

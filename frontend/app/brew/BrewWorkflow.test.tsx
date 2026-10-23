@@ -34,6 +34,7 @@ function grinder(overrides: Partial<Grinder> = {}): Grinder {
     maxSetting: 40,
     scaleType: 'step',
     description: null,
+    isActive: true,
     createdAt: '2026-01-01T00:00:00Z',
     updatedAt: '2026-01-01T00:00:00Z',
     ...overrides,
@@ -216,6 +217,58 @@ describe('BrewWorkflow', () => {
     await waitFor(() => expect(create).toHaveBeenCalledTimes(1));
     expect(create.mock.calls[0][0].rating).toBe(7.5);
     expect(create.mock.calls[0][0].tastingNotes).toBe('Chocolatey');
+  });
+
+  it('does not stay stuck loading when an injected adapter REJECTS during load (#170)', async () => {
+    // A rejecting adapter (not the production apiFetch, which always resolves)
+    // must not leave `loading` true forever; the workflow catches the rejection,
+    // clears loading and surfaces the friendly unreachable message.
+    const { client } = makeClient({
+      getActive: () => Promise.reject(new Error('Failed to fetch')),
+    });
+    render(<BrewWorkflow client={client} />);
+
+    // The friendly error appears (proving the catch ran) and the equipment step
+    // renders rather than an endless spinner.
+    expect(await screen.findByText(UNREACHABLE_MESSAGE)).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByLabelText('Coffee Bean')).toBeInTheDocument());
+  });
+
+  it('surfaces a friendly error when an injected adapter REJECTS on submit (#170)', async () => {
+    const user = userEvent.setup();
+    const { client } = makeClient({
+      create: vi.fn(() => Promise.reject(new Error('Failed to fetch'))),
+    });
+    render(<BrewWorkflow client={client} />);
+    await waitFor(() => screen.getByLabelText('Coffee Bean'));
+
+    await chooseEquipment(user);
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    await screen.findByLabelText('coffee-ratio');
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    await user.click(await screen.findByRole('button', { name: 'Save Brew Session' }));
+
+    // The rejection is caught and routed through toFriendlyError rather than
+    // bubbling as an unhandled rejection.
+    expect(await screen.findByText(UNREACHABLE_MESSAGE)).toBeInTheDocument();
+  });
+
+  it('surfaces a non-Error rejection as a friendly error on submit (#170)', async () => {
+    const user = userEvent.setup();
+    const { client } = makeClient({
+      // Reject with a non-Error value to exercise the String(error) branch.
+      create: vi.fn(() => Promise.reject('Failed to fetch')),
+    });
+    render(<BrewWorkflow client={client} />);
+    await waitFor(() => screen.getByLabelText('Coffee Bean'));
+
+    await chooseEquipment(user);
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    await screen.findByLabelText('coffee-ratio');
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    await user.click(await screen.findByRole('button', { name: 'Save Brew Session' }));
+
+    expect(await screen.findByText(UNREACHABLE_MESSAGE)).toBeInTheDocument();
   });
 
   it('defaults to the real client when none is injected', async () => {
