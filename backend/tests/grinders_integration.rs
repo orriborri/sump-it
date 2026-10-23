@@ -33,7 +33,14 @@ use sqlx::PgPool;
 use uuid::Uuid;
 
 // Use the models from the library crate.
-use coffee_brewer_backend::models::{CreateGrinderRequest, GrinderType};
+use coffee_brewer_backend::models::{
+    BrewingMethod, CreateBrewingSessionRequest, CreateGrinderRequest, GrinderType,
+};
+
+// The brew-logging service is used by the #165 test to create a REAL session
+// through the shipping save path (rather than hand-rolled SQL), so the
+// data-preservation guarantee is tested end to end.
+use coffee_brewer_backend::services::sessions::SessionService;
 
 // The production service lives in the library crate (`services::grinders`), so
 // this test calls it directly rather than re-declaring the SQL. It exercises
@@ -77,14 +84,59 @@ fn grinder_request(brand: &str, min: i32, max: i32) -> CreateGrinderRequest {
 }
 
 /// Removes every grinder row this suite could have created.
+///
+/// Sessions and beans this suite may have created are removed FIRST: since
+/// ticket #165 the `brewing_sessions.grinder_id` FK is `ON DELETE RESTRICT`, so
+/// a grinder with surviving sessions cannot be hard-deleted until those rows
+/// are gone. This keeps the (ignored) suite re-runnable against a shared DB.
 async fn cleanup(pool: &PgPool, grinder_ids: &[Uuid]) {
     for grinder in grinder_ids {
+        // Remove any sessions (and the beans they reference) that this suite's
+        // #165 test attached to the grinder, then the grinder itself.
+        let bean_ids: Vec<Uuid> =
+            sqlx::query_scalar("SELECT bean_id FROM brewing_sessions WHERE grinder_id = $1")
+                .bind(grinder)
+                .fetch_all(pool)
+                .await
+                .unwrap_or_default();
+        sqlx::query("DELETE FROM brewing_sessions WHERE grinder_id = $1")
+            .bind(grinder)
+            .execute(pool)
+            .await
+            .ok();
+        for bean in bean_ids {
+            sqlx::query("DELETE FROM coffee_beans WHERE id = $1")
+                .bind(bean)
+                .execute(pool)
+                .await
+                .ok();
+        }
         sqlx::query("DELETE FROM grinders WHERE id = $1")
             .bind(grinder)
             .execute(pool)
             .await
             .ok();
     }
+}
+
+/// Inserts an active, quantity-tracked bean so a brew can be logged against the
+/// grinder under test. Returns the new bean id.
+async fn insert_bean(pool: &PgPool) -> Uuid {
+    let id = Uuid::new_v4();
+    let roast = chrono::Utc::now().naive_utc().date() - chrono::Duration::days(5);
+    let purchase = chrono::Utc::now().naive_utc().date() - chrono::Duration::days(3);
+    sqlx::query(
+        r#"INSERT INTO coffee_beans
+           (id, name, origin, roast_date, purchase_date, remaining_grams, is_active)
+           VALUES ($1, 'Grinder Suite Bean', 'Ethiopia', $2, $3, 250.0, true)"#,
+    )
+    .bind(id)
+    .bind(roast)
+    .bind(purchase)
+    .execute(pool)
+    .await
+    .expect("insert bean");
+    id
 }
 
 /// `create_grinder` persists the row and returns it with the server-assigned
@@ -263,12 +315,13 @@ async fn list_grinders_is_newest_first_with_paging() {
     cleanup(&pool, &ids).await;
 }
 
-/// `delete_grinder` hard-deletes the row (grinders have no soft-delete column):
-/// `get_grinder` stops returning it and a re-delete reports no row affected.
-/// Exercises the shipping DELETE and its `rows_affected` return.
+/// `delete_grinder` SOFT-deletes the row (ticket #165): it flips `is_active` so
+/// `get_grinder` stops returning it, but the row survives in the table and a
+/// re-delete reports no (active) row affected. Exercises the shipping
+/// soft-delete UPDATE and its `rows_affected` return.
 #[tokio::test]
 #[ignore = "requires a live Postgres (DATABASE_URL); run with --ignored"]
-async fn delete_grinder_removes_the_row() {
+async fn delete_grinder_retires_the_row() {
     let Some(pool) = pool().await else { return };
     let service = GrinderService::new(&pool);
 
@@ -276,19 +329,34 @@ async fn delete_grinder_removes_the_row() {
         .create_grinder(grinder_request("Deletable", 0, 40))
         .await
         .expect("create grinder");
+    assert!(created.is_active, "a freshly created grinder is active");
 
     let deleted = service.delete_grinder(created.id).await.expect("delete");
-    assert!(deleted, "hard delete reports it affected the row");
+    assert!(deleted, "soft delete reports it affected the row");
 
+    // The grinder is hidden from the active-only read...
     let after = service.get_grinder(created.id).await.expect("get grinder");
-    assert!(after.is_none(), "deleted grinder is gone");
+    assert!(after.is_none(), "retired grinder is no longer returned by get");
 
-    // Deleting a missing grinder affects no row.
+    // ...but its row still physically exists (soft delete, not a DELETE).
+    let still_present: Option<bool> =
+        sqlx::query_scalar("SELECT is_active FROM grinders WHERE id = $1")
+            .bind(created.id)
+            .fetch_optional(&pool)
+            .await
+            .expect("row lookup");
+    assert_eq!(
+        still_present,
+        Some(false),
+        "the grinder row survives with is_active = false"
+    );
+
+    // Retiring an already-retired grinder affects no (active) row.
     let again = service
         .delete_grinder(created.id)
         .await
         .expect("delete again");
-    assert!(!again, "re-deleting a missing grinder affects no row");
+    assert!(!again, "re-retiring an inactive grinder affects no row");
 
     cleanup(&pool, &[created.id]).await;
 }
@@ -328,4 +396,103 @@ async fn schema_rejects_negative_min_setting() {
         .create_grinder(grinder_request("Negative", -1, 40))
         .await;
     assert!(result.is_err(), "schema must reject negative min_setting");
+}
+
+/// Ticket #165: brewing sessions are immutable history, so RETIRING a grinder
+/// must delete ZERO sessions that referenced it.
+///
+/// Flow: create a grinder, log a REAL brew against it through the shipping save
+/// path (`SessionService::log_brew`, which inserts a `brewing_sessions` row
+/// referencing the grinder), then retire the grinder via the shipping
+/// `GrinderService::delete_grinder`. The grinder disappears from the
+/// active-only `get`, but the session row MUST still exist and still point at
+/// the (now soft-deleted) grinder. Before #165 the `ON DELETE CASCADE` FK would
+/// have destroyed the session; the soft-delete now flips `is_active` and never
+/// touches sessions, so this asserts the count of referencing sessions is
+/// unchanged (1 before and 1 after).
+#[tokio::test]
+#[ignore = "requires a live Postgres (DATABASE_URL); run with --ignored"]
+async fn retiring_a_grinder_preserves_its_brewing_sessions() {
+    let Some(pool) = pool().await else { return };
+    let grinder_service = GrinderService::new(&pool);
+    let session_service = SessionService::new(&pool);
+
+    // A grinder whose range admits the Espresso grind setting used below.
+    let grinder = grinder_service
+        .create_grinder(grinder_request("History Keeper", 0, 40))
+        .await
+        .expect("create grinder");
+    let bean = insert_bean(&pool).await;
+
+    // Log a real brew: this inserts a brewing_sessions row referencing the
+    // grinder through the shipping transactional save path.
+    let request = CreateBrewingSessionRequest {
+        bean_id: bean,
+        grinder_id: grinder.id,
+        brewing_method: BrewingMethod::Espresso,
+        grind_setting: 12,
+        water_temp_celsius: Some(93),
+        brew_time_seconds: Some(30),
+        coffee_grams: 18.0,
+        water_grams: 36.0,
+        tasting_notes: None,
+        rating: None,
+        feedback: None,
+        suggestions: None,
+        is_template: false,
+    };
+    let session = session_service
+        .log_brew(request)
+        .await
+        .expect("log brew against the grinder");
+
+    // Exactly one session references the grinder before retirement.
+    let before: i64 =
+        sqlx::query_scalar("SELECT COUNT(*) FROM brewing_sessions WHERE grinder_id = $1")
+            .bind(grinder.id)
+            .fetch_one(&pool)
+            .await
+            .expect("count before");
+    assert_eq!(before, 1, "the logged session references the grinder");
+
+    // Retire the grinder through the shipping delete path.
+    let retired = grinder_service
+        .delete_grinder(grinder.id)
+        .await
+        .expect("retire grinder");
+    assert!(retired, "the active grinder was retired");
+
+    // The grinder is hidden from the active-only read...
+    assert!(
+        grinder_service
+            .get_grinder(grinder.id)
+            .await
+            .expect("get grinder")
+            .is_none(),
+        "retired grinder no longer appears in get"
+    );
+
+    // ...but ZERO sessions were deleted: the exact same row still exists and
+    // still references the grinder.
+    let after: i64 =
+        sqlx::query_scalar("SELECT COUNT(*) FROM brewing_sessions WHERE grinder_id = $1")
+            .bind(grinder.id)
+            .fetch_one(&pool)
+            .await
+            .expect("count after");
+    assert_eq!(
+        after, before,
+        "retiring a grinder must delete zero brewing sessions"
+    );
+
+    let still_there = session_service
+        .get_session(session.id)
+        .await
+        .expect("get session");
+    assert!(
+        still_there.is_some(),
+        "the specific logged session survives grinder retirement"
+    );
+
+    cleanup(&pool, &[grinder.id]).await;
 }

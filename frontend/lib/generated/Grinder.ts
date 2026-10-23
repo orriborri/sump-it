@@ -4,4 +4,10 @@ import type { GrinderType } from "./GrinderType";
 /**
  * Grinder equipment with setting ranges (from rustyCoffy + BeanIt)
  */
-export type Grinder = { id: string, brand: string, model: string, grinderType: GrinderType, minSetting: number, maxSetting: number, scaleType: string | null, description: string | null, createdAt: string, updatedAt: string, };
+export type Grinder = { id: string, brand: string, model: string, grinderType: GrinderType, minSetting: number, maxSetting: number, scaleType: string | null, description: string | null, 
+/**
+ * Soft-delete flag. Retiring a grinder flips this to `false` instead of
+ * hard-deleting the row, so brewing sessions that reference it are never
+ * cascade-deleted (ticket #165). Mirrors `CoffeeBean::is_active`.
+ */
+isActive: boolean, createdAt: string, updatedAt: string, };

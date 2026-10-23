@@ -140,7 +140,12 @@ pub struct Grinder {
     pub max_setting: i32,
     pub scale_type: Option<String>, // "step" or "sliding" (from BeanIt)
     pub description: Option<String>,
-    
+
+    /// Soft-delete flag. Retiring a grinder flips this to `false` instead of
+    /// hard-deleting the row, so brewing sessions that reference it are never
+    /// cascade-deleted (ticket #165). Mirrors `CoffeeBean::is_active`.
+    pub is_active: bool,
+
     // Timestamps
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -561,6 +566,7 @@ mod tests {
             max_setting: max,
             scale_type: Some("step".to_string()),
             description: None,
+            is_active: true,
             created_at: Utc::now(),
             updated_at: Utc::now(),
         }
