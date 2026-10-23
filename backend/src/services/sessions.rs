@@ -100,7 +100,11 @@ impl<'a> SessionService<'a> {
         // (1) Begin the transaction that ties validation, insert and decrement
         // together. Locking happens INSIDE it so the grinder range validated in
         // step (4) cannot change before the insert (ticket #168 TOCTOU).
-        let mut tx = begin_tx(self.pool).await?;
+        let mut tx = self
+            .pool
+            .begin()
+            .await
+            .map_err(|e| db_error(e, "Failed to begin transaction"))?;
 
         // (2) Lock the bean row for the life of the transaction (LOCK ORDER:
         // bean first). A missing row means the bean does not exist (or is
@@ -334,17 +338,6 @@ impl<'a> SessionService<'a> {
 /// decrement, commit) are exercised by the DB integration tests.
 fn db_error(e: sqlx::Error, context: &'static str) -> SaveError {
     SaveError::Database(anyhow::Error::new(e).context(context))
-}
-
-// coverage: defensive wiring - opening a transaction only fails if the pool /
-// connection is already dead (process/infra failure), which cannot be provoked
-// by construction once we hold a live pool. Excluded per docs/coverage.md
-// (defensive, genuinely-unreachable branch). The happy path returns the tx.
-#[cfg_attr(coverage_nightly, coverage(off))]
-async fn begin_tx(pool: &PgPool) -> std::result::Result<sqlx::Transaction<'_, sqlx::Postgres>, SaveError> {
-    pool.begin()
-        .await
-        .map_err(|e| db_error(e, "Failed to begin transaction"))
 }
 
 /// Binds every [`QueryBind`], in order, to a `query_as` builder.

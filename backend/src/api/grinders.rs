@@ -207,3 +207,27 @@ struct ListParams {
     page: Option<i32>,
     limit: Option<i32>,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::validation::ValidationErrorType;
+
+    #[test]
+    fn grinder_service_validation_errors_are_bad_requests() {
+        let response = grinder_service_error_response(
+            GrinderServiceError::Validation(ValidationErrorType::GrinderBrandEmpty),
+            "unused context",
+        );
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    }
+
+    #[test]
+    fn grinder_service_database_errors_are_internal_errors() {
+        let response = grinder_service_error_response(
+            GrinderServiceError::Database(anyhow::anyhow!("database unavailable")),
+            "Failed to create grinder",
+        );
+        assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    }
+}
