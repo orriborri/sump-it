@@ -24,6 +24,7 @@ import {
 } from '@mui/material';
 
 import { coffeeBrewerClient } from '@/lib/trpc/client';
+import type { ApiResponse } from '@/lib/trpc/client';
 import type { BrewingSession, CoffeeBean, Grinder } from '@/lib/api/types';
 import {
   areParametersComplete,
@@ -40,7 +41,18 @@ import { BeanSelector } from './BeanSelector';
 import { BrewingParameters } from './BrewingParameters';
 import { BrewFeedback } from './BrewFeedback';
 
-/** The subset of the typed client this workflow needs. */
+/**
+ * The subset of the typed client this workflow needs.
+ *
+ * Resolve/reject contract: the real {@link coffeeBrewerClient} (via `apiFetch`)
+ * is designed to ALWAYS resolve an {@link ApiResponse}, converting both network
+ * and backend failures into a resolved `{ error }` rather than throwing. This
+ * workflow does not rely on that guarantee at the seam: it also defends against
+ * an injected adapter that REJECTS (a thrown/rejected promise), clearing its
+ * loading/submission state and routing the failure through `toFriendlyError`
+ * just like a resolved `{ error }`. Adapters are therefore free to resolve
+ * `{ error }` (preferred) but a rejection will never leave the UI stuck.
+ */
 export interface BrewClient {
   beans: Pick<typeof coffeeBrewerClient.beans, 'getActive'>;
   grinders: Pick<typeof coffeeBrewerClient.grinders, 'list'>;
@@ -192,25 +204,37 @@ export function BrewWorkflow({ client = coffeeBrewerClient }: BrewWorkflowProps)
 
   const loadData = useCallback(async () => {
     setLoading(true);
-    const [beansRes, grindersRes, sessionsRes] = await Promise.all([
-      client.beans.getActive(),
-      client.grinders.list(),
-      client.sessions.list({ limit: 5 }),
-    ]);
+    // Defend the seam: an injected adapter is allowed to reject rather than
+    // resolve an ApiResponse (see the BrewClient contract). `settle` turns any
+    // rejection into a resolved `{ error }` so a single failing call can never
+    // leave `loading` stuck true or bypass the friendly-error path below.
+    const settle = <T,>(call: Promise<ApiResponse<T>>): Promise<ApiResponse<T>> =>
+      call.catch((err: unknown) => ({
+        error: err instanceof Error ? err.message : 'Unknown error occurred',
+      }));
 
-    const firstError = beansRes.error ?? grindersRes.error ?? sessionsRes.error;
-    if (firstError) {
-      // If the very first data load fails, the backend is effectively
-      // unreachable from the user's point of view; show a friendly message
-      // rather than a raw fetch error like "Failed to fetch".
-      setLoadError(UNREACHABLE_MESSAGE);
-    } else {
-      setLoadError(null);
+    try {
+      const [beansRes, grindersRes, sessionsRes] = await Promise.all([
+        settle(client.beans.getActive()),
+        settle(client.grinders.list()),
+        settle(client.sessions.list({ limit: 5 })),
+      ]);
+
+      const firstError = beansRes.error ?? grindersRes.error ?? sessionsRes.error;
+      if (firstError) {
+        // If the very first data load fails, the backend is effectively
+        // unreachable from the user's point of view; show a friendly message
+        // rather than a raw fetch error like "Failed to fetch".
+        setLoadError(UNREACHABLE_MESSAGE);
+      } else {
+        setLoadError(null);
+      }
+      setBeans(beansRes.data ?? []);
+      setGrinders(grindersRes.data?.items ?? []);
+      setPreviousSessions(sessionsRes.data?.items ?? []);
+    } finally {
+      setLoading(false);
     }
-    setBeans(beansRes.data ?? []);
-    setGrinders(grindersRes.data?.items ?? []);
-    setPreviousSessions(sessionsRes.data?.items ?? []);
-    setLoading(false);
   }, [client]);
 
   useEffect(() => {
@@ -245,9 +269,33 @@ export function BrewWorkflow({ client = coffeeBrewerClient }: BrewWorkflowProps)
   };
 
   const handleSubmit = async () => {
+    // The submit action is only reachable from the final step, which the user
+    // can only reach after the equipment gate (isEquipmentComplete) has
+    // confirmed a brewing method is chosen. Narrow the `BrewingMethod | ''`
+    // form field here so no unchecked cast is needed when building the request.
+    /* v8 ignore start -- coverage: unreachable guard. The Save button lives on
+       the final step, reachable only after isEquipmentComplete confirms a
+       method; brewingMethod is therefore never '' here. The guard replaces the
+       old unchecked type assertion with a type-safe narrowing. */
+    if (formData.brewingMethod === '') {
+      return;
+    }
+    /* v8 ignore stop */
+    const request = formToSessionRequest({ ...formData, brewingMethod: formData.brewingMethod });
+
     setSaveError(null);
 
-    const response = await client.sessions.create(formToSessionRequest(formData));
+    // Defend the seam: route both a resolved `{ error }` and a rejected promise
+    // through toFriendlyError so a rejecting adapter cannot bypass friendly
+    // error handling (see the BrewClient contract).
+    let response: ApiResponse<BrewingSession>;
+    try {
+      response = await client.sessions.create(request);
+    } catch (err: unknown) {
+      setSaveError(toFriendlyError(err instanceof Error ? err.message : 'Unknown error occurred'));
+      return;
+    }
+
     if (response.error) {
       // Business errors (insufficient quantity, recipe violations) are already
       // actionable; a bare network failure becomes the friendly unreachable

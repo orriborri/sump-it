@@ -20,7 +20,7 @@ coffee-brewer-consolidated/
 │   │   ├── services/    # Business logic layer
 │   │   ├── database/    # Database operations
 │   │   └── validation/  # Comprehensive validation logic
-│   ├── prisma/          # Database schema and migrations
+│   ├── migrations/      # SQLx migrations (sole schema source)
 │   └── Cargo.toml
 │
 ├── frontend/            # Next.js 15 frontend (typed fetch client)
@@ -30,7 +30,7 @@ coffee-brewer-consolidated/
 │   │   ├── grinders/    # Grinder management
 │   │   └── sessions/    # Brew session history
 │   ├── lib/
-│   │   ├── trpc/        # Thin typed REST client (ts-rs generated types)
+│   │   ├── trpc/        # Thin typed REST client (ts-rs generated types; dir name is historical, no tRPC)
 │   │   └── utils/       # Shared utilities
 │   └── package.json
 │
@@ -69,7 +69,7 @@ coffee-brewer-consolidated/
 ### Backend
 - **Rust** with Axum web framework
 - **ts-rs** to generate TypeScript types from the Rust models for a type-safe API contract  
-- **Prisma** ORM with PostgreSQL
+- **SQLx** with PostgreSQL (compile-time checked queries; SQLx migrations are the sole schema source)
 - **Docker** for containerization
 - **OpenTelemetry** for observability
 
@@ -100,7 +100,7 @@ coffee-brewer-consolidated/
    - Complete parameter tracking
    - Ratings (1.0-10.0 in 0.5 increments)
    - Tasting notes and feedback
-   - Coffee/water ratio validation (15.0-17.0)
+   - Per-method recipe validation (each brewing method has its own water:coffee ratio, coffee/water weight, and temperature bands; see `rules_for` in `backend/src/recipe.rs`)
 
 ## 🚦 Getting Started
 
@@ -127,7 +127,9 @@ coffee-brewer-consolidated/
 
 4. Run database migrations:
    ```bash
-   cd backend && cargo run --bin migrate
+   # SQLx migrations in backend/migrations/ are applied automatically on
+   # backend startup; to apply them manually use the SQLx CLI:
+   cd backend && sqlx migrate run
    ```
 
 5. Start backend:

@@ -39,6 +39,7 @@ use coffee_brewer_backend::models::{
     BrewingMethod, CreateBrewingSessionRequest, GrinderType, SessionFilter,
 };
 use coffee_brewer_backend::recipe;
+use coffee_brewer_backend::services::grinders::GrinderService;
 
 // The production service now lives in the library crate (`services::sessions`),
 // so this test calls it directly rather than re-compiling the source via
@@ -329,5 +330,93 @@ async fn search_matches_across_four_columns() {
         .expect("search brand");
     assert!(sessions.iter().any(|s| s.id == by_notes), "matches grinder brand");
 
+    cleanup(&pool, &[bean], &[grinder]).await;
+}
+
+/// SOFT-DELETE REGRESSION GUARD (ticket #165): a brewing session logged against
+/// a grinder that is LATER RETIRED must still appear in the session list. The
+/// correctness of the whole #165 fix rests on `session_query`'s `JOIN grinders`
+/// staying UNFILTERED by `is_active`; a future change that added
+/// `AND g.is_active = true` to that join would silently re-hide every
+/// historical session on a retired grinder.
+///
+/// This test drives the REAL paths end to end: it logs a brew through
+/// `SessionService::log_brew`, retires the grinder through
+/// `GrinderService::delete_grinder` (the shipping soft delete), and then asserts
+/// the session is STILL returned by `SessionService::list_filtered` and STILL
+/// counted in the reported total. The list is scoped by a per-test bean origin
+/// so the assertion is independent of other rows in the shared database.
+///
+/// The expected values are independent of the query internals: the list is
+/// scoped to exactly one session that this test created, so its presence (and a
+/// total of exactly one) can only hold if the retired grinder still joins.
+#[tokio::test]
+#[ignore = "requires a live Postgres (DATABASE_URL); run with --ignored"]
+async fn session_list_includes_sessions_on_retired_grinders() {
+    let Some(pool) = pool().await else { return };
+    let grinder = insert_grinder(&pool, "Retired-Lister", "BurrConical").await;
+
+    // A per-test origin so the list/count below isolates exactly this test's
+    // single session regardless of other rows in the shared database.
+    let origin = format!("RetiredJoin-{}", Uuid::new_v4().simple());
+    let bean = insert_bean(&pool, "Retired Join Bean", &origin, 5).await;
+
+    let service = SessionService::new(&pool);
+    let logged = log_brew(
+        &service,
+        bean,
+        grinder,
+        BrewingMethod::V60,
+        20.0,
+        320.0,
+        Some(8.0),
+        None,
+    )
+    .await;
+
+    // Precondition: with the grinder still active, the session is listed. This
+    // pins the "independent expected value" of exactly one matching session.
+    let filter = SessionFilter {
+        bean_origin: Some(origin.clone()),
+        ..SessionFilter::default()
+    };
+    let (before, before_total) = service
+        .list_filtered(&filter, None)
+        .await
+        .expect("list before retirement");
+    assert_eq!(before_total, 1, "exactly one session matches this origin");
+    assert_eq!(before.len(), 1, "the one session is on the active grinder");
+    assert_eq!(before[0].id, logged, "it is the session we just logged");
+
+    // Retire the grinder through the shipping soft-delete path.
+    let retired = GrinderService::new(&pool)
+        .delete_grinder(grinder)
+        .await
+        .expect("retire grinder");
+    assert!(retired, "the grinder is retired (soft deleted)");
+
+    // The session MUST survive the retirement in the listing: the unfiltered
+    // `JOIN grinders` still matches the now-inactive grinder by id.
+    let (after, after_total) = service
+        .list_filtered(&filter, None)
+        .await
+        .expect("list after retirement");
+    assert_eq!(
+        after_total, 1,
+        "the session on the RETIRED grinder is still counted"
+    );
+    assert_eq!(after.len(), 1, "the session on the RETIRED grinder is still listed");
+    assert_eq!(
+        after[0].id, logged,
+        "the surviving listed session is the one logged on the retired grinder"
+    );
+    assert_eq!(
+        after[0].grinder_id, grinder,
+        "it still references the retired grinder"
+    );
+
+    // Cleanup: sessions first (FK is now ON DELETE RESTRICT), then bean, then
+    // the grinder. `cleanup` deletes sessions by bean_id and the bean, so only
+    // the grinder needs a direct delete afterward.
     cleanup(&pool, &[bean], &[grinder]).await;
 }

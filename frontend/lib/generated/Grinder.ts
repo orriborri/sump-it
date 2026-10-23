@@ -4,4 +4,10 @@ import type { GrinderType } from "./GrinderType";
 /**
  * Grinder equipment with setting ranges (from rustyCoffy + BeanIt)
  */
-export type Grinder = { id: string, brand: string, model: string, grinderType: GrinderType, minSetting: number, maxSetting: number, scaleType: string | null, description: string | null, createdAt: string, updatedAt: string, };
+export type Grinder = { id: string, brand: string, model: string, grinderType: GrinderType, minSetting: number, maxSetting: number, scaleType: string | null, description: string | null, 
+/**
+ * Whether the grinder is active. Mirrors `coffee_beans.is_active`:
+ * grinders are SOFT-deleted (ticket #165), so a retired grinder has
+ * `is_active = false` yet stays joinable from historical brewing sessions.
+ */
+isActive: boolean, createdAt: string, updatedAt: string, };

@@ -22,7 +22,7 @@
 //! with hand-written SQL. Because it exercises the SAME compiled service the
 //! binary and the coverage gate use, the exact INSERT/SELECT/UPDATE/DELETE
 //! column lists, the pagination/ordering in `list_grinders`, the
-//! `RETURNING`/`FromRow` mappings and the hard-delete semantics that ship are
+//! `RETURNING`/`FromRow` mappings and the soft-delete semantics that ship are
 //! tested. A column, filter or ordering drift in a real query now fails this
 //! test when a DB is available. The schema `CHECK` constraints
 //! (`max_setting > min_setting`, `min_setting >= 0`) are also verified through
@@ -34,6 +34,7 @@ use uuid::Uuid;
 
 // Use the models from the library crate.
 use coffee_brewer_backend::models::{CreateGrinderRequest, GrinderType};
+use coffee_brewer_backend::pagination::Pagination;
 
 // The production service lives in the library crate (`services::grinders`), so
 // this test calls it directly rather than re-declaring the SQL. It exercises
@@ -200,7 +201,7 @@ async fn list_grinders_is_newest_first_with_paging() {
     // `COUNT(*)` total to check the reassembled pages against.
     const LIMIT: i32 = 2;
     let (page1, total) = service
-        .list_grinders(Some(1), Some(LIMIT))
+        .list_grinders(Pagination::from_page(Some(1), Some(LIMIT)))
         .await
         .expect("list grinders");
     assert!(total >= 3, "total counts at least this test's three rows");
@@ -214,7 +215,7 @@ async fn list_grinders_is_newest_first_with_paging() {
     let mut all_ids: Vec<Uuid> = page1.iter().map(|g| g.id).collect();
     for page in 2..=pages {
         let (rows, page_total) = service
-            .list_grinders(Some(page), Some(LIMIT))
+            .list_grinders(Pagination::from_page(Some(page), Some(LIMIT)))
             .await
             .expect("list grinders page");
         assert_eq!(page_total, total, "COUNT(*) total is stable across pages");
@@ -259,34 +260,170 @@ async fn list_grinders_is_newest_first_with_paging() {
     cleanup(&pool, &ids).await;
 }
 
-/// `delete_grinder` hard-deletes the row (grinders have no soft-delete column):
-/// `get_grinder` stops returning it and a re-delete reports no row affected.
-/// Exercises the shipping DELETE and its `rows_affected` return.
+/// `delete_grinder` SOFT-deletes the row (ticket #165): the grinder is retired
+/// (`is_active = false`) rather than removed, so it disappears from
+/// `list_grinders` but the row still exists and a re-delete reports no row
+/// affected. Exercises the shipping soft-delete UPDATE and its `rows_affected`
+/// return.
 #[tokio::test]
 #[ignore = "requires a live Postgres (DATABASE_URL); run with --ignored"]
-async fn delete_grinder_removes_the_row() {
+async fn delete_grinder_retires_the_row() {
     let Some(pool) = pool().await else { return };
     let service = GrinderService::new(&pool);
 
+    let marker = format!("Retire-{}", Uuid::new_v4().simple());
     let created = service
-        .create_grinder(grinder_request("Deletable", 0, 40))
+        .create_grinder(grinder_request(&marker, 0, 40))
         .await
         .expect("create grinder");
+    assert!(created.is_active, "a freshly created grinder is active");
 
     let deleted = service.delete_grinder(created.id).await.expect("delete");
-    assert!(deleted, "hard delete reports it affected the row");
+    assert!(deleted, "soft delete reports it affected the row");
 
-    let after = service.get_grinder(created.id).await.expect("get grinder");
-    assert!(after.is_none(), "deleted grinder is gone");
+    // The retired grinder no longer appears in active listings.
+    let (page, _total) = service
+        .list_grinders(Pagination::from_page(Some(1), Some(100)))
+        .await
+        .expect("list grinders");
+    assert!(
+        !page.iter().any(|g| g.id == created.id),
+        "a retired grinder is filtered from active listings"
+    );
 
-    // Deleting a missing grinder affects no row.
+    // Retiring an already-retired grinder affects no row.
     let again = service
         .delete_grinder(created.id)
         .await
         .expect("delete again");
-    assert!(!again, "re-deleting a missing grinder affects no row");
+    assert!(!again, "re-retiring an inactive grinder affects no row");
 
     cleanup(&pool, &[created.id]).await;
+}
+
+/// Ticket #165 (data loss): retiring a grinder must remove ZERO brewing
+/// sessions. Under the old `ON DELETE CASCADE` + hard delete, deleting a
+/// grinder destroyed every session that referenced it. This drives the REAL
+/// save path (`SessionService::log_brew`) to create a session, retires the
+/// grinder through `GrinderService::delete_grinder`, and asserts the session
+/// still exists and still references the (now inactive) grinder.
+#[tokio::test]
+#[ignore = "requires a live Postgres (DATABASE_URL); run with --ignored"]
+async fn retiring_a_grinder_preserves_its_brewing_sessions() {
+    use coffee_brewer_backend::models::{BrewingMethod, CreateBrewingSessionRequest};
+    use coffee_brewer_backend::services::sessions::SessionService;
+
+    let Some(pool) = pool().await else { return };
+
+    let grinder_service = GrinderService::new(&pool);
+    let grinder = grinder_service
+        .create_grinder(grinder_request("History", 0, 40))
+        .await
+        .expect("create grinder");
+
+    // Insert a bean that tracks enough quantity for an espresso dose.
+    let bean_id = Uuid::new_v4();
+    let roast = chrono::Utc::now().naive_utc().date() - chrono::Duration::days(5);
+    let purchase = chrono::Utc::now().naive_utc().date() - chrono::Duration::days(3);
+    sqlx::query(
+        r#"INSERT INTO coffee_beans
+           (id, name, origin, roast_date, purchase_date, remaining_grams, is_active)
+           VALUES ($1, 'History Bean', 'Ethiopia', $2, $3, 100.0, true)"#,
+    )
+    .bind(bean_id)
+    .bind(roast)
+    .bind(purchase)
+    .execute(&pool)
+    .await
+    .expect("insert bean");
+
+    // Log a real brew through the shipping save path.
+    let session_service = SessionService::new(&pool);
+    let session = session_service
+        .log_brew(CreateBrewingSessionRequest {
+            bean_id,
+            grinder_id: grinder.id,
+            brewing_method: BrewingMethod::Espresso,
+            grind_setting: 12,
+            water_temp_celsius: Some(93),
+            brew_time_seconds: Some(30),
+            coffee_grams: 18.0,
+            water_grams: 36.0,
+            tasting_notes: None,
+            rating: None,
+            feedback: None,
+            suggestions: None,
+            is_template: false,
+        })
+        .await
+        .expect("log brew");
+
+    // Retire the grinder: this must NOT delete the session.
+    let retired = grinder_service
+        .delete_grinder(grinder.id)
+        .await
+        .expect("retire grinder");
+    assert!(retired, "the grinder is retired");
+
+    // The session survives and still points at the (now inactive) grinder.
+    let survivor = session_service
+        .get_session(session.id)
+        .await
+        .expect("read session");
+    assert!(
+        survivor.is_some(),
+        "the brewing session must survive grinder retirement (zero rows deleted)"
+    );
+    assert_eq!(
+        survivor.unwrap().grinder_id,
+        grinder.id,
+        "the surviving session still references the retired grinder"
+    );
+
+    // Cleanup: sessions first (FK is now ON DELETE RESTRICT), then the grinder.
+    sqlx::query("DELETE FROM brewing_sessions WHERE id = $1")
+        .bind(session.id)
+        .execute(&pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM coffee_beans WHERE id = $1")
+        .bind(bean_id)
+        .execute(&pool)
+        .await
+        .ok();
+    cleanup(&pool, &[grinder.id]).await;
+}
+
+/// Ticket #166 (invariant ownership): `create_grinder` rejects invalid data at
+/// the SERVICE layer, independent of the HTTP handler. An inverted setting
+/// range (`max <= min`) and an empty brand are refused before any row is
+/// written, so the service is authoritative even when called directly.
+#[tokio::test]
+#[ignore = "requires a live Postgres (DATABASE_URL); run with --ignored"]
+async fn create_grinder_rejects_invalid_data_at_service_layer() {
+    let Some(pool) = pool().await else { return };
+    let service = GrinderService::new(&pool);
+
+    // Inverted range: max is not greater than min.
+    let inverted = service.create_grinder(grinder_request("Inverted", 40, 10)).await;
+    assert!(
+        inverted.is_err(),
+        "service must reject max_setting <= min_setting before inserting"
+    );
+
+    // Empty brand.
+    let blank_brand = service.create_grinder(grinder_request("   ", 0, 40)).await;
+    assert!(
+        blank_brand.is_err(),
+        "service must reject an empty brand before inserting"
+    );
+
+    // Negative minimum.
+    let negative = service.create_grinder(grinder_request("Negative", -1, 40)).await;
+    assert!(
+        negative.is_err(),
+        "service must reject a negative min_setting before inserting"
+    );
 }
 
 /// The schema `CHECK (max_setting > min_setting)` must reject an invalid range

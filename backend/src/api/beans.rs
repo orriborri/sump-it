@@ -14,6 +14,7 @@ use validator::Validate;
 use crate::{
     api::AppState,
     models::{CreateCoffeeBeanRequest, PaginatedResponse, ErrorResponse},
+    pagination::Pagination,
     services::beans::BeanService,
     validation::validation_errors_to_string,
 };
@@ -34,14 +35,19 @@ async fn list_beans(
     Query(params): Query<ListParams>,
 ) -> impl IntoResponse {
     let service = BeanService::new(&state.pool);
-    
-    match service.list_beans(params.page, params.limit).await {
+
+    // Normalize ONCE: the same value drives the query and the response
+    // metadata, so `page_size`/`has_more` cannot disagree with the rows
+    // returned even for limit=0/negative/over-ceiling requests (ticket #167).
+    let pagination = Pagination::from_page(params.page, params.limit);
+
+    match service.list_beans(pagination).await {
         Ok((beans, total)) => Json(PaginatedResponse {
             items: beans,
             total,
-            page: params.page.unwrap_or(1),
-            page_size: params.limit.unwrap_or(50),
-            has_more: total > (params.page.unwrap_or(1) * params.limit.unwrap_or(50)) as i64,
+            page: pagination.page(),
+            page_size: pagination.page_size(),
+            has_more: pagination.has_more(total),
         }).into_response(),
         Err(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
