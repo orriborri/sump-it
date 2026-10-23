@@ -140,7 +140,12 @@ pub struct Grinder {
     pub max_setting: i32,
     pub scale_type: Option<String>, // "step" or "sliding" (from BeanIt)
     pub description: Option<String>,
-    
+
+    /// Whether the grinder is active. Mirrors `coffee_beans.is_active`:
+    /// grinders are SOFT-deleted (ticket #165), so a retired grinder has
+    /// `is_active = false` yet stays joinable from historical brewing sessions.
+    pub is_active: bool,
+
     // Timestamps
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -181,6 +186,21 @@ pub struct CreateGrinderRequest {
     pub max_setting: i32,
     pub scale_type: Option<String>,
     pub description: Option<String>,
+}
+
+impl CreateGrinderRequest {
+    /// Applies the shared grinder business rules to an incoming create/update
+    /// request before it is persisted: non-empty brand, `min_setting >= 0`,
+    /// and `max_setting > min_setting`.
+    ///
+    /// This is the single source of truth reused by the service seam (ticket
+    /// #166) and the API handler's supplemental validation, so the rule body
+    /// is not duplicated.
+    pub fn validate_comprehensive(&self) -> Result<(), ValidationErrorType> {
+        validate_grinder_brand(&self.brand)?;
+        validate_grinder_setting_range(self.min_setting, self.max_setting)?;
+        Ok(())
+    }
 }
 
 /// Grinder type enum (from rustyCoffy + BeanIt).
@@ -561,6 +581,7 @@ mod tests {
             max_setting: max,
             scale_type: Some("step".to_string()),
             description: None,
+            is_active: true,
             created_at: Utc::now(),
             updated_at: Utc::now(),
         }
@@ -738,6 +759,38 @@ mod tests {
 
         // Max not greater than min is rejected.
         let inverted = sample_grinder(40, 40);
+        assert!(inverted.validate_comprehensive().is_err());
+    }
+
+    /// Ticket #166: the create/update request shares the grinder invariants so
+    /// the service seam can reject invalid data without duplicating the rule
+    /// bodies.
+    #[test]
+    fn create_grinder_request_validate_comprehensive() {
+        let base = CreateGrinderRequest {
+            brand: "Comandante".to_string(),
+            model: "C40".to_string(),
+            grinder_type: GrinderType::BurrConical,
+            min_setting: 0,
+            max_setting: 40,
+            scale_type: Some("step".to_string()),
+            description: None,
+        };
+        assert!(base.validate_comprehensive().is_ok());
+
+        // Empty brand is rejected.
+        let bad_brand = CreateGrinderRequest { brand: "   ".to_string(), ..base.clone() };
+        assert!(matches!(
+            bad_brand.validate_comprehensive(),
+            Err(ValidationErrorType::GrinderBrandEmpty)
+        ));
+
+        // Negative minimum setting is rejected.
+        let negative_min = CreateGrinderRequest { min_setting: -1, ..base.clone() };
+        assert!(negative_min.validate_comprehensive().is_err());
+
+        // Max not greater than min is rejected.
+        let inverted = CreateGrinderRequest { min_setting: 40, max_setting: 40, ..base.clone() };
         assert!(inverted.validate_comprehensive().is_err());
     }
 

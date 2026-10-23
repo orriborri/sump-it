@@ -20,11 +20,15 @@
 use chrono::NaiveDate;
 
 use crate::models::{BrewingMethod, GrinderType, SessionFilter};
+use crate::pagination;
 
 /// Default page size when a filter does not specify `limit`.
-pub const DEFAULT_LIMIT: i32 = 50;
+///
+/// Re-exported from the shared [`crate::pagination`] module so the session path
+/// and the beans/grinders paths share one definition (ticket #167).
+pub const DEFAULT_LIMIT: i32 = pagination::DEFAULT_LIMIT;
 /// Hard ceiling on page size so a client cannot request an unbounded page.
-pub const MAX_LIMIT: i32 = 100;
+pub const MAX_LIMIT: i32 = pagination::MAX_LIMIT;
 
 /// A single value to bind to a numbered placeholder, in placeholder order.
 ///
@@ -62,14 +66,19 @@ pub struct BuiltQuery {
 
 /// Normalises a filter's `limit` into the inclusive range `[1, MAX_LIMIT]`,
 /// defaulting to [`DEFAULT_LIMIT`] when unset. Pure and total.
+///
+/// Delegates to the shared [`crate::pagination`] module so every list endpoint
+/// clamps `limit` the same way (ticket #167).
 pub fn normalize_limit(limit: Option<i32>) -> i32 {
-    limit.unwrap_or(DEFAULT_LIMIT).clamp(1, MAX_LIMIT)
+    pagination::normalize_limit(limit)
 }
 
 /// Normalises a filter's `offset` to a non-negative value, defaulting to 0.
 /// Pure and total.
+///
+/// Delegates to the shared [`crate::pagination`] module (ticket #167).
 pub fn normalize_offset(offset: Option<i32>) -> i32 {
-    offset.unwrap_or(0).max(0)
+    pagination::normalize_offset(offset)
 }
 
 /// Trims a raw search term and returns `Some(trimmed)` only when it contains
@@ -180,6 +189,18 @@ pub fn build_predicates(
 pub fn list_sessions_sql(filter: &SessionFilter, search: Option<&str>) -> BuiltQuery {
     let (predicates, mut binds) = build_predicates(filter, search, 1);
 
+    // SOFT-DELETE REGRESSION GUARD (ticket #165): the `JOIN grinders` below
+    // MUST stay UNFILTERED by `is_active`. Grinder removal is a soft delete
+    // (`is_active = false`), and historical sessions keep referencing the
+    // retired grinder. This inner join matches by id alone, so a session on a
+    // RETIRED grinder is still returned by the list. Do NOT add
+    // `AND g.is_active = true` (or an inner join to only-active grinders) here:
+    // that would silently re-hide every historical session whose grinder was
+    // later retired - the exact data-visibility bug #165 closes. The same
+    // applies to the `JOIN grinders` in `count_sessions_sql`. The DB test
+    // `session_list_includes_sessions_on_retired_grinders` in
+    // `backend/tests/session_list_duplicate_db.rs` is the live-Postgres
+    // regression guard for this invariant.
     let mut sql = String::from(
         "SELECT \
             s.id, s.bean_id, s.grinder_id, s.brewing_method, s.grind_setting, \
@@ -215,6 +236,10 @@ pub fn list_sessions_sql(filter: &SessionFilter, search: Option<&str>) -> BuiltQ
 pub fn count_sessions_sql(filter: &SessionFilter, search: Option<&str>) -> BuiltQuery {
     let (predicates, binds) = build_predicates(filter, search, 1);
 
+    // Like `list_sessions_sql`, this `JOIN grinders` MUST stay UNFILTERED by
+    // `is_active` so the count matches the list: a session on a RETIRED grinder
+    // (ticket #165 soft delete) is still counted. Do NOT add
+    // `AND g.is_active = true` here.
     let mut sql = String::from(
         "SELECT COUNT(*) \
          FROM brewing_sessions s \
