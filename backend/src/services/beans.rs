@@ -67,6 +67,16 @@ impl<'a> BeanService<'a> {
     /// service seam independent of any HTTP handler. The handler keeps its own
     /// validation as supplemental fast feedback; both call the same shared
     /// check, so the rule body is not duplicated.
+    ///
+    /// STATUS-CODE NOTE (code-review #166): on the HTTP path the handler
+    /// validates FIRST and returns 400 for invalid input, so the client always
+    /// sees 400. This service-seam rejection is a BACKSTOP for direct (non-HTTP)
+    /// callers and surfaces as an `anyhow` error that the handler maps to 500.
+    /// Handler-first validation is kept deliberately: the ticket only requires
+    /// the service to REJECT invalid data independent of the handler (it does),
+    /// and the observable API status is already correct, so a typed
+    /// service-error-to-400 mapping across the whole error surface is not
+    /// warranted for a path no client reaches.
     pub async fn create_bean(&self, request: CreateCoffeeBeanRequest) -> Result<CoffeeBean> {
         request
             .validate_comprehensive()

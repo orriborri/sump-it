@@ -72,6 +72,20 @@ impl<'a> GrinderService<'a> {
     /// BEFORE the INSERT, so invalid data is rejected at the service seam
     /// independent of any HTTP handler. The handler keeps its own validation as
     /// supplemental fast feedback; both call the same shared check.
+    ///
+    /// STATUS-CODE NOTE (code-review #166): on the HTTP path the handler runs
+    /// `validate_grinder_request` FIRST and returns a 400 for invalid input, so
+    /// the client always sees 400. This service-seam rejection is a BACKSTOP for
+    /// direct (non-HTTP) callers; it reports the failure as an `anyhow` error,
+    /// which the handler's catch-all maps to 500. We deliberately keep
+    /// handler-first validation rather than threading a typed validation error
+    /// through the service: the ticket only requires the service to REJECT
+    /// invalid data independent of the handler (it does, see the DB test
+    /// `create_grinder_rejects_invalid_data_at_service_layer`), and the
+    /// observable API status is already correct. Introducing a typed
+    /// service-error-to-400 mapping here would touch the whole service/handler
+    /// error surface for a path no client reaches, so it is intentionally left
+    /// as a backstop.
     pub async fn create_grinder(&self, request: CreateGrinderRequest) -> Result<Grinder> {
         request
             .validate_comprehensive()

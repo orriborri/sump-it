@@ -189,6 +189,18 @@ pub fn build_predicates(
 pub fn list_sessions_sql(filter: &SessionFilter, search: Option<&str>) -> BuiltQuery {
     let (predicates, mut binds) = build_predicates(filter, search, 1);
 
+    // SOFT-DELETE REGRESSION GUARD (ticket #165): the `JOIN grinders` below
+    // MUST stay UNFILTERED by `is_active`. Grinder removal is a soft delete
+    // (`is_active = false`), and historical sessions keep referencing the
+    // retired grinder. This inner join matches by id alone, so a session on a
+    // RETIRED grinder is still returned by the list. Do NOT add
+    // `AND g.is_active = true` (or an inner join to only-active grinders) here:
+    // that would silently re-hide every historical session whose grinder was
+    // later retired - the exact data-visibility bug #165 closes. The same
+    // applies to the `JOIN grinders` in `count_sessions_sql`. The DB test
+    // `session_list_includes_sessions_on_retired_grinders` in
+    // `backend/tests/session_list_duplicate_db.rs` is the live-Postgres
+    // regression guard for this invariant.
     let mut sql = String::from(
         "SELECT \
             s.id, s.bean_id, s.grinder_id, s.brewing_method, s.grind_setting, \
@@ -224,6 +236,10 @@ pub fn list_sessions_sql(filter: &SessionFilter, search: Option<&str>) -> BuiltQ
 pub fn count_sessions_sql(filter: &SessionFilter, search: Option<&str>) -> BuiltQuery {
     let (predicates, binds) = build_predicates(filter, search, 1);
 
+    // Like `list_sessions_sql`, this `JOIN grinders` MUST stay UNFILTERED by
+    // `is_active` so the count matches the list: a session on a RETIRED grinder
+    // (ticket #165 soft delete) is still counted. Do NOT add
+    // `AND g.is_active = true` here.
     let mut sql = String::from(
         "SELECT COUNT(*) \
          FROM brewing_sessions s \
