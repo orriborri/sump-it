@@ -40,6 +40,10 @@ use coffee_brewer_backend::models::{CreateGrinderRequest, GrinderType};
 // the SAME compiled service the binary and the coverage gate measure.
 use coffee_brewer_backend::services::grinders::GrinderService;
 
+// Pagination is a shared normalized value object (ticket #167); the list test
+// builds it from raw page/limit exactly as the HTTP handler does.
+use coffee_brewer_backend::pagination::Page;
+
 /// Connects to `DATABASE_URL` (falling back to `TEST_DATABASE_URL`) and ensures
 /// the schema is present. Returns `None` when neither variable is set so the
 /// (ignored) tests degrade cleanly.
@@ -200,7 +204,7 @@ async fn list_grinders_is_newest_first_with_paging() {
     // `COUNT(*)` total to check the reassembled pages against.
     const LIMIT: i32 = 2;
     let (page1, total) = service
-        .list_grinders(Some(1), Some(LIMIT))
+        .list_grinders(Page::from_params(Some(1), Some(LIMIT)))
         .await
         .expect("list grinders");
     assert!(total >= 3, "total counts at least this test's three rows");
@@ -214,7 +218,7 @@ async fn list_grinders_is_newest_first_with_paging() {
     let mut all_ids: Vec<Uuid> = page1.iter().map(|g| g.id).collect();
     for page in 2..=pages {
         let (rows, page_total) = service
-            .list_grinders(Some(page), Some(LIMIT))
+            .list_grinders(Page::from_params(Some(page), Some(LIMIT)))
             .await
             .expect("list grinders page");
         assert_eq!(page_total, total, "COUNT(*) total is stable across pages");

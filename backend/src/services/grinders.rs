@@ -12,6 +12,7 @@ use uuid::Uuid;
 use anyhow::{Result, Context};
 
 use crate::models::{Grinder, CreateGrinderRequest};
+use crate::pagination::Page;
 
 /// Service for managing grinders.
 pub struct GrinderService<'a> {
@@ -24,14 +25,13 @@ impl<'a> GrinderService<'a> {
     }
 
     /// List grinders with pagination, newest first.
-    pub async fn list_grinders(
-        &self,
-        page: Option<i32>,
-        limit: Option<i32>,
-    ) -> Result<(Vec<Grinder>, i64)> {
-        let page = page.unwrap_or(1).max(1);
-        let limit = limit.unwrap_or(50).clamp(1, 100);
-        let offset = (page - 1) * limit;
+    ///
+    /// Pagination is normalized once by [`Page`] (ticket #167); the `LIMIT` and
+    /// `OFFSET` executed here are the SAME normalized values the handler reports
+    /// as `page_size`/`has_more`.
+    pub async fn list_grinders(&self, page: Page) -> Result<(Vec<Grinder>, i64)> {
+        let limit = page.limit();
+        let offset = page.offset();
 
         let total: i64 = sqlx::query_scalar(r#"SELECT COUNT(*) FROM grinders"#)
             .fetch_one(self.pool)

@@ -7,6 +7,7 @@ use uuid::Uuid;
 use anyhow::{Result, Context};
 
 use crate::models::{BeanUsageRecord, CoffeeBean, CreateCoffeeBeanRequest};
+use crate::pagination::Page;
 
 /// Service for managing coffee beans
 pub struct BeanService<'a> {
@@ -18,11 +19,15 @@ impl<'a> BeanService<'a> {
         Self { pool }
     }
     
-    /// List all coffee beans with pagination
-    pub async fn list_beans(&self, page: Option<i32>, limit: Option<i32>) -> Result<(Vec<CoffeeBean>, i64)> {
-        let page = page.unwrap_or(1).max(1);
-        let limit = limit.unwrap_or(50).clamp(1, 100);
-        let offset = (page - 1) * limit;
+    /// List all coffee beans with pagination.
+    ///
+    /// Pagination is normalized once by [`Page`] (ticket #167): the `LIMIT` and
+    /// `OFFSET` used here are the SAME normalized values the handler reports as
+    /// `page_size`/`has_more`, so the query and the response metadata can never
+    /// disagree for out-of-range `page`/`limit` inputs.
+    pub async fn list_beans(&self, page: Page) -> Result<(Vec<CoffeeBean>, i64)> {
+        let limit = page.limit();
+        let offset = page.offset();
         
         // Get total count
         let total: i64 = sqlx::query_scalar(
