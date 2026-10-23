@@ -10,7 +10,7 @@ import React from 'react';
 import {
   Box,
   FormControl,
-  Grid,
+  Grid2 as Grid,
   InputLabel,
   MenuItem,
   Select,
@@ -49,7 +49,7 @@ interface RatingFieldProps {
 
 /** The rating dropdown (1.0 to 10.0 in 0.5 steps, plus a "No rating" option). */
 const RatingField: React.FC<RatingFieldProps> = ({ rating, onChange }) => (
-  <Grid item xs={12} sm={6}>
+  <Grid size={{ xs: 12, sm: 6 }}>
     <FormControl fullWidth>
       <InputLabel id="rating-label">Rating</InputLabel>
       <Select
@@ -84,7 +84,7 @@ interface NotesFieldProps {
 
 /** A full-width multiline text field for one of the free-text note sections. */
 const NotesField: React.FC<NotesFieldProps> = ({ label, value, onChange }) => (
-  <Grid item xs={12}>
+  <Grid size={12}>
     <TextField
       label={label}
       fullWidth

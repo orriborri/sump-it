@@ -12,11 +12,12 @@ import {
   MenuItem,
   SelectChangeEvent,
   CircularProgress,
-  Grid,
+  Grid2 as Grid,
   Chip,
   Alert,
 } from '@mui/material';
-import { type BrewFormData } from '@/lib/brew/recipe';
+import { BREWING_METHODS, type BrewFormData } from '@/lib/brew/recipe';
+import type { BrewingMethod } from '@/lib/api/types';
 
 /**
  * A coffee bean option.
@@ -50,7 +51,7 @@ interface BeanSelectorProps {
   formData: {
     beanId: string;
     grinderId: string;
-    brewingMethod: string;
+    brewingMethod: BrewingMethod | '';
   };
   /** Applies a partial update to the parent brew form. */
   updateFormData: (updates: Partial<BrewFormData>) => void;
@@ -61,17 +62,6 @@ interface BeanSelectorProps {
   /** Whether the equipment data is still loading. */
   isLoading: boolean;
 }
-
-const BREWING_METHODS = [
-  { value: 'V60', label: 'V60' },
-  { value: 'Chemex', label: 'Chemex' },
-  { value: 'FrenchPress', label: 'French Press' },
-  { value: 'AeroPress', label: 'AeroPress' },
-  { value: 'Espresso', label: 'Espresso' },
-  { value: 'Moka', label: 'Moka Pot' },
-  { value: 'ColdBrew', label: 'Cold Brew' },
-  { value: 'Other', label: 'Other' },
-];
 
 /** The two-line label rendered inside a bean dropdown option. */
 const BeanOptionLabel: React.FC<{ bean: Bean }> = ({ bean }) => (
@@ -140,7 +130,7 @@ const GrinderDropdown: React.FC<{
 
 /** The brewing-method `<Select>` dropdown with one option per method. */
 const MethodDropdown: React.FC<{
-  brewingMethod: string;
+  brewingMethod: BrewingMethod | '';
   onChange: (event: SelectChangeEvent) => void;
 }> = ({ brewingMethod, onChange }) => (
   <Select
@@ -177,7 +167,7 @@ const BeanSelectColumn: React.FC<BeanSelectColumnProps> = ({
   selectedBean,
   onChange,
 }) => (
-  <Grid item xs={12} md={4}>
+  <Grid size={{ xs: 12, md: 4 }}>
     <FormControl fullWidth>
       <InputLabel id="bean-select-label">Coffee Bean</InputLabel>
       <BeanDropdown beans={beans} beanId={beanId} onChange={onChange} />
@@ -227,7 +217,7 @@ const GrinderSelectColumn: React.FC<GrinderSelectColumnProps> = ({
   selectedGrinder,
   onChange,
 }) => (
-  <Grid item xs={12} md={4}>
+  <Grid size={{ xs: 12, md: 4 }}>
     <FormControl fullWidth>
       <InputLabel id="grinder-select-label">Grinder</InputLabel>
       <GrinderDropdown grinders={grinders} grinderId={grinderId} onChange={onChange} />
@@ -259,14 +249,14 @@ const GrinderSelectColumn: React.FC<GrinderSelectColumnProps> = ({
 /** Props for {@link MethodSelectColumn}. */
 interface MethodSelectColumnProps {
   /** The currently selected brewing method. */
-  brewingMethod: string;
+  brewingMethod: BrewingMethod | '';
   /** Handles a change of the selected brewing method. */
   onChange: (event: SelectChangeEvent) => void;
 }
 
 /** The brewing-method selection column: the dropdown plus a method chip. */
 const MethodSelectColumn: React.FC<MethodSelectColumnProps> = ({ brewingMethod, onChange }) => (
-  <Grid item xs={12} md={4}>
+  <Grid size={{ xs: 12, md: 4 }}>
     <FormControl fullWidth>
       <InputLabel id="method-select-label">Brewing Method</InputLabel>
       <MethodDropdown brewingMethod={brewingMethod} onChange={onChange} />
@@ -291,7 +281,7 @@ interface SelectionSummaryProps {
   /** The currently selected grinder, if any. */
   selectedGrinder?: Grinder;
   /** The currently selected brewing method. */
-  brewingMethod: string;
+  brewingMethod: BrewingMethod | '';
 }
 
 /** A compact summary of the current bean / grinder / method selection. */
@@ -306,21 +296,21 @@ const SelectionSummary: React.FC<SelectionSummaryProps> = ({
     </Typography>
     <Grid container spacing={1}>
       {selectedBean && (
-        <Grid item xs={12} sm={4}>
+        <Grid size={{ xs: 12, sm: 4 }}>
           <Typography variant="body2">
             <strong>Bean:</strong> {selectedBean.name} ({selectedBean.origin})
           </Typography>
         </Grid>
       )}
       {selectedGrinder && (
-        <Grid item xs={12} sm={4}>
+        <Grid size={{ xs: 12, sm: 4 }}>
           <Typography variant="body2">
             <strong>Grinder:</strong> {selectedGrinder.brand} {selectedGrinder.model}
           </Typography>
         </Grid>
       )}
       {brewingMethod && (
-        <Grid item xs={12} sm={4}>
+        <Grid size={{ xs: 12, sm: 4 }}>
           <Typography variant="body2">
             <strong>Method:</strong> {brewingMethod}
           </Typography>
@@ -351,7 +341,9 @@ export function BeanSelector({
   };
 
   const handleMethodChange = (event: SelectChangeEvent) => {
-    updateFormData({ brewingMethod: event.target.value });
+    // The method dropdown only offers values from the canonical BREWING_METHODS
+    // list (all members of the BrewingMethod union), so this assignment is safe.
+    updateFormData({ brewingMethod: event.target.value as BrewingMethod });
   };
 
   const selectedBean = beans.find(b => b.id === formData.beanId);

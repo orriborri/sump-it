@@ -218,6 +218,57 @@ describe('BrewWorkflow', () => {
     expect(create.mock.calls[0][0].tastingNotes).toBe('Chocolatey');
   });
 
+  it('does not stay stuck loading when a client method rejects during load (#170)', async () => {
+    // The client contract is to resolve `{ error }`, but a rejecting adapter
+    // must not leave the equipment step spinning forever. The workflow should
+    // recover: render the step and surface the friendly unreachable message.
+    const { client } = makeClient({
+      getActive: () => Promise.reject(new Error('adapter exploded')),
+    });
+    render(<BrewWorkflow client={client} />);
+
+    await waitFor(() => expect(screen.getByText(UNREACHABLE_MESSAGE)).toBeInTheDocument());
+    // Loading cleared: the equipment dropdown is present (not the spinner).
+    expect(screen.getByLabelText('Coffee Bean')).toBeInTheDocument();
+    expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
+  });
+
+  it('routes a rejecting create through friendly error handling on submit (#170)', async () => {
+    const user = userEvent.setup();
+    const { client } = makeClient({
+      create: vi.fn(() => Promise.reject(new Error('Failed to fetch'))),
+    });
+    render(<BrewWorkflow client={client} />);
+    await waitFor(() => screen.getByLabelText('Coffee Bean'));
+
+    await chooseEquipment(user);
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    await screen.findByLabelText('coffee-ratio');
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    await user.click(await screen.findByRole('button', { name: 'Save Brew Session' }));
+
+    // A rejection (not a resolved `{ error }`) still reaches toFriendlyError.
+    expect(await screen.findByText(UNREACHABLE_MESSAGE)).toBeInTheDocument();
+  });
+
+  it('surfaces a non-network rejection message on submit (#170)', async () => {
+    const user = userEvent.setup();
+    const { client } = makeClient({
+      create: vi.fn(() => Promise.reject(new Error('Insufficient bean quantity'))),
+    });
+    render(<BrewWorkflow client={client} />);
+    await waitFor(() => screen.getByLabelText('Coffee Bean'));
+
+    await chooseEquipment(user);
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    await screen.findByLabelText('coffee-ratio');
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    await user.click(await screen.findByRole('button', { name: 'Save Brew Session' }));
+
+    // A non-network rejection passes through toFriendlyError unchanged.
+    expect(await screen.findByText('Insufficient bean quantity')).toBeInTheDocument();
+  });
+
   it('defaults to the real client when none is injected', async () => {
     // No client prop: exercises the default parameter. Stub fetch so the real
     // client surfaces an error (proving the workflow mounted end to end).
