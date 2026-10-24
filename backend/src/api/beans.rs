@@ -41,7 +41,7 @@ async fn list_beans(
     // (even for limit=0, negative, or >100).
     let pagination = Pagination::from_page(params.page, params.limit);
     match service
-        .list_beans(Some(pagination.page), Some(pagination.limit))
+        .list_beans(pagination)
         .await
     {
         Ok((beans, total)) => Json(PaginatedResponse {

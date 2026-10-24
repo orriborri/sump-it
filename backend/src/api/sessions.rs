@@ -138,13 +138,10 @@ async fn list_sessions(
 ) -> impl IntoResponse {
     let service = SessionService::new(&state.pool);
 
+    let pagination = Pagination::from_offset(params.limit, params.offset, params.page);
     let filter = params.to_filter();
-    match service.list_filtered(&filter, params.q.as_deref()).await {
+    match service.list_filtered(&filter, params.q.as_deref(), pagination).await {
         Ok((sessions, total)) => {
-            // Derive response metadata from the SAME normalized window the
-            // filter was built from, so page/page_size/has_more cannot diverge
-            // from what was fetched.
-            let pagination = Pagination::from_offset(filter.limit, filter.offset, None);
             Json(PaginatedResponse {
                 items: sessions,
                 total,
@@ -178,10 +175,9 @@ async fn duplicate_session(
 
 /// Query parameters for listing sessions: paging, filters and search.
 ///
-/// `limit`/`offset` map straight onto [`SessionFilter`] (and are clamped by the
-/// pure `session_query` helpers). `page` is accepted for compatibility with the
-/// other list endpoints and, when provided without an explicit `offset`, is
-/// converted to an offset.
+/// `limit`/`offset` are normalized by [`Pagination`]. `page` is accepted for
+/// compatibility with the other list endpoints and, when provided without an
+/// explicit `offset`, is converted to an offset.
 #[derive(Debug, Default, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct ListParams {
@@ -200,14 +196,8 @@ struct ListParams {
 }
 
 impl ListParams {
-    /// Builds the [`SessionFilter`] these params describe. A 1-based `page`
-    /// (when given and no explicit `offset`) becomes an offset of
-    /// `(page - 1) * limit`.
+    /// Builds the search filter; the normalized SQL window is passed separately.
     fn to_filter(&self) -> SessionFilter {
-        // Normalize once through the shared pagination value object so the
-        // filter's limit/offset match the response metadata exactly. `offset`
-        // wins over `page` when both are given (offset-based paging).
-        let pagination = Pagination::from_offset(self.limit, self.offset, self.page);
         SessionFilter {
             bean_origin: self.bean_origin.clone(),
             roast_date_from: self.roast_date_from,
@@ -215,8 +205,7 @@ impl ListParams {
             grinder_type: self.grinder_type.clone(),
             brewing_method: self.brewing_method.clone(),
             rating_min: self.rating_min,
-            limit: Some(pagination.limit),
-            offset: Some(pagination.offset),
+            ..SessionFilter::default()
         }
     }
 }

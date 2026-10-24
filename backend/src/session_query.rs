@@ -20,10 +20,7 @@
 use chrono::NaiveDate;
 
 use crate::models::{BrewingMethod, GrinderType, SessionFilter};
-// Pagination normalization lives in a single source of truth (`crate::pagination`).
-// Re-export the policy so this module (and its callers/tests) keep using the
-// same clamp rules rather than a second, divergent copy.
-pub use crate::pagination::{normalize_limit, normalize_offset, DEFAULT_LIMIT, MAX_LIMIT};
+use crate::pagination::Pagination;
 
 /// A single value to bind to a numbered placeholder, in placeholder order.
 ///
@@ -164,7 +161,11 @@ pub fn build_predicates(
 /// optional search. Placeholders are numbered `$1..$n`; the returned
 /// [`BuiltQuery::binds`] lists the values in that order, ending with the
 /// `LIMIT`/`OFFSET` binds.
-pub fn list_sessions_sql(filter: &SessionFilter, search: Option<&str>) -> BuiltQuery {
+pub fn list_sessions_sql(
+    filter: &SessionFilter,
+    search: Option<&str>,
+    pagination: Pagination,
+) -> BuiltQuery {
     let (predicates, mut binds) = build_predicates(filter, search, 1);
 
     let mut sql = String::from(
@@ -189,16 +190,8 @@ pub fn list_sessions_sql(filter: &SessionFilter, search: Option<&str>) -> BuiltQ
     let limit_index = binds.len() + 1;
     let offset_index = binds.len() + 2;
     sql.push_str(&format!(" LIMIT ${limit_index} OFFSET ${offset_index}"));
-    // The sessions handler already stores NORMALIZED `limit`/`offset` on the
-    // filter (via `crate::pagination::Pagination::from_offset`), so these calls
-    // are idempotent for the sole caller. We normalize again here so that this
-    // pure SQL-assembly function is self-contained and total: a `SessionFilter`
-    // with raw values still yields a valid, clamped SQL window rather than
-    // binding a negative/overlarge LIMIT. The clamp routes through the single
-    // source of truth (`crate::pagination`, re-exported above), so there is no
-    // divergent policy even though the normalization is applied in two places.
-    binds.push(QueryBind::Int(normalize_limit(filter.limit) as i64));
-    binds.push(QueryBind::Int(normalize_offset(filter.offset) as i64));
+    binds.push(QueryBind::Int(i64::from(pagination.page_size())));
+    binds.push(QueryBind::Int(i64::from(pagination.offset())));
 
     BuiltQuery { sql, binds }
 }
@@ -228,6 +221,7 @@ pub fn count_sessions_sql(filter: &SessionFilter, search: Option<&str>) -> Built
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::pagination::DEFAULT_LIMIT;
     use chrono::NaiveDate;
 
     fn empty_filter() -> SessionFilter {
@@ -242,12 +236,6 @@ mod tests {
             offset: None,
         }
     }
-
-    // The clamp policy (`normalize_limit`/`normalize_offset`) is re-exported
-    // from `crate::pagination`, which owns the authoritative boundary tests.
-    // We deliberately do NOT re-test it here to avoid implying a second,
-    // independent implementation. `list_sessions_sql` below still asserts that
-    // this module WIRES those functions into the LIMIT/OFFSET binds correctly.
 
     #[test]
     fn normalize_search_trims_and_drops_blank() {
@@ -406,8 +394,20 @@ mod tests {
     }
 
     #[test]
+    fn list_sql_binds_the_window_used_for_metadata() {
+        for (raw_limit, size, offset) in [(0, 1, 1), (-5, 1, 1), (101, 100, 100)] {
+            let pagination = crate::pagination::Pagination::from_page(Some(2), Some(raw_limit));
+            let built = list_sessions_sql(&empty_filter(), None, pagination);
+            assert_eq!(built.binds, vec![QueryBind::Int(size), QueryBind::Int(offset)]);
+            assert_eq!(i64::from(pagination.page_size()), size);
+            assert!(!pagination.has_more(offset + size));
+            assert!(pagination.has_more(offset + size + 1));
+        }
+    }
+
+    #[test]
     fn list_sql_no_filters_has_join_order_limit_offset() {
-        let built = list_sessions_sql(&empty_filter(), None);
+        let built = list_sessions_sql(&empty_filter(), None, Pagination::from_page(None, None));
         assert!(built.sql.contains("FROM brewing_sessions s"));
         assert!(built.sql.contains("JOIN coffee_beans b ON s.bean_id = b.id"));
         assert!(built.sql.contains("JOIN grinders g ON s.grinder_id = g.id"));
@@ -434,7 +434,11 @@ mod tests {
             offset: Some(40),
             ..empty_filter()
         };
-        let built = list_sessions_sql(&filter, Some("berry"));
+        let built = list_sessions_sql(
+            &filter,
+            Some("berry"),
+            Pagination::from_offset(filter.limit, filter.offset, None),
+        );
         // Two filter predicates + one search = placeholders $1..$3, so
         // pagination is $4 and $5.
         assert!(built.sql.contains(" WHERE "));
