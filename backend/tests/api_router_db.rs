@@ -250,6 +250,33 @@ async fn grinder_crud_through_router() {
 
 #[tokio::test]
 #[ignore = "requires a live Postgres (DATABASE_URL); run with --ignored"]
+async fn referenced_grinder_delete_returns_conflict_through_router() {
+    let Some(pool) = setup_pool().await else { return };
+    let grinder = create_grinder(&pool).await;
+    let bean = create_bean(&pool, Some(100.0)).await;
+
+    let (status, _) = send(
+        &pool,
+        "POST",
+        "/sessions",
+        Some(espresso_body(bean, grinder)),
+    )
+    .await;
+    assert_eq!(status, StatusCode::CREATED);
+
+    let (status, body) = send(
+        &pool,
+        "DELETE",
+        &format!("/grinders/{grinder}"),
+        None,
+    )
+    .await;
+    assert_eq!(status, StatusCode::CONFLICT);
+    assert!(body["error"].as_str().unwrap().contains("history is preserved"));
+}
+
+#[tokio::test]
+#[ignore = "requires a live Postgres (DATABASE_URL); run with --ignored"]
 async fn grinder_validation_errors_through_router() {
     let Some(pool) = setup_pool().await else { return };
 
