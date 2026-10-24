@@ -20,11 +20,10 @@
 use chrono::NaiveDate;
 
 use crate::models::{BrewingMethod, GrinderType, SessionFilter};
-
-/// Default page size when a filter does not specify `limit`.
-pub const DEFAULT_LIMIT: i32 = 50;
-/// Hard ceiling on page size so a client cannot request an unbounded page.
-pub const MAX_LIMIT: i32 = 100;
+// Pagination normalization lives in a single source of truth (`crate::pagination`).
+// Re-export the policy so this module (and its callers/tests) keep using the
+// same clamp rules rather than a second, divergent copy.
+pub use crate::pagination::{normalize_limit, normalize_offset, DEFAULT_LIMIT, MAX_LIMIT};
 
 /// A single value to bind to a numbered placeholder, in placeholder order.
 ///
@@ -58,18 +57,6 @@ pub struct BuiltQuery {
     pub sql: String,
     /// Values to bind, in placeholder order.
     pub binds: Vec<QueryBind>,
-}
-
-/// Normalises a filter's `limit` into the inclusive range `[1, MAX_LIMIT]`,
-/// defaulting to [`DEFAULT_LIMIT`] when unset. Pure and total.
-pub fn normalize_limit(limit: Option<i32>) -> i32 {
-    limit.unwrap_or(DEFAULT_LIMIT).clamp(1, MAX_LIMIT)
-}
-
-/// Normalises a filter's `offset` to a non-negative value, defaulting to 0.
-/// Pure and total.
-pub fn normalize_offset(offset: Option<i32>) -> i32 {
-    offset.unwrap_or(0).max(0)
 }
 
 /// Trims a raw search term and returns `Some(trimmed)` only when it contains
@@ -202,6 +189,14 @@ pub fn list_sessions_sql(filter: &SessionFilter, search: Option<&str>) -> BuiltQ
     let limit_index = binds.len() + 1;
     let offset_index = binds.len() + 2;
     sql.push_str(&format!(" LIMIT ${limit_index} OFFSET ${offset_index}"));
+    // The sessions handler already stores NORMALIZED `limit`/`offset` on the
+    // filter (via `crate::pagination::Pagination::from_offset`), so these calls
+    // are idempotent for the sole caller. We normalize again here so that this
+    // pure SQL-assembly function is self-contained and total: a `SessionFilter`
+    // with raw values still yields a valid, clamped SQL window rather than
+    // binding a negative/overlarge LIMIT. The clamp routes through the single
+    // source of truth (`crate::pagination`, re-exported above), so there is no
+    // divergent policy even though the normalization is applied in two places.
     binds.push(QueryBind::Int(normalize_limit(filter.limit) as i64));
     binds.push(QueryBind::Int(normalize_offset(filter.offset) as i64));
 
@@ -248,28 +243,11 @@ mod tests {
         }
     }
 
-    #[test]
-    fn normalize_limit_defaults_and_clamps() {
-        assert_eq!(normalize_limit(None), DEFAULT_LIMIT);
-        assert_eq!(normalize_limit(Some(10)), 10);
-        // Below 1 clamps up to 1.
-        assert_eq!(normalize_limit(Some(0)), 1);
-        assert_eq!(normalize_limit(Some(-5)), 1);
-        // Above the ceiling clamps down.
-        assert_eq!(normalize_limit(Some(1000)), MAX_LIMIT);
-        // Boundaries are kept.
-        assert_eq!(normalize_limit(Some(1)), 1);
-        assert_eq!(normalize_limit(Some(MAX_LIMIT)), MAX_LIMIT);
-    }
-
-    #[test]
-    fn normalize_offset_defaults_and_floors() {
-        assert_eq!(normalize_offset(None), 0);
-        assert_eq!(normalize_offset(Some(0)), 0);
-        assert_eq!(normalize_offset(Some(25)), 25);
-        // Negative offsets floor to 0.
-        assert_eq!(normalize_offset(Some(-1)), 0);
-    }
+    // The clamp policy (`normalize_limit`/`normalize_offset`) is re-exported
+    // from `crate::pagination`, which owns the authoritative boundary tests.
+    // We deliberately do NOT re-test it here to avoid implying a second,
+    // independent implementation. `list_sessions_sql` below still asserts that
+    // this module WIRES those functions into the LIMIT/OFFSET binds correctly.
 
     #[test]
     fn normalize_search_trims_and_drops_blank() {

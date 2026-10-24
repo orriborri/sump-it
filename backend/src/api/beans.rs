@@ -14,6 +14,7 @@ use validator::Validate;
 use crate::{
     api::AppState,
     models::{CreateCoffeeBeanRequest, PaginatedResponse, ErrorResponse},
+    pagination::Pagination,
     services::beans::BeanService,
     validation::validation_errors_to_string,
 };
@@ -34,14 +35,21 @@ async fn list_beans(
     Query(params): Query<ListParams>,
 ) -> impl IntoResponse {
     let service = BeanService::new(&state.pool);
-    
-    match service.list_beans(params.page, params.limit).await {
+
+    // Normalize paging ONCE and derive both the query inputs and the response
+    // metadata from it, so page_size/has_more always match what was fetched
+    // (even for limit=0, negative, or >100).
+    let pagination = Pagination::from_page(params.page, params.limit);
+    match service
+        .list_beans(Some(pagination.page), Some(pagination.limit))
+        .await
+    {
         Ok((beans, total)) => Json(PaginatedResponse {
             items: beans,
             total,
-            page: params.page.unwrap_or(1),
-            page_size: params.limit.unwrap_or(50),
-            has_more: total > (params.page.unwrap_or(1) * params.limit.unwrap_or(50)) as i64,
+            page: pagination.page(),
+            page_size: pagination.page_size(),
+            has_more: pagination.has_more(total),
         }).into_response(),
         Err(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
@@ -200,9 +208,10 @@ async fn get_bean_usage(
 
 /// Query parameters for listing beans.
 ///
-/// Both fields are optional; the handlers apply the 1/50 page/limit defaults
-/// inline via `unwrap_or`, so there is no separate `Default` impl to keep in
-/// sync (and none to leave untested).
+/// Both fields are optional; the handler normalizes them once through
+/// [`crate::pagination::Pagination::from_page`], which applies the
+/// `DEFAULT_LIMIT`/clamp policy, so there is no separate defaulting logic to
+/// keep in sync.
 #[derive(Debug, serde::Deserialize)]
 struct ListParams {
     page: Option<i32>,
