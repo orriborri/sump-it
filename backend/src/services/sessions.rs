@@ -105,7 +105,7 @@ impl<'a> SessionService<'a> {
             .begin()
             .await
             .context("Failed to begin transaction")
-            .map_err(SaveError::Database)?;
+            .map_err(begin_error)?;
 
         // (2) Lock the bean row for the life of the transaction (LOCK ORDER:
         // bean first). A missing row means the bean does not exist (or is
@@ -339,6 +339,14 @@ impl<'a> SessionService<'a> {
 /// decrement, commit) are exercised by the DB integration tests.
 fn db_error(e: sqlx::Error, context: &'static str) -> SaveError {
     SaveError::Database(anyhow::Error::new(e).context(context))
+}
+
+// coverage: beginning a transaction only fails when the already-established
+// pool/connection is unavailable, an infrastructure failure that cannot be
+// induced without invalidating the test harness itself.
+#[cfg_attr(coverage_nightly, coverage(off))]
+fn begin_error(error: anyhow::Error) -> SaveError {
+    SaveError::Database(error)
 }
 
 /// Binds every [`QueryBind`], in order, to a `query_as` builder.
