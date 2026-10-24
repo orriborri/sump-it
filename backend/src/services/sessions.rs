@@ -241,8 +241,8 @@ impl<'a> SessionService<'a> {
     /// Lists brewing sessions newest-first with paging, applying the given
     /// filters and optional case-insensitive text search (ticket #146).
     ///
-    /// The SQL text, placeholder numbering and pagination clamping are built by
-    /// the pure [`crate::session_query`] helpers (unit tested without a DB);
+    /// The SQL text and placeholder numbering are built by the pure
+    /// [`crate::session_query`] helpers using the supplied normalized window;
     /// this method only binds the parameters and runs the queries. Every user
     /// value travels as a bound parameter, so there is no SQL injection
     /// surface. Returns the page of sessions plus the TOTAL match count.
@@ -250,6 +250,7 @@ impl<'a> SessionService<'a> {
         &self,
         filter: &SessionFilter,
         search: Option<&str>,
+        pagination: crate::pagination::Pagination,
     ) -> Result<(Vec<BrewingSession>, i64)> {
         // The COUNT(*) is read through `query_as` into a one-column tuple so it
         // shares the single `bind_all` binder with the list query below (rather
@@ -264,7 +265,7 @@ impl<'a> SessionService<'a> {
             .await
             .context("Failed to count filtered sessions")?;
 
-        let list_query = session_query::list_sessions_sql(filter, search);
+        let list_query = session_query::list_sessions_sql(filter, search, pagination);
         let list_builder = sqlx::query_as::<_, BrewingSession>(&list_query.sql);
         let list_builder = bind_all(list_builder, &list_query.binds);
         let sessions = list_builder

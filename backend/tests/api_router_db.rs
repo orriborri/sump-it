@@ -773,3 +773,43 @@ async fn log_brew_internal_query_failures_map_to_database_error() {
         assert_eq!(status, StatusCode::INTERNAL_SERVER_ERROR, "insert failure: {body}");
     }
 }
+
+/// Every list route must fetch and report the same normalized window.
+#[tokio::test]
+#[ignore = "requires a live Postgres"]
+async fn list_pagination_metadata_uses_normalized_window() {
+    let Some(pool) = setup_pool().await else { return };
+    for _ in 0..3 {
+        let grinder = create_grinder(&pool).await;
+        let bean = create_bean(&pool, None).await;
+        let (status, _) = send(&pool, "POST", "/sessions", Some(espresso_body(bean, grinder))).await;
+        assert_eq!(status, StatusCode::CREATED);
+    }
+
+    for endpoint in ["beans", "grinders", "sessions"] {
+        for (limit, size) in [(0, 1), (-5, 1), (101, 100)] {
+            for (query, page, count, more) in [
+                ("page=1", 1, if size == 1 { 1 } else { 3 }, size == 1),
+                ("page=2", 2, if size == 1 { 1 } else { 0 }, size == 1),
+                ("page=3", 3, if size == 1 { 1 } else { 0 }, false),
+            ] {
+                let uri = format!("/{endpoint}?{query}&limit={limit}");
+                let (status, body) = send(&pool, "GET", &uri, None).await;
+                assert_eq!(status, StatusCode::OK, "{uri}: {body}");
+                assert_eq!(body["total"], 3, "{uri}");
+                assert_eq!(body["page"], page, "{uri}");
+                assert_eq!(body["pageSize"], size, "{uri}");
+                assert_eq!(body["hasMore"], more, "{uri}");
+                assert_eq!(body["items"].as_array().unwrap().len(), count, "{uri}");
+            }
+        }
+    }
+
+    // Explicit offsets take precedence over page and need not align to a page.
+    let (status, body) = send(&pool, "GET", "/sessions?page=99&offset=1&limit=0", None).await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(body["page"], 2);
+    assert_eq!(body["pageSize"], 1);
+    assert_eq!(body["hasMore"], true);
+    assert_eq!(body["items"].as_array().unwrap().len(), 1);
+}

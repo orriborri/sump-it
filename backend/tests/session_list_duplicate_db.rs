@@ -33,6 +33,7 @@ use chrono::{Duration, Utc};
 use sqlx::postgres::PgPoolOptions;
 use sqlx::PgPool;
 use uuid::Uuid;
+use coffee_brewer_backend::pagination::Pagination;
 
 // Use the models and the pure recipe helpers from the library crate.
 use coffee_brewer_backend::models::{
@@ -245,7 +246,11 @@ async fn list_is_newest_first_with_paging() {
         ..SessionFilter::default()
     };
     let (sessions, total) = service
-        .list_filtered(&filter, None)
+        .list_filtered(
+            &filter,
+            None,
+            Pagination::from_offset(filter.limit, filter.offset, None),
+        )
         .await
         .expect("list page 1");
     assert_eq!(total, 3, "three matching sessions in total");
@@ -279,7 +284,11 @@ async fn filters_narrow_results() {
         ..SessionFilter::default()
     };
     let (sessions, total) = service
-        .list_filtered(&filter, None)
+        .list_filtered(
+            &filter,
+            None,
+            Pagination::from_offset(filter.limit, filter.offset, None),
+        )
         .await
         .expect("filtered list");
     assert_eq!(total, 1, "only the Ethiopia/Burr/V60/high-rating session matches");
@@ -317,14 +326,22 @@ async fn search_matches_across_four_columns() {
 
     // Lower-case query hits the upper-case notes (ILIKE is case-insensitive).
     let (sessions, _total) = service
-        .list_filtered(&SessionFilter::default(), Some("jasmine"))
+        .list_filtered(
+            &SessionFilter::default(),
+            Some("jasmine"),
+            Pagination::from_page(None, None),
+        )
         .await
         .expect("search notes");
     assert!(sessions.iter().any(|s| s.id == by_notes), "matches tasting notes");
 
     // Query hits the grinder brand.
     let (sessions, _total) = service
-        .list_filtered(&SessionFilter::default(), Some("niche"))
+        .list_filtered(
+            &SessionFilter::default(),
+            Some("niche"),
+            Pagination::from_page(None, None),
+        )
         .await
         .expect("search brand");
     assert!(sessions.iter().any(|s| s.id == by_notes), "matches grinder brand");
