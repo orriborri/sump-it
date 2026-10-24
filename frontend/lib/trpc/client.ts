@@ -99,6 +99,12 @@ export async function apiFetch<T>(
       return { data: undefined };
     }
 
+    // The response types are generated from the Rust models by ts-rs. This is
+    // therefore an explicit compile-time trust boundary, not runtime schema
+    // validation: a generic object/null check cannot prove a value is T, while
+    // duplicating every Rust response schema here would create a second contract
+    // that can drift. Invalid JSON still rejects response.json() and is converted
+    // by the outer catch into the client's resolve-never-reject error shape.
     const data = (await response.json()) as T;
     return { data };
   } catch (error) {

@@ -179,6 +179,63 @@ describe('BrewWorkflow', () => {
     expect(await screen.findByText(message)).toBeInTheDocument();
   });
 
+  it('does not stay stuck loading when an injected load call rejects', async () => {
+    // Defend the seam: the BrewClient contract says adapters never reject, but
+    // an injected adapter that rejects must not leave the workflow loading.
+    const { client } = makeClient({
+      getActive: vi.fn(() => Promise.reject(new Error('adapter blew up'))),
+    });
+    render(<BrewWorkflow client={client} />);
+
+    // Loading resolved: the equipment step renders rather than hanging...
+    await waitFor(() => expect(screen.getByLabelText('Coffee Bean')).toBeInTheDocument());
+    // ...and the rejection is surfaced as the friendly unreachable message.
+    expect(screen.getByText(UNREACHABLE_MESSAGE)).toBeInTheDocument();
+  });
+
+  it('routes a rejecting save through friendly error handling without success/reset', async () => {
+    const user = userEvent.setup();
+    const { client, create } = makeClient({
+      create: vi.fn(() => Promise.reject(new Error('Failed to fetch'))),
+    });
+    render(<BrewWorkflow client={client} />);
+    await waitFor(() => screen.getByLabelText('Coffee Bean'));
+
+    await chooseEquipment(user);
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    await screen.findByLabelText('coffee-ratio');
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    await user.click(await screen.findByRole('button', { name: 'Save Brew Session' }));
+
+    await waitFor(() => expect(create).toHaveBeenCalledTimes(1));
+    // Thrown value routed through toFriendlyError (network hint -> unreachable).
+    expect(await screen.findByText(UNREACHABLE_MESSAGE)).toBeInTheDocument();
+    // No success snackbar and the form is not reset (still on the feedback step).
+    expect(screen.queryByText('Brewing session saved.')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Save Brew Session' })).toBeInTheDocument();
+  });
+
+  it('routes a rejecting save with a non-Error value through a generic message', async () => {
+    const user = userEvent.setup();
+    const { client } = makeClient({
+      // Intentional: this pins the adapter boundary's unknown-rejection fallback.
+      // skipcq: JS-0114
+      create: vi.fn(() => Promise.reject('boom')),
+    });
+    render(<BrewWorkflow client={client} />);
+    await waitFor(() => screen.getByLabelText('Coffee Bean'));
+
+    await chooseEquipment(user);
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    await screen.findByLabelText('coffee-ratio');
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    await user.click(await screen.findByRole('button', { name: 'Save Brew Session' }));
+
+    // Non-Error reject -> generic message (not a network hint, so passes through).
+    expect(await screen.findByText('Failed to save brew session')).toBeInTheDocument();
+    expect(screen.queryByText('Brewing session saved.')).not.toBeInTheDocument();
+  });
+
   it('shows a friendly error when the save hits a network failure', async () => {
     const user = userEvent.setup();
     const { client } = makeClient({
