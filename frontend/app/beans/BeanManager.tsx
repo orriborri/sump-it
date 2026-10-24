@@ -12,12 +12,14 @@ import {
   Alert,
   Box,
   Button,
+  Checkbox,
   Chip,
   CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
+  FormControlLabel,
   List,
   ListItem,
   ListItemText,
@@ -126,6 +128,8 @@ interface BeanListProps {
   onViewUsage: (bean: CoffeeBean) => void;
   /** Deletes the given bean. */
   onDelete: (bean: CoffeeBean) => void;
+  /** Opens the add-bean dialog from the empty state. */
+  onAdd: () => void;
 }
 
 /**
@@ -139,6 +143,7 @@ const BeanList: React.FC<BeanListProps> = ({
   onEdit,
   onViewUsage,
   onDelete,
+  onAdd,
 }) => {
   if (loading) {
     return (
@@ -148,7 +153,14 @@ const BeanList: React.FC<BeanListProps> = ({
     );
   }
   if (beans.length === 0) {
-    return <Alert severity="info">No active beans. Add your first bag.</Alert>;
+    return (
+      <Stack spacing={2} alignItems="flex-start">
+        <Alert severity="info">No active beans. Add your first bag.</Alert>
+        <Button aria-label="Add bean from empty state" variant="contained" onClick={onAdd}>
+          Add Bean
+        </Button>
+      </Stack>
+    );
   }
   return (
     <List>
@@ -176,8 +188,14 @@ interface BeanEditorDialogProps {
   form: BeanFormState;
   /** A validation/save error to surface, if any. */
   formError: string | null;
+  /** A successful continuous-entry save message, if any. */
+  formSuccess: string | null;
+  /** Whether successful creates should leave the dialog open. */
+  addMany: boolean;
   /** Updates a single form field. */
   updateField: (field: keyof BeanFormState, value: string) => void;
+  /** Toggles continuous bean entry. */
+  onAddManyChange: (checked: boolean) => void;
   /** Closes the dialog without saving. */
   onClose: () => void;
   /** Submits the add/edit form. */
@@ -190,7 +208,10 @@ const BeanEditorDialog: React.FC<BeanEditorDialogProps> = ({
   editingId,
   form,
   formError,
+  formSuccess,
+  addMany,
   updateField,
+  onAddManyChange,
   onClose,
   onSubmit,
 }) => (
@@ -201,6 +222,11 @@ const BeanEditorDialog: React.FC<BeanEditorDialogProps> = ({
         {formError !== null && (
           <Alert severity="error" role="alert">
             {formError}
+          </Alert>
+        )}
+        {formSuccess !== null && (
+          <Alert severity="success" role="status">
+            {formSuccess}
           </Alert>
         )}
         <TextField
@@ -242,6 +268,17 @@ const BeanEditorDialog: React.FC<BeanEditorDialogProps> = ({
           value={form.processingMethod}
           onChange={e => updateField('processingMethod', e.target.value)}
         />
+        {editingId === null && (
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={addMany}
+                onChange={event => onAddManyChange(event.target.checked)}
+              />
+            }
+            label="Add many beans"
+          />
+        )}
       </Stack>
     </DialogContent>
     <DialogActions>
@@ -313,6 +350,8 @@ export function BeanManager({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<BeanFormState>(emptyBeanForm());
   const [formError, setFormError] = useState<string | null>(null);
+  const [formSuccess, setFormSuccess] = useState<string | null>(null);
+  const [addMany, setAddMany] = useState(false);
 
   // Usage-history dialog state.
   const [usage, setUsage] = useState<BeanUsageRecord[] | null>(null);
@@ -339,6 +378,8 @@ export function BeanManager({
     setEditingId(null);
     setForm(emptyBeanForm());
     setFormError(null);
+    setFormSuccess(null);
+    setAddMany(false);
     setEditorOpen(true);
   };
 
@@ -346,6 +387,8 @@ export function BeanManager({
     setEditingId(bean.id);
     setForm(beanToForm(bean));
     setFormError(null);
+    setFormSuccess(null);
+    setAddMany(false);
     setEditorOpen(true);
   };
 
@@ -358,6 +401,7 @@ export function BeanManager({
   };
 
   const submitForm = async () => {
+    setFormSuccess(null);
     const validationError = validateBeanForm(form, now());
     if (validationError !== null) {
       setFormError(validationError);
@@ -372,10 +416,17 @@ export function BeanManager({
 
     if (response.error) {
       setFormError(response.error);
+      setFormSuccess(null);
       return;
     }
 
-    setEditorOpen(false);
+    if (editingId === null && addMany) {
+      setForm(emptyBeanForm());
+      setFormError(null);
+      setFormSuccess('Bean added. You can add another.');
+    } else {
+      setEditorOpen(false);
+    }
     await loadBeans();
   };
 
@@ -431,6 +482,7 @@ export function BeanManager({
         onEdit={openEdit}
         onViewUsage={viewUsage}
         onDelete={deleteBean}
+        onAdd={openAdd}
       />
 
       <BeanEditorDialog
@@ -438,7 +490,10 @@ export function BeanManager({
         editingId={editingId}
         form={form}
         formError={formError}
+        formSuccess={formSuccess}
+        addMany={addMany}
         updateField={updateField}
+        onAddManyChange={setAddMany}
         onClose={closeEditor}
         onSubmit={submitForm}
       />
