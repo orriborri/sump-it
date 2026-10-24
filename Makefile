@@ -34,7 +34,7 @@ coverage: coverage-backend coverage-frontend
 coverage-backend:
 	cd backend && RUSTFLAGS="--cfg coverage_nightly" \
 		cargo +$(RUST_NIGHTLY) llvm-cov --lib --tests --fail-under-lines 100 \
-		-- --include-ignored --test-threads=1
+		--show-missing-lines -- --include-ignored --test-threads=1
 
 # Frontend: Vitest + v8 coverage with 100% lines/branches/functions/statements.
 coverage-frontend:

@@ -14,7 +14,7 @@
 - **State Management**: React Query for server state
 - **Styling**: Emotion with CSS-in-JS
 - **Form Handling**: React Hook Form with Zod validation
-- **API Client**: Thin typed fetch client (`lib/trpc/client.ts`) using ts-rs-generated types
+- **API Client**: Thin typed fetch client (`lib/trpc/client.ts`) using ts-rs-generated types; a REST client over `fetch`, not a tRPC server/router (the `lib/trpc/` directory name is historical)
 
 ## Backend Stack
 - **Language**: Rust 2021 edition

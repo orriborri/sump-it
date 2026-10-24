@@ -40,7 +40,18 @@ import { BeanSelector } from './BeanSelector';
 import { BrewingParameters } from './BrewingParameters';
 import { BrewFeedback } from './BrewFeedback';
 
-/** The subset of the typed client this workflow needs. */
+/**
+ * The subset of the typed client this workflow needs.
+ *
+ * Contract (ticket #170): every method is expected to **resolve** to an
+ * `ApiResponse`, never to reject. The production client (`apiFetch` in
+ * `lib/trpc/client.ts`) upholds this by catching fetch failures and returning
+ * `{ error }`. This workflow nonetheless defends the seam: an adapter, test
+ * fake, or future wrapper that rejects (throws) cannot leave the workflow stuck
+ * loading or bypass friendly error handling. Rejections are caught, loading and
+ * submission state are cleared, and the error is routed through
+ * `toFriendlyError`/`UNREACHABLE_MESSAGE` just like a resolved `{ error }`.
+ */
 export interface BrewClient {
   beans: Pick<typeof coffeeBrewerClient.beans, 'getActive'>;
   grinders: Pick<typeof coffeeBrewerClient.grinders, 'list'>;
@@ -192,25 +203,34 @@ export function BrewWorkflow({ client = coffeeBrewerClient }: BrewWorkflowProps)
 
   const loadData = useCallback(async () => {
     setLoading(true);
-    const [beansRes, grindersRes, sessionsRes] = await Promise.all([
-      client.beans.getActive(),
-      client.grinders.list(),
-      client.sessions.list({ limit: 5 }),
-    ]);
+    try {
+      const [beansRes, grindersRes, sessionsRes] = await Promise.all([
+        client.beans.getActive(),
+        client.grinders.list(),
+        client.sessions.list({ limit: 5 }),
+      ]);
 
-    const firstError = beansRes.error ?? grindersRes.error ?? sessionsRes.error;
-    if (firstError) {
-      // If the very first data load fails, the backend is effectively
-      // unreachable from the user's point of view; show a friendly message
-      // rather than a raw fetch error like "Failed to fetch".
+      const firstError = beansRes.error ?? grindersRes.error ?? sessionsRes.error;
+      if (firstError) {
+        // If the very first data load fails, the backend is effectively
+        // unreachable from the user's point of view; show a friendly message
+        // rather than a raw fetch error like "Failed to fetch".
+        setLoadError(UNREACHABLE_MESSAGE);
+      } else {
+        setLoadError(null);
+      }
+      setBeans(beansRes.data ?? []);
+      setGrinders(grindersRes.data?.items ?? []);
+      setPreviousSessions(sessionsRes.data?.items ?? []);
+    } catch {
+      // Seam defense (ticket #170): the client contract is to resolve
+      // `{ error }` rather than reject, but a rejecting adapter must not leave
+      // the workflow stuck loading. Surface the friendly unreachable message
+      // and fall through to clear `loading` below.
       setLoadError(UNREACHABLE_MESSAGE);
-    } else {
-      setLoadError(null);
+    } finally {
+      setLoading(false);
     }
-    setBeans(beansRes.data ?? []);
-    setGrinders(grindersRes.data?.items ?? []);
-    setPreviousSessions(sessionsRes.data?.items ?? []);
-    setLoading(false);
   }, [client]);
 
   useEffect(() => {
@@ -247,7 +267,18 @@ export function BrewWorkflow({ client = coffeeBrewerClient }: BrewWorkflowProps)
   const handleSubmit = async () => {
     setSaveError(null);
 
-    const response = await client.sessions.create(formToSessionRequest(formData));
+    let response;
+    try {
+      response = await client.sessions.create(formToSessionRequest(formData));
+    } catch (error) {
+      // Seam defense (ticket #170): the client contract is to resolve
+      // `{ error }` rather than reject, but a rejecting adapter must not bypass
+      // friendly error handling. Route the rejection through toFriendlyError
+      // exactly like a resolved `{ error }` so the user sees the same message.
+      setSaveError(toFriendlyError(error instanceof Error ? error.message : UNREACHABLE_MESSAGE));
+      return;
+    }
+
     if (response.error) {
       // Business errors (insufficient quantity, recipe violations) are already
       // actionable; a bare network failure becomes the friendly unreachable

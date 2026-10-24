@@ -358,6 +358,75 @@ async fn usage_history_reports_sessions() {
         .ok();
 }
 
+/// Ticket #166: the SERVICE is the authoritative invariant seam. A direct
+/// `create_bean`/`update_bean` with invalid data (empty name, or a future
+/// roast date) must fail at the service layer, independent of the HTTP handler,
+/// and persist NOTHING. The `COUNT(*)` before/after proves the reject happens
+/// before any INSERT, so a non-HTTP caller cannot bypass validation.
+#[tokio::test]
+#[ignore = "requires a live Postgres (DATABASE_URL); run with --ignored"]
+async fn create_bean_rejects_invalid_data_at_service_layer() {
+    let Some(pool) = pool().await else { return };
+    let service = BeanService::new(&pool);
+
+    let before: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM coffee_beans")
+        .fetch_one(&pool)
+        .await
+        .expect("count beans");
+
+    // Empty name is a business-rule violation caught by the service.
+    let empty_name = service.create_bean(bean_request("   ", Some(250.0))).await;
+    assert!(empty_name.is_err(), "service rejects an empty bean name");
+
+    // A future roast date is rejected by the service before any INSERT.
+    let mut future = bean_request("Future Roast", Some(250.0));
+    future.roast_date = Utc::now().naive_utc().date() + Duration::days(1);
+    let future_result = service.create_bean(future).await;
+    assert!(future_result.is_err(), "service rejects a future roast date");
+
+    let after: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM coffee_beans")
+        .fetch_one(&pool)
+        .await
+        .expect("count beans");
+    assert_eq!(
+        before, after,
+        "no invalid bean row is persisted when the service rejects it"
+    );
+}
+
+/// Ticket #166: `update_bean` enforces the same invariants at the service
+/// layer. Updating an existing bean with invalid data must fail without
+/// mutating the stored row.
+#[tokio::test]
+#[ignore = "requires a live Postgres (DATABASE_URL); run with --ignored"]
+async fn update_bean_rejects_invalid_data_at_service_layer() {
+    let Some(pool) = pool().await else { return };
+    let service = BeanService::new(&pool);
+
+    let created = service
+        .create_bean(bean_request("Original Name", Some(250.0)))
+        .await
+        .expect("create bean");
+
+    let result = service
+        .update_bean(created.id, bean_request("  ", Some(250.0)))
+        .await;
+    assert!(result.is_err(), "service rejects an empty name on update");
+
+    // The stored row is unchanged.
+    let fetched = service
+        .get_bean(created.id)
+        .await
+        .expect("get bean")
+        .expect("bean still exists");
+    assert_eq!(
+        fetched.name, "Original Name",
+        "a rejected update does not mutate the row"
+    );
+
+    service.delete_bean(created.id).await.ok();
+}
+
 /// Ticket #139: the `roast_date <= purchase_date` CHECK is GONE **and only
 /// that CHECK** — the `remaining_grams >= 0` CHECK must survive.
 ///

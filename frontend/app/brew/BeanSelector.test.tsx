@@ -3,6 +3,7 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import { BeanSelector } from './BeanSelector';
+import { BREWING_METHODS } from '@/lib/brew/recipe';
 
 interface Bean {
   id: string;
@@ -48,10 +49,15 @@ function grinder(overrides: Partial<Grinder> = {}): Grinder {
 
 function setup(
   props: Partial<Parameters<typeof BeanSelector>[0]> = {},
-  formOverrides: Partial<{ beanId: string; grinderId: string; brewingMethod: string }> = {}
+  formOverrides: Partial<Parameters<typeof BeanSelector>[0]['formData']> = {}
 ) {
   const updateFormData = vi.fn();
-  const formData = { beanId: '', grinderId: '', brewingMethod: '', ...formOverrides };
+  const formData: Parameters<typeof BeanSelector>[0]['formData'] = {
+    beanId: '',
+    grinderId: '',
+    brewingMethod: '',
+    ...formOverrides,
+  };
   render(
     <BeanSelector
       formData={formData}
@@ -134,5 +140,17 @@ describe('BeanSelector', () => {
   it('shows the method in the summary when chosen', () => {
     setup({}, { brewingMethod: 'Espresso' });
     expect(screen.getByText(/Method:/)).toBeInTheDocument();
+  });
+
+  it('offers exactly the canonical BREWING_METHODS options (one source of truth, #169)', async () => {
+    // The selector must render the single canonical list exported from
+    // lib/brew/recipe.ts, with no hand-maintained duplicate in this component.
+    const user = userEvent.setup();
+    setup();
+    await user.click(screen.getByLabelText('Brewing Method'));
+    const options = within(screen.getByRole('listbox')).getAllByRole('option');
+    expect(options.map((option) => option.textContent)).toEqual(
+      BREWING_METHODS.map((method) => method.label)
+    );
   });
 });

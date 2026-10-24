@@ -33,7 +33,9 @@ export interface BrewFormData {
   // Step 1: equipment selection.
   beanId: string;
   grinderId: string;
-  brewingMethod: string;
+  // '' is the "nothing chosen yet" state; once chosen it is one of the
+  // generated `BrewingMethod` union members, so no cast is needed downstream.
+  brewingMethod: BrewingMethod | '';
   // Step 2: brewing parameters.
   coffeeGrams: number;
   waterGrams: number;
@@ -168,10 +170,18 @@ export function toFriendlyError(error: string): string {
 /**
  * Build the typed `CreateBrewingSessionRequest` body from the form. Optional
  * numeric fields collapse to `null`, and empty/whitespace text fields collapse
- * to `null`, matching the Rust `Option<T>` serialization. The brewing method
- * is narrowed from the form's plain string to the generated union.
+ * to `null`, matching the Rust `Option<T>` serialization.
+ *
+ * The form's `brewingMethod` is `BrewingMethod | ''`. Request conversion is
+ * only valid once the equipment step is complete (see `isEquipmentComplete`),
+ * so an empty method is rejected explicitly instead of silently becoming a
+ * different brewing method.
  */
 export function formToSessionRequest(form: BrewFormData): CreateBrewingSessionRequest {
+  if (!form.brewingMethod) {
+    throw new Error('Brewing method is required');
+  }
+
   const trim = (value: string | undefined): string | null => {
     const trimmed = (value ?? '').trim();
     return trimmed === '' ? null : trimmed;
@@ -179,7 +189,7 @@ export function formToSessionRequest(form: BrewFormData): CreateBrewingSessionRe
   return {
     beanId: form.beanId,
     grinderId: form.grinderId,
-    brewingMethod: form.brewingMethod as BrewingMethod,
+    brewingMethod: form.brewingMethod,
     grindSetting: form.grindSetting,
     waterTempCelsius: form.waterTempCelsius ?? null,
     brewTimeSeconds: form.brewTimeSeconds ?? null,

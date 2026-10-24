@@ -18,8 +18,9 @@ use validator::Validate;
 use crate::{
     api::AppState,
     models::{CreateGrinderRequest, ErrorResponse, PaginatedResponse},
-    services::grinders::GrinderService,
-    validation::{validate_grinder_setting_range, validation_errors_to_string},
+    pagination::Page,
+    services::grinders::{DeleteError, GrinderService, GrinderServiceError},
+    validation::validation_errors_to_string,
 };
 
 pub fn router() -> Router<AppState> {
@@ -37,14 +38,17 @@ async fn list_grinders(
 
     match service.list_grinders(params.page, params.limit).await {
         Ok((grinders, total)) => {
-            let page = params.page.unwrap_or(1);
-            let page_size = params.limit.unwrap_or(50);
+            // Metadata is derived from the SAME normalized pagination the
+            // service used for the query (ticket #167), so an out-of-range
+            // limit (0, negative, >100) cannot report a page_size/has_more
+            // that disagrees with what was fetched.
+            let paging = Page::from_request(params.page, params.limit);
             Json(PaginatedResponse {
                 items: grinders,
                 total,
-                page,
-                page_size,
-                has_more: total > (page * page_size) as i64,
+                page: paging.page(),
+                page_size: paging.page_size(),
+                has_more: paging.has_more(total),
             })
             .into_response()
         }
@@ -69,11 +73,7 @@ async fn create_grinder(
 
     match service.create_grinder(payload).await {
         Ok(grinder) => (StatusCode::CREATED, Json(grinder)).into_response(),
-        Err(e) => (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ErrorResponse::new(format!("Failed to create grinder: {}", e))),
-        )
-            .into_response(),
+        Err(e) => grinder_service_error_response(e, "Failed to create grinder"),
     }
 }
 
@@ -118,11 +118,7 @@ async fn update_grinder(
             Json(ErrorResponse::new("Grinder not found".to_string())),
         )
             .into_response(),
-        Err(e) => (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ErrorResponse::new(format!("Failed to update grinder: {}", e))),
-        )
-            .into_response(),
+        Err(e) => grinder_service_error_response(e, "Failed to update grinder"),
     }
 }
 
@@ -140,7 +136,18 @@ async fn delete_grinder(
             Json(ErrorResponse::new("Grinder not found".to_string())),
         )
             .into_response(),
-        Err(e) => (
+        // Ticket #165: the grinder is still referenced by brewing sessions, so
+        // the `ON DELETE RESTRICT` foreign key refused the delete to protect
+        // that immutable history. Surface a clean 409 Conflict, not a 500.
+        Err(DeleteError::Referenced) => (
+            StatusCode::CONFLICT,
+            Json(ErrorResponse::new(
+                "Cannot delete a grinder that has brewing sessions; its history is preserved."
+                    .to_string(),
+            )),
+        )
+            .into_response(),
+        Err(DeleteError::Database(e)) => (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(ErrorResponse::new(format!("Failed to delete grinder: {}", e))),
         )
@@ -148,12 +155,12 @@ async fn delete_grinder(
     }
 }
 
-/// Run both the derive-based field validation and the domain setting-range
-/// validation for a grinder request. Returns `Some(response)` with a
+/// Run the derive-based request-shape validation for a grinder request.
+/// Returns `Some(response)` with a
 /// `400 Bad Request` body when invalid, or `None` when the request is valid.
 ///
-/// Kept as a private helper so create and update share the exact same rules
-/// (brand/model length, `min_setting >= 0`, `max_setting > min_setting`).
+/// Domain validation (including the setting range and model) remains in the
+/// service so every caller shares one authoritative rule set.
 fn validate_grinder_request(payload: &CreateGrinderRequest) -> Option<axum::response::Response> {
     if let Err(validation_errors) = payload.validate() {
         return Some(
@@ -168,17 +175,26 @@ fn validate_grinder_request(payload: &CreateGrinderRequest) -> Option<axum::resp
         );
     }
 
-    if let Err(e) = validate_grinder_setting_range(payload.min_setting, payload.max_setting) {
-        return Some(
-            (
-                StatusCode::BAD_REQUEST,
-                Json(ErrorResponse::new(e.to_string())),
-            )
-                .into_response(),
-        );
-    }
-
     None
+}
+
+/// Convert authoritative service errors into their HTTP representation.
+fn grinder_service_error_response(
+    error: GrinderServiceError,
+    context: &str,
+) -> axum::response::Response {
+    match error {
+        GrinderServiceError::Validation(error) => (
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse::new(error.to_string())),
+        )
+            .into_response(),
+        GrinderServiceError::Database(error) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ErrorResponse::new(format!("{context}: {error}"))),
+        )
+            .into_response(),
+    }
 }
 
 /// Query parameters for listing grinders.
@@ -190,4 +206,28 @@ fn validate_grinder_request(payload: &CreateGrinderRequest) -> Option<axum::resp
 struct ListParams {
     page: Option<i32>,
     limit: Option<i32>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::validation::ValidationErrorType;
+
+    #[test]
+    fn grinder_service_validation_errors_are_bad_requests() {
+        let response = grinder_service_error_response(
+            GrinderServiceError::Validation(ValidationErrorType::GrinderBrandEmpty),
+            "unused context",
+        );
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    }
+
+    #[test]
+    fn grinder_service_database_errors_are_internal_errors() {
+        let response = grinder_service_error_response(
+            GrinderServiceError::Database(anyhow::anyhow!("database unavailable")),
+            "Failed to create grinder",
+        );
+        assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    }
 }

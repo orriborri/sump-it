@@ -28,17 +28,21 @@
 //! (`max_setting > min_setting`, `min_setting >= 0`) are also verified through
 //! the service's create path.
 
+use chrono::{Duration, Utc};
 use sqlx::postgres::PgPoolOptions;
 use sqlx::PgPool;
 use uuid::Uuid;
 
 // Use the models from the library crate.
-use coffee_brewer_backend::models::{CreateGrinderRequest, GrinderType};
+use coffee_brewer_backend::models::{
+    BrewingMethod, CreateBrewingSessionRequest, CreateGrinderRequest, GrinderType,
+};
 
-// The production service lives in the library crate (`services::grinders`), so
-// this test calls it directly rather than re-declaring the SQL. It exercises
-// the SAME compiled service the binary and the coverage gate measure.
-use coffee_brewer_backend::services::grinders::GrinderService;
+// The production services live in the library crate, so this test calls them
+// directly rather than re-declaring the SQL. It exercises the SAME compiled
+// services the binary and the coverage gate measure.
+use coffee_brewer_backend::services::grinders::{DeleteError, GrinderService};
+use coffee_brewer_backend::services::sessions::SessionService;
 
 /// Connects to `DATABASE_URL` (falling back to `TEST_DATABASE_URL`) and ensures
 /// the schema is present. Returns `None` when neither variable is set so the
@@ -259,12 +263,14 @@ async fn list_grinders_is_newest_first_with_paging() {
     cleanup(&pool, &ids).await;
 }
 
-/// `delete_grinder` hard-deletes the row (grinders have no soft-delete column):
+/// An UNREFERENCED grinder (no brewing session uses it) still hard-deletes:
 /// `get_grinder` stops returning it and a re-delete reports no row affected.
-/// Exercises the shipping DELETE and its `rows_affected` return.
+/// Ticket #165's `ON DELETE RESTRICT` only blocks grinders that are referenced
+/// by a session, so cleanup of unused equipment is unchanged. Exercises the
+/// shipping DELETE and its `rows_affected` return.
 #[tokio::test]
 #[ignore = "requires a live Postgres (DATABASE_URL); run with --ignored"]
-async fn delete_grinder_removes_the_row() {
+async fn delete_grinder_removes_an_unreferenced_row() {
     let Some(pool) = pool().await else { return };
     let service = GrinderService::new(&pool);
 
@@ -319,4 +325,191 @@ async fn schema_rejects_negative_min_setting() {
         .create_grinder(grinder_request("Negative", -1, 40))
         .await;
     assert!(result.is_err(), "schema must reject negative min_setting");
+}
+
+/// Ticket #166: the SERVICE is the authoritative invariant seam. A direct
+/// `create_grinder` with invalid data (empty brand, or an inverted/negative
+/// setting range) must fail at the service layer, independent of the HTTP
+/// handler, and persist NOTHING. The `COUNT(*)` before/after proves the reject
+/// happens before any INSERT, so a non-HTTP caller cannot bypass validation.
+#[tokio::test]
+#[ignore = "requires a live Postgres (DATABASE_URL); run with --ignored"]
+async fn create_grinder_rejects_invalid_data_at_service_layer() {
+    let Some(pool) = pool().await else { return };
+    let service = GrinderService::new(&pool);
+
+    let before: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM grinders")
+        .fetch_one(&pool)
+        .await
+        .expect("count grinders");
+
+    // Empty brand is a business-rule violation, caught by the service.
+    let empty_brand = service
+        .create_grinder(grinder_request("   ", 0, 40))
+        .await;
+    assert!(empty_brand.is_err(), "service rejects an empty grinder brand");
+
+    // Inverted range (max <= min) is rejected before any INSERT.
+    let inverted = service
+        .create_grinder(grinder_request("Comandante", 40, 10))
+        .await;
+    assert!(inverted.is_err(), "service rejects an inverted setting range");
+
+    let after: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM grinders")
+        .fetch_one(&pool)
+        .await
+        .expect("count grinders");
+    assert_eq!(
+        before, after,
+        "no invalid grinder row is persisted when the service rejects it"
+    );
+}
+
+/// Ticket #166: `update_grinder` enforces the same invariants at the service
+/// layer. Updating an existing grinder with invalid data must fail without
+/// mutating the stored row.
+#[tokio::test]
+#[ignore = "requires a live Postgres (DATABASE_URL); run with --ignored"]
+async fn update_grinder_rejects_invalid_data_at_service_layer() {
+    let Some(pool) = pool().await else { return };
+    let service = GrinderService::new(&pool);
+
+    let created = service
+        .create_grinder(grinder_request("Original", 0, 40))
+        .await
+        .expect("create grinder");
+
+    let result = service
+        .update_grinder(created.id, grinder_request("  ", 0, 40))
+        .await;
+    assert!(result.is_err(), "service rejects an empty brand on update");
+
+    // The stored row is unchanged.
+    let fetched = service
+        .get_grinder(created.id)
+        .await
+        .expect("get grinder")
+        .expect("grinder still exists");
+    assert_eq!(fetched.brand, "Original", "a rejected update does not mutate the row");
+
+    cleanup(&pool, &[created.id]).await;
+}
+
+/// Inserts a quantity-tracked bean (so `log_brew` can decrement it) and returns
+/// its id. Dates are in the past so the app-level future-date guard is happy.
+async fn insert_bean(pool: &PgPool) -> Uuid {
+    let id = Uuid::new_v4();
+    let roast = Utc::now().naive_utc().date() - Duration::days(5);
+    let purchase = Utc::now().naive_utc().date() - Duration::days(3);
+    sqlx::query(
+        r#"INSERT INTO coffee_beans
+           (id, name, origin, roast_date, purchase_date, remaining_grams, is_active)
+           VALUES ($1, 'History Bean', 'Ethiopia', $2, $3, 200.0, true)"#,
+    )
+    .bind(id)
+    .bind(roast)
+    .bind(purchase)
+    .execute(pool)
+    .await
+    .expect("insert bean");
+    id
+}
+
+/// A valid Espresso request (18 g / 36 g, ratio 2.0, 93 C, 30 s) against the
+/// given bean and grinder, the shape the API hands to `log_brew`.
+fn espresso_request(bean: Uuid, grinder: Uuid) -> CreateBrewingSessionRequest {
+    CreateBrewingSessionRequest {
+        bean_id: bean,
+        grinder_id: grinder,
+        brewing_method: BrewingMethod::Espresso,
+        grind_setting: 12,
+        water_temp_celsius: Some(93),
+        brew_time_seconds: Some(30),
+        coffee_grams: 18.0,
+        water_grams: 36.0,
+        tasting_notes: None,
+        rating: None,
+        feedback: None,
+        suggestions: None,
+        is_template: false,
+    }
+}
+
+/// Ticket #165: brewing sessions are immutable historical records. Once a
+/// grinder has been used by a session, deleting that grinder must be REFUSED
+/// (the `brewing_sessions.grinder_id` FK is `ON DELETE RESTRICT`, migration
+/// 0004) rather than cascade-deleting the session. This is the regression
+/// guard for the original data-loss bug, where `DELETE FROM grinders` silently
+/// erased every session that used the grinder.
+///
+/// The test logs a real brew through `SessionService::log_brew` (so the session
+/// genuinely references the grinder AND the bean), then:
+///   1. asserts `delete_grinder` returns `DeleteError::Referenced` (the RESTRICT
+///      FK fired, mapped by the service to a clean conflict, not a 500);
+///   2. asserts the session row and the grinder row both still exist;
+///   3. asserts the bean usage history still resolves the session.
+/// If the FK ever regresses to `ON DELETE CASCADE`, step 1 would instead
+/// succeed and the session would vanish, failing steps 2 and 3.
+#[tokio::test]
+#[ignore = "requires a live Postgres (DATABASE_URL); run with --ignored"]
+async fn referenced_grinder_delete_is_refused_and_session_survives() {
+    let Some(pool) = pool().await else { return };
+    let grinder = GrinderService::new(&pool)
+        .create_grinder(grinder_request("Historied", 0, 40))
+        .await
+        .expect("create grinder");
+    let bean = insert_bean(&pool).await;
+
+    let session = SessionService::new(&pool)
+        .log_brew(espresso_request(bean, grinder.id))
+        .await
+        .expect("log brew");
+
+    // (1) Deleting a grinder that a session references must be REFUSED by the
+    // RESTRICT foreign key, surfaced as a clean conflict (never a cascade).
+    let result = GrinderService::new(&pool).delete_grinder(grinder.id).await;
+    assert!(
+        matches!(result, Err(DeleteError::Referenced)),
+        "deleting a referenced grinder must be refused, got {result:?}"
+    );
+
+    // (2) Both the session and the grinder still exist: no history was erased.
+    let session_count: i64 =
+        sqlx::query_scalar("SELECT COUNT(*) FROM brewing_sessions WHERE id = $1")
+            .bind(session.id)
+            .fetch_one(&pool)
+            .await
+            .expect("count sessions");
+    assert_eq!(session_count, 1, "the brewing session must survive");
+    let grinder_still_there = GrinderService::new(&pool)
+        .get_grinder(grinder.id)
+        .await
+        .expect("get grinder");
+    assert!(
+        grinder_still_there.is_some(),
+        "the referenced grinder is preserved, not removed"
+    );
+
+    // (3) Bean usage history still resolves the session (it JOINs grinders).
+    let history = coffee_brewer_backend::services::beans::BeanService::new(&pool)
+        .get_bean_usage_history(bean)
+        .await
+        .expect("bean usage history");
+    assert!(
+        history.iter().any(|record| record.session_id == session.id),
+        "the session remains in the bean usage history"
+    );
+
+    // Cleanup in FK order: session first, then the equipment it referenced.
+    sqlx::query("DELETE FROM brewing_sessions WHERE id = $1")
+        .bind(session.id)
+        .execute(&pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM coffee_beans WHERE id = $1")
+        .bind(bean)
+        .execute(&pool)
+        .await
+        .ok();
+    cleanup(&pool, &[grinder.id]).await;
 }

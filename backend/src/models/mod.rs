@@ -183,6 +183,19 @@ pub struct CreateGrinderRequest {
     pub description: Option<String>,
 }
 
+impl CreateGrinderRequest {
+    /// Applies the shared grinder business rules to an incoming create/update
+    /// request before it is persisted: non-empty brand, a non-negative minimum
+    /// setting, and a maximum strictly greater than the minimum. Mirrors
+    /// [`Grinder::validate_comprehensive`] so the same invariants hold whether
+    /// a grinder is created from a request or already stored.
+    pub fn validate_comprehensive(&self) -> Result<(), ValidationErrorType> {
+        validate_grinder_brand(&self.brand)?;
+        validate_grinder_setting_range(self.min_setting, self.max_setting)?;
+        Ok(())
+    }
+}
+
 /// Grinder type enum (from rustyCoffy + BeanIt).
 ///
 /// Variants serialize using their Rust names (e.g. `BurrConical`) to match the
@@ -739,6 +752,38 @@ mod tests {
         // Max not greater than min is rejected.
         let inverted = sample_grinder(40, 40);
         assert!(inverted.validate_comprehensive().is_err());
+    }
+
+    fn sample_grinder_request(min: i32, max: i32) -> CreateGrinderRequest {
+        CreateGrinderRequest {
+            brand: "Comandante".to_string(),
+            model: "C40".to_string(),
+            grinder_type: GrinderType::BurrConical,
+            min_setting: min,
+            max_setting: max,
+            scale_type: Some("step".to_string()),
+            description: None,
+        }
+    }
+
+    #[test]
+    fn create_grinder_request_validate_comprehensive() {
+        // A well-formed request validates.
+        assert!(sample_grinder_request(0, 40).validate_comprehensive().is_ok());
+
+        // Empty brand is rejected.
+        let bad_brand = CreateGrinderRequest {
+            brand: "  ".to_string(),
+            ..sample_grinder_request(0, 40)
+        };
+        assert!(bad_brand.validate_comprehensive().is_err());
+
+        // Negative minimum setting is rejected.
+        assert!(sample_grinder_request(-1, 40).validate_comprehensive().is_err());
+
+        // Max not greater than min is rejected.
+        assert!(sample_grinder_request(40, 40).validate_comprehensive().is_err());
+        assert!(sample_grinder_request(40, 10).validate_comprehensive().is_err());
     }
 
     #[test]

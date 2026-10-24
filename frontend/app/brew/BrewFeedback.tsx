@@ -10,7 +10,7 @@ import React from 'react';
 import {
   Box,
   FormControl,
-  Grid,
+  Grid2 as Grid,
   InputLabel,
   MenuItem,
   Select,
@@ -47,9 +47,18 @@ interface RatingFieldProps {
   onChange: (event: SelectChangeEvent) => void;
 }
 
+/** Render the empty rating choice as a direct Select child. */
+function noRatingOption(): React.ReactNode {
+  return (
+    <MenuItem value="">
+      <em>No rating</em>
+    </MenuItem>
+  );
+}
+
 /** The rating dropdown (1.0 to 10.0 in 0.5 steps, plus a "No rating" option). */
 const RatingField: React.FC<RatingFieldProps> = ({ rating, onChange }) => (
-  <Grid item xs={12} sm={6}>
+  <Grid size={{ xs: 12, sm: 6 }}>
     <FormControl fullWidth>
       <InputLabel id="rating-label">Rating</InputLabel>
       <Select
@@ -59,9 +68,7 @@ const RatingField: React.FC<RatingFieldProps> = ({ rating, onChange }) => (
         value={rating === undefined ? '' : String(rating)}
         onChange={onChange}
       >
-        <MenuItem value="">
-          <em>No rating</em>
-        </MenuItem>
+        {noRatingOption()}
         {ratingOptions().map((value) => (
           <MenuItem key={value} value={String(value)}>
             {value.toFixed(1)}
@@ -84,7 +91,7 @@ interface NotesFieldProps {
 
 /** A full-width multiline text field for one of the free-text note sections. */
 const NotesField: React.FC<NotesFieldProps> = ({ label, value, onChange }) => (
-  <Grid item xs={12}>
+  <Grid size={12}>
     <TextField
       label={label}
       fullWidth
