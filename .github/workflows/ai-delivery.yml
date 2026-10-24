@@ -1,0 +1,152 @@
+name: AI delivery loop
+
+on:
+  workflow_dispatch:
+    inputs:
+      stage:
+        description: 'design → merge → plan → merge → build; fix addresses a build PR; learn records an incident'
+        type: choice
+        options: [design, plan, build, fix, learn]
+        required: true
+      issue:
+        description: GitHub issue number containing the request or incident
+        required: true
+        type: string
+      pr:
+        description: Existing AI build PR number (fix only)
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ai-delivery-${{ inputs.issue }}
+  cancel-in-progress: false
+
+jobs:
+  agent:
+    # Dispatch from the default branch so a proposed workflow cannot change its own controls.
+    if: github.ref_name == github.event.repository.default_branch
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    environment: ai-delivery
+    permissions:
+      contents: read
+      issues: read
+      pull-requests: read
+      checks: read
+      actions: read
+    outputs:
+      parent: ${{ steps.prepare.outputs.parent }}
+      branch: ${{ steps.prepare.outputs.branch }}
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: coffee_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd 'pg_isready -U postgres'
+          --health-interval 10s --health-timeout 5s --health-retries 5
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/coffee_test
+      TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/coffee_test
+      RUST_NIGHTLY: nightly-2025-10-01
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Preserve trusted controller and verification command
+        run: |
+          cp scripts/ai_sdlc.py /tmp/ai_sdlc.py
+          cp scripts/ai_runner.py /tmp/ai_runner.py
+          cp scripts/ai-verify.sh /tmp/ai-verify.sh
+      - name: Prepare task and check accepted artifacts
+        id: prepare
+        env:
+          GH_TOKEN: ${{ github.token }}
+          AI_STAGE: ${{ inputs.stage }}
+          AI_ISSUE: ${{ inputs.issue }}
+          AI_PR: ${{ inputs.pr }}
+        run: |
+          python /tmp/ai_sdlc.py prepare --stage "$AI_STAGE" --issue "$AI_ISSUE" --pr "$AI_PR"
+          cp .ai-run/task.json /tmp/ai-task.json
+      - uses: actions/setup-node@v4
+        if: inputs.stage == 'build' || inputs.stage == 'fix'
+        with:
+          node-version: 20
+      - uses: dtolnay/rust-toolchain@master
+        if: inputs.stage == 'build' || inputs.stage == 'fix'
+        with:
+          toolchain: nightly-2025-10-01
+          components: llvm-tools-preview
+      - uses: taiki-e/install-action@v2
+        if: inputs.stage == 'build' || inputs.stage == 'fix'
+        with:
+          tool: cargo-llvm-cov
+      - name: Install dependencies for the feedback loop
+        if: inputs.stage == 'build' || inputs.stage == 'fix'
+        working-directory: frontend
+        run: npm ci --legacy-peer-deps
+      - name: Run configured delivery agent
+        env:
+          AI_ADAPTER: ${{ vars.AI_DELIVERY_ADAPTER || vars.AI_ADAPTER || 'chat-completions' }}
+          AI_API_URL: ${{ vars.AI_DELIVERY_API_URL || vars.AI_API_URL }}
+          AI_MODEL: ${{ vars.AI_DELIVERY_MODEL || vars.AI_MODEL }}
+          AI_API_KEY: ${{ secrets.AI_DELIVERY_API_KEY || secrets.AI_API_KEY }}
+          AI_RUNNER_COMMAND: ${{ vars.AI_DELIVERY_COMMAND || vars.AI_RUNNER_COMMAND }}
+        run: python /tmp/ai_runner.py --role delivery --prompt .ai-run/prompt.txt
+      - name: Validate change scope before executing candidate code
+        run: |
+          cp /tmp/ai-task.json .ai-run/task.json
+          python /tmp/ai_sdlc.py package
+      - name: Independent contract and coverage verification
+        if: inputs.stage == 'build' || inputs.stage == 'fix'
+        shell: bash
+        run: |
+          set -o pipefail
+          bash /tmp/ai-verify.sh 2>&1 | tee .ai-run/verification.log
+      - name: Package the verified patch
+        run: python /tmp/ai_sdlc.py package
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ai-candidate
+          path: |
+            .ai-run/change.patch
+            .ai-run/task.json
+            .ai-run/verification.log
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 14
+
+  publish:
+    needs: agent
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          name: ai-candidate
+          path: .ai-run
+      - name: Publish verified proposal and request CI and fresh review
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_PARENT: ${{ needs.agent.outputs.parent }}
+          EXPECTED_BRANCH: ${{ needs.agent.outputs.branch }}
+          EXPECTED_STAGE: ${{ inputs.stage }}
+          EXPECTED_ISSUE: ${{ inputs.issue }}
+          EXPECTED_PR: ${{ inputs.pr }}
+        run: python scripts/ai_sdlc.py publish

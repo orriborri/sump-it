@@ -18,6 +18,7 @@ name: Contract + coverage gates
 # No secrets are used by this workflow.
 
 on:
+  workflow_dispatch:
   push:
     branches: [main]
   pull_request:

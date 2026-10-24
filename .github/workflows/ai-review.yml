@@ -1,0 +1,113 @@
+name: AI review loop
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: PR number to review (also used after GITHUB_TOKEN publications)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ai-review-${{ github.event.pull_request.number || inputs.pr }}
+  cancel-in-progress: true
+
+jobs:
+  begin:
+    if: >-
+      (github.event_name == 'workflow_dispatch' && github.ref_name == github.event.repository.default_branch) ||
+      (github.event_name == 'pull_request' && !github.event.pull_request.draft &&
+      github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+      statuses: write
+    outputs:
+      head: ${{ steps.start.outputs.head }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+      - name: Mark the candidate pending before model execution
+        id: start
+        env:
+          GH_TOKEN: ${{ github.token }}
+          AI_PR: ${{ github.event.pull_request.number || inputs.pr }}
+        run: |
+          if test -f scripts/ai_sdlc.py; then
+            python scripts/ai_sdlc.py review-start --pr "$AI_PR"
+          else
+            echo 'Bootstrap PR: AI review activates after the controls merge.'
+          fi
+  review:
+    needs: begin
+    if: needs.begin.outputs.head != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      head: ${{ steps.context.outputs.head }}
+      result: ${{ steps.review.outputs.result }}
+    steps:
+      # Read the trusted base, never execute/check out PR code with a model secret.
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+      - name: Check whether controls have been installed on the base
+        id: installed
+        run: |
+          if test -f scripts/ai_sdlc.py; then
+            echo 'available=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'Bootstrap PR: AI review activates after the controls merge.'
+          fi
+      - name: Capture diff and its exact head
+        if: steps.installed.outputs.available == 'true'
+        id: context
+        env:
+          GH_TOKEN: ${{ github.token }}
+          AI_PR: ${{ github.event.pull_request.number || inputs.pr }}
+          EXPECTED_REVIEW_HEAD: ${{ needs.begin.outputs.head }}
+        run: python scripts/ai_sdlc.py review-context --pr "$AI_PR"
+      - name: Independent bug, security and spec review
+        if: steps.installed.outputs.available == 'true'
+        id: review
+        env:
+          AI_ADAPTER: ${{ vars.AI_REVIEW_ADAPTER || vars.AI_ADAPTER || 'chat-completions' }}
+          AI_API_URL: ${{ vars.AI_REVIEW_API_URL || vars.AI_API_URL }}
+          AI_MODEL: ${{ vars.AI_REVIEW_MODEL || vars.AI_MODEL }}
+          AI_API_KEY: ${{ secrets.AI_REVIEW_API_KEY || secrets.AI_API_KEY }}
+          AI_RUNNER_COMMAND: ${{ vars.AI_REVIEW_COMMAND || vars.AI_RUNNER_COMMAND }}
+        run: python scripts/ai_runner.py --role review --prompt .github/prompts/ai-review.md
+  post:
+    needs: review
+    if: needs.review.outputs.head != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: write
+      statuses: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+      - name: Post verdict tied to reviewed commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          AI_PR: ${{ github.event.pull_request.number || inputs.pr }}
+          REVIEW_HEAD: ${{ needs.review.outputs.head }}
+          REVIEW_RESULT: ${{ needs.review.outputs.result }}
+        run: python scripts/ai_sdlc.py post-review --pr "$AI_PR"

@@ -1,0 +1,22 @@
+name: AI control checks
+
+on:
+  pull_request:
+    paths: ['scripts/ai*', '.github/prompts/**', '.github/workflows/ai*', 'tests/ai/**', 'REVIEW.md', 'CLAUDE.md', 'AGENTS.md']
+  push:
+    branches: [main]
+    paths: ['scripts/ai*', '.github/prompts/**', '.github/workflows/ai*', 'tests/ai/**', 'REVIEW.md', 'CLAUDE.md', 'AGENTS.md']
+  workflow_dispatch:
+  schedule:
+    - cron: '0 6 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  policy-regressions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python -m unittest discover -s tests/ai -v
+      - run: bash -n scripts/ai-verify.sh
