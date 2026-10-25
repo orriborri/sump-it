@@ -90,6 +90,34 @@ describe('apiFetch', () => {
     expect(result).toEqual({ error: 'HTTP 500: Server Error', details: undefined });
   });
 
+  it.each([null, [], 'failure', { error: 42, details: [false] }, { error: '' }])(
+    'uses an HTTP fallback for a malformed error envelope: %j',
+    async (body) => {
+      fetchMock.mockResolvedValueOnce(
+        jsonResponse(body, { ok: false, status: 502, statusText: 'Bad Gateway' })
+      );
+
+      await expect(apiFetch('/sessions')).resolves.toEqual({
+        error: 'HTTP 502: Bad Gateway',
+        details: undefined,
+      });
+    }
+  );
+
+  it.each([null, 'invalid', [1], ['valid', false]])(
+    'preserves a valid error but omits malformed details: %j',
+    async (details) => {
+      fetchMock.mockResolvedValueOnce(
+        jsonResponse({ error: 'Recipe rejected', details }, { ok: false, status: 422 })
+      );
+
+      await expect(apiFetch('/sessions')).resolves.toEqual({
+        error: 'Recipe rejected',
+        details: undefined,
+      });
+    }
+  );
+
   it('falls back to an HTTP status message when the error body is not JSON', async () => {
     // `.json()` rejects -> the `.catch(() => ({}))` yields an empty object.
     fetchMock.mockResolvedValueOnce({
