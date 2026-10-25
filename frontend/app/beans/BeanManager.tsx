@@ -357,6 +357,7 @@ export function BeanManager({
   const [usage, setUsage] = useState<BeanUsageRecord[] | null>(null);
   const [usageBeanName, setUsageBeanName] = useState('');
 
+  /** Refresh active beans and surface API errors. */
   const loadBeans = useCallback(async () => {
     setLoading(true);
     const response = await client.getActive();
@@ -371,9 +372,10 @@ export function BeanManager({
   }, [client]);
 
   useEffect(() => {
-    void loadBeans();
+    loadBeans();
   }, [loadBeans]);
 
+  /** Open an empty editor for a new bean. */
   const openAdd = () => {
     setEditingId(null);
     setForm(emptyBeanForm());
@@ -383,6 +385,7 @@ export function BeanManager({
     setEditorOpen(true);
   };
 
+  /** Open the editor with the selected bean. */
   const openEdit = (bean: CoffeeBean) => {
     setEditingId(bean.id);
     setForm(beanToForm(bean));
@@ -392,14 +395,17 @@ export function BeanManager({
     setEditorOpen(true);
   };
 
+  /** Close the bean editor. */
   const closeEditor = () => {
     setEditorOpen(false);
   };
 
+  /** Update one field in the bean editor. */
   const updateField = (field: keyof BeanFormState, value: string) => {
     setForm(prev => ({ ...prev, [field]: value }));
   };
 
+  /** Validate and save the bean, then refresh inventory. */
   const submitForm = async () => {
     setFormSuccess(null);
     const validationError = validateBeanForm(form, now());
@@ -431,6 +437,7 @@ export function BeanManager({
     await loadBeans();
   };
 
+  /** Soft-delete the selected bean and refresh inventory. */
   const deleteBean = async (bean: CoffeeBean) => {
     const response = await client.delete(bean.id);
     if (response.error) {
@@ -440,6 +447,7 @@ export function BeanManager({
     await loadBeans();
   };
 
+  /** Load and display the selected bean’s usage history. */
   const viewUsage = async (bean: CoffeeBean) => {
     const response = await client.getUsage(bean.id);
     if (response.error) {
@@ -450,6 +458,7 @@ export function BeanManager({
     setUsage(response.data ?? []);
   };
 
+  /** Close the usage history dialog. */
   const closeUsage = () => {
     setUsage(null);
   };
