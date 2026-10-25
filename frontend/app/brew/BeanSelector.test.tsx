@@ -2,6 +2,9 @@ import { describe, expect, it, vi } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
+import type { BrewFormData } from '@/lib/brew/recipe';
+import { BREWING_METHODS } from '@/lib/brewing-methods';
+
 import { BeanSelector } from './BeanSelector';
 
 interface Bean {
@@ -48,10 +51,15 @@ function grinder(overrides: Partial<Grinder> = {}): Grinder {
 
 function setup(
   props: Partial<Parameters<typeof BeanSelector>[0]> = {},
-  formOverrides: Partial<{ beanId: string; grinderId: string; brewingMethod: string }> = {}
+  formOverrides: Partial<Pick<BrewFormData, 'beanId' | 'grinderId' | 'brewingMethod'>> = {}
 ) {
   const updateFormData = vi.fn();
-  const formData = { beanId: '', grinderId: '', brewingMethod: '', ...formOverrides };
+  const formData: Pick<BrewFormData, 'beanId' | 'grinderId' | 'brewingMethod'> = {
+    beanId: '',
+    grinderId: '',
+    brewingMethod: '',
+    ...formOverrides,
+  };
   render(
     <BeanSelector
       formData={formData}
@@ -123,12 +131,12 @@ describe('BeanSelector', () => {
     expect(screen.getAllByText(/Comandante C40/).length).toBeGreaterThan(0);
   });
 
-  it('selects a brewing method and shows its chip', async () => {
+  it.each(BREWING_METHODS)('selects $label using its contract value', async ({ value, label }) => {
     const user = userEvent.setup();
     const { updateFormData } = setup();
     await user.click(screen.getByLabelText('Brewing Method'));
-    await user.click(within(screen.getByRole('listbox')).getByText('French Press'));
-    expect(updateFormData).toHaveBeenCalledWith({ brewingMethod: 'FrenchPress' });
+    await user.click(within(screen.getByRole('listbox')).getByText(label));
+    expect(updateFormData).toHaveBeenCalledWith({ brewingMethod: value });
   });
 
   it('shows the method in the summary when chosen', () => {

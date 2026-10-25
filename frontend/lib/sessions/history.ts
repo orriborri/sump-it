@@ -5,26 +5,14 @@
 // React component in `app/sessions/SessionHistory.tsx` is a thin shell over
 // these helpers and the typed client.
 
-import type {
-  BrewingMethod,
-  GrinderType,
-} from '@/lib/api/types';
+import type { GrinderType } from '@/lib/api/types';
+import { BREWING_METHODS as METHOD_OPTIONS } from '@/lib/brewing-methods';
 import type { SessionListParams } from '@/lib/trpc/client';
 
 /** Default number of sessions shown per page. */
 export const PAGE_SIZE = 10;
 
-/** Brewing methods offered in the method filter, in display order. */
-export const METHOD_OPTIONS: readonly { value: BrewingMethod; label: string }[] = [
-  { value: 'V60', label: 'V60' },
-  { value: 'Chemex', label: 'Chemex' },
-  { value: 'FrenchPress', label: 'French Press' },
-  { value: 'AeroPress', label: 'AeroPress' },
-  { value: 'Espresso', label: 'Espresso' },
-  { value: 'Moka', label: 'Moka Pot' },
-  { value: 'ColdBrew', label: 'Cold Brew' },
-  { value: 'Other', label: 'Other' },
-] as const;
+export { METHOD_OPTIONS };
 
 /** Grinder types offered in the grinder-type filter, in display order. */
 export const GRINDER_TYPE_OPTIONS: readonly { value: GrinderType; label: string }[] = [
