@@ -8,6 +8,7 @@ import {
   formToSessionRequest,
   isEquipmentComplete,
   liveCoffeeRatio,
+  parseBrewingMethod,
   parseNumber,
   parseOptionalNumber,
   RATING_MAX,
@@ -177,6 +178,10 @@ describe('parseOptionalNumber', () => {
 });
 
 describe('formToSessionRequest', () => {
+  it('rejects a form without a selected brewing method', () => {
+    expect(() => formToSessionRequest(form())).toThrow('Choose a brewing method');
+  });
+
   it('maps numeric fields and collapses empty optionals to null', () => {
     const request = formToSessionRequest(
       form({
@@ -226,5 +231,16 @@ describe('formToSessionRequest', () => {
     expect(request.feedback).toBe('Balanced');
     // Whitespace-only suggestions collapse to null.
     expect(request.suggestions).toBeNull();
+  });
+});
+
+describe('parseBrewingMethod', () => {
+  it('accepts a method value from the generated contract', () => {
+    expect(parseBrewingMethod('FrenchPress')).toBe('FrenchPress');
+  });
+
+  it('keeps blank and unknown values unselected', () => {
+    expect(parseBrewingMethod('')).toBe('');
+    expect(parseBrewingMethod('French Press')).toBe('');
   });
 });

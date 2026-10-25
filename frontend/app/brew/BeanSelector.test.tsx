@@ -2,6 +2,8 @@ import { describe, expect, it, vi } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
+import type { BrewFormData } from '@/lib/brew/recipe';
+
 import { BeanSelector } from './BeanSelector';
 
 interface Bean {
@@ -48,10 +50,15 @@ function grinder(overrides: Partial<Grinder> = {}): Grinder {
 
 function setup(
   props: Partial<Parameters<typeof BeanSelector>[0]> = {},
-  formOverrides: Partial<{ beanId: string; grinderId: string; brewingMethod: string }> = {}
+  formOverrides: Partial<Pick<BrewFormData, 'beanId' | 'grinderId' | 'brewingMethod'>> = {}
 ) {
   const updateFormData = vi.fn();
-  const formData = { beanId: '', grinderId: '', brewingMethod: '', ...formOverrides };
+  const formData: Pick<BrewFormData, 'beanId' | 'grinderId' | 'brewingMethod'> = {
+    beanId: '',
+    grinderId: '',
+    brewingMethod: '',
+    ...formOverrides,
+  };
   render(
     <BeanSelector
       formData={formData}

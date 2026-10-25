@@ -10,30 +10,26 @@
 // The live coffee ratio mirrors the backend's `coffee_ratio` (water / coffee).
 
 import type { BrewingMethod, CreateBrewingSessionRequest, Grinder } from '@/lib/api/types';
+import { BREWING_METHODS } from '@/lib/brewing-methods';
 
 /** Minimum/maximum/step for the quality rating, matching the backend. */
 export const RATING_MIN = 1.0;
 export const RATING_MAX = 10.0;
 export const RATING_STEP = 0.5;
 
-/** Brewing methods offered in the equipment step, in display order. */
-export const BREWING_METHODS: readonly { value: BrewingMethod; label: string }[] = [
-  { value: 'V60', label: 'V60' },
-  { value: 'Chemex', label: 'Chemex' },
-  { value: 'FrenchPress', label: 'French Press' },
-  { value: 'AeroPress', label: 'AeroPress' },
-  { value: 'Espresso', label: 'Espresso' },
-  { value: 'Moka', label: 'Moka Pot' },
-  { value: 'ColdBrew', label: 'Cold Brew' },
-  { value: 'Other', label: 'Other' },
-] as const;
+export { BREWING_METHODS };
+
+/** Resolve a raw select value against the supported methods; unknown values stay unselected. */
+export function parseBrewingMethod(value: string): BrewingMethod | '' {
+  return BREWING_METHODS.find((method) => method.value === value)?.value ?? '';
+}
 
 /** The mutable brew form backing the whole stepper. */
 export interface BrewFormData {
   // Step 1: equipment selection.
   beanId: string;
   grinderId: string;
-  brewingMethod: string;
+  brewingMethod: BrewingMethod | '';
   // Step 2: brewing parameters.
   coffeeGrams: number;
   waterGrams: number;
@@ -168,10 +164,13 @@ export function toFriendlyError(error: string): string {
 /**
  * Build the typed `CreateBrewingSessionRequest` body from the form. Optional
  * numeric fields collapse to `null`, and empty/whitespace text fields collapse
- * to `null`, matching the Rust `Option<T>` serialization. The brewing method
- * is narrowed from the form's plain string to the generated union.
+ * to `null`, matching the Rust `Option<T>` serialization. An unselected brewing
+ * method is rejected before a request can be built.
  */
 export function formToSessionRequest(form: BrewFormData): CreateBrewingSessionRequest {
+  if (form.brewingMethod === '') {
+    throw new Error('Choose a brewing method');
+  }
   const trim = (value: string | undefined): string | null => {
     const trimmed = (value ?? '').trim();
     return trimmed === '' ? null : trimmed;
@@ -179,7 +178,7 @@ export function formToSessionRequest(form: BrewFormData): CreateBrewingSessionRe
   return {
     beanId: form.beanId,
     grinderId: form.grinderId,
-    brewingMethod: form.brewingMethod as BrewingMethod,
+    brewingMethod: form.brewingMethod,
     grindSetting: form.grindSetting,
     waterTempCelsius: form.waterTempCelsius ?? null,
     brewTimeSeconds: form.brewTimeSeconds ?? null,
