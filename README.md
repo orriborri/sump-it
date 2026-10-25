@@ -20,7 +20,7 @@ coffee-brewer-consolidated/
 │   │   ├── services/    # Business logic layer
 │   │   ├── database/    # Database operations
 │   │   └── validation/  # Comprehensive validation logic
-│   ├── prisma/          # Database schema and migrations
+│   ├── migrations/      # SQLx migrations (database schema source of truth)
 │   └── Cargo.toml
 │
 ├── frontend/            # Next.js 15 frontend (typed fetch client)
@@ -69,14 +69,14 @@ coffee-brewer-consolidated/
 ### Backend
 - **Rust** with Axum web framework
 - **ts-rs** to generate TypeScript types from the Rust models for a type-safe API contract  
-- **Prisma** ORM with PostgreSQL
+- **SQLx** with PostgreSQL; versioned SQL migrations in `backend/migrations/` are the sole database schema source of truth
 - **Docker** for containerization
 - **OpenTelemetry** for observability
 
 ### Frontend
 - **Next.js 15** with App Router
 - **TypeScript** for type safety
-- **Thin typed fetch client** (`lib/trpc/client.ts`) for type-safe API calls using the ts-rs-generated types
+- **Thin typed REST client** (`lib/trpc/client.ts`) wrapping `fetch` with ts-rs-generated types. The `trpc/` directory name is historical; there is no tRPC server or router
 - **Material-UI** with custom coffee theme
 - **Zod** for form validation
 
@@ -100,7 +100,7 @@ coffee-brewer-consolidated/
    - Complete parameter tracking
    - Ratings (1.0-10.0 in 0.5 increments)
    - Tasting notes and feedback
-   - Coffee/water ratio validation (15.0-17.0)
+   - Per-method recipe validation (water:coffee ratio, dose, water weight, temperature, and brew time) via `rules_for` in `backend/src/recipe.rs`
 
 ## 🚦 Getting Started
 
@@ -125,24 +125,19 @@ coffee-brewer-consolidated/
    docker-compose up -d
    ```
 
-4. Run database migrations:
-   ```bash
-   cd backend && cargo run --bin migrate
-   ```
-
-5. Start backend:
+4. Start backend (SQLx migrations run automatically on startup):
    ```bash
    cd backend && cargo run
    ```
 
-6. Start frontend:
+5. Start frontend:
    ```bash
    cd frontend && npm run dev
    ```
 
 ## 📊 Database Schema
 
-The application uses PostgreSQL with:
+The database schema is defined solely by the SQLx migrations in `backend/migrations/`, applied by `backend/src/database.rs`. The application uses PostgreSQL with:
 - Custom enum types for brewing methods and grinder types
 - CHECK constraints for validation rules
 - Foreign key relationships for data integrity
