@@ -13,7 +13,6 @@ import type {
   CreateBrewingSessionRequest,
   CreateCoffeeBeanRequest,
   CreateGrinderRequest,
-  ErrorResponse,
   Grinder,
   PaginatedResponse,
 } from '../api/types';
@@ -85,12 +84,23 @@ export async function apiFetch<T>(
     });
 
     if (!response.ok) {
-      const errorData = (await response
-        .json()
-        .catch(() => ({}))) as Partial<ErrorResponse>;
+      // Error envelopes share one small runtime contract across all endpoints.
+      // Keep malformed external JSON out of the UI's error handling.
+      const body: unknown = await response.json().catch(() => null);
+      const errorData =
+        body !== null && typeof body === 'object' && !Array.isArray(body)
+          ? body as Record<string, unknown>
+          : {};
       return {
-        error: errorData.error ?? `HTTP ${response.status}: ${response.statusText}`,
-        details: errorData.details ?? undefined,
+        error:
+          typeof errorData.error === 'string' && errorData.error.trim()
+            ? errorData.error
+            : `HTTP ${response.status}: ${response.statusText}`,
+        details:
+          Array.isArray(errorData.details) &&
+          errorData.details.every((detail: unknown) => typeof detail === 'string')
+            ? errorData.details
+            : undefined,
       };
     }
 
