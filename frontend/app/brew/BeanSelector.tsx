@@ -332,14 +332,17 @@ export function BeanSelector({
   grinders,
   isLoading,
 }: BeanSelectorProps) {
+  /** Store the selected coffee bean in the brew form. */
   const handleBeanChange = (event: SelectChangeEvent) => {
     updateFormData({ beanId: event.target.value });
   };
 
+  /** Store the selected grinder in the brew form. */
   const handleGrinderChange = (event: SelectChangeEvent) => {
     updateFormData({ grinderId: event.target.value });
   };
 
+  /** Resolve the select value to a supported method before updating the form. */
   const handleMethodChange = (event: SelectChangeEvent) => {
     updateFormData({ brewingMethod: parseBrewingMethod(event.target.value) });
   };

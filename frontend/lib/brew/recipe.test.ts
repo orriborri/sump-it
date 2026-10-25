@@ -95,7 +95,7 @@ describe('clampGrindSetting', () => {
   const grinder = { minSetting: 5, maxSetting: 30 };
 
   it('returns the value unchanged when no grinder is selected', () => {
-    expect(clampGrindSetting(999, undefined)).toBe(999);
+    expect(clampGrindSetting(999)).toBe(999);
   });
 
   it('clamps below the minimum up to the minimum', () => {
@@ -115,7 +115,7 @@ describe('clampGrindSetting', () => {
 
 describe('validateRating', () => {
   it('accepts an absent rating', () => {
-    expect(validateRating(undefined)).toBeNull();
+    expect(validateRating()).toBeNull();
   });
 
   it('accepts in-band 0.5-step ratings', () => {
@@ -235,8 +235,10 @@ describe('formToSessionRequest', () => {
 });
 
 describe('parseBrewingMethod', () => {
-  it('accepts a method value from the generated contract', () => {
-    expect(parseBrewingMethod('FrenchPress')).toBe('FrenchPress');
+  it.each(BREWING_METHODS)('preserves $value through parsing and request creation', ({ value }) => {
+    const brewingMethod = parseBrewingMethod(value);
+    expect(brewingMethod).toBe(value);
+    expect(formToSessionRequest(form({ brewingMethod })).brewingMethod).toBe(value);
   });
 
   it('keeps blank and unknown values unselected', () => {

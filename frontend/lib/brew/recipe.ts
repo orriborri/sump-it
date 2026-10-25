@@ -90,7 +90,7 @@ export function liveCoffeeRatio(coffeeGrams: number, waterGrams: number): string
  * keep the grind input bounded to the grinder's min/max. When no grinder is
  * selected the value is returned unchanged.
  */
-export function clampGrindSetting(setting: number, grinder: Pick<Grinder, 'minSetting' | 'maxSetting'> | undefined): number {
+export function clampGrindSetting(setting: number, grinder?: Pick<Grinder, 'minSetting' | 'maxSetting'>): number {
   if (!grinder) {
     return setting;
   }
@@ -107,7 +107,7 @@ export function clampGrindSetting(setting: number, grinder: Pick<Grinder, 'minSe
  * Validate the optional rating. Returns an error message, or `null` when the
  * rating is absent or valid (1.0 to 10.0 in 0.5 steps).
  */
-export function validateRating(rating: number | undefined): string | null {
+export function validateRating(rating?: number): string | null {
   if (rating === undefined) {
     return null;
   }
@@ -171,6 +171,7 @@ export function formToSessionRequest(form: BrewFormData): CreateBrewingSessionRe
   if (form.brewingMethod === '') {
     throw new Error('Choose a brewing method');
   }
+  /** Trim optional notes and represent blank text as an absent API value. */
   const trim = (value: string | undefined): string | null => {
     const trimmed = (value ?? '').trim();
     return trimmed === '' ? null : trimmed;
