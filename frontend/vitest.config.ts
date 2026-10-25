@@ -30,9 +30,7 @@ export default defineConfig({
         functions: 100,
         statements: 100,
       },
-      // Measure every file matched by `include`, even ones no test touched, so
-      // dead/untested code fails the gate instead of silently passing.
-      all: true,
+      // Vitest 4 includes covered and uncovered files matched by `include`.
       // `include` is the allow-list of application code under the coverage
       // gate. It grows as later tickets add tested modules (handlers, hooks,
       // components). Keeping it explicit means a new file is never silently
