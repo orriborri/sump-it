@@ -409,10 +409,11 @@ export function BeanManager({
     }
 
     const request = formToRequest(form);
-    const response =
+    const response = await (
       editingId === null
-        ? await client.create(request)
-        : await client.update(editingId, request);
+        ? client.create(request)
+        : client.update(editingId, request)
+    );
 
     if (response.error) {
       setFormError(response.error);

@@ -250,15 +250,11 @@ export function BrewWorkflow({ client = coffeeBrewerClient }: BrewWorkflowProps)
   const canProceed = currentStep === 0 ? equipmentReady : currentStep === 1 ? parametersReady : true;
 
   const handleNext = () => {
-    if (currentStep < 2) {
-      setCurrentStep((step) => step + 1);
-    }
+    setCurrentStep((step) => step + 1);
   };
 
   const handleBack = () => {
-    if (currentStep > 0) {
-      setCurrentStep((step) => step - 1);
-    }
+    setCurrentStep((step) => step - 1);
   };
 
   const resetForm = () => {
