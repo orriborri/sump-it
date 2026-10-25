@@ -12,7 +12,7 @@ import {
   MenuItem,
   SelectChangeEvent,
   CircularProgress,
-  Grid,
+  Grid2 as Grid,
   Chip,
   Alert,
 } from '@mui/material';
@@ -177,7 +177,7 @@ const BeanSelectColumn: React.FC<BeanSelectColumnProps> = ({
   selectedBean,
   onChange,
 }) => (
-  <Grid item xs={12} md={4}>
+  <Grid size={{ xs: 12, md: 4 }}>
     <FormControl fullWidth>
       <InputLabel id="bean-select-label">Coffee Bean</InputLabel>
       <BeanDropdown beans={beans} beanId={beanId} onChange={onChange} />
@@ -227,7 +227,7 @@ const GrinderSelectColumn: React.FC<GrinderSelectColumnProps> = ({
   selectedGrinder,
   onChange,
 }) => (
-  <Grid item xs={12} md={4}>
+  <Grid size={{ xs: 12, md: 4 }}>
     <FormControl fullWidth>
       <InputLabel id="grinder-select-label">Grinder</InputLabel>
       <GrinderDropdown grinders={grinders} grinderId={grinderId} onChange={onChange} />
@@ -266,7 +266,7 @@ interface MethodSelectColumnProps {
 
 /** The brewing-method selection column: the dropdown plus a method chip. */
 const MethodSelectColumn: React.FC<MethodSelectColumnProps> = ({ brewingMethod, onChange }) => (
-  <Grid item xs={12} md={4}>
+  <Grid size={{ xs: 12, md: 4 }}>
     <FormControl fullWidth>
       <InputLabel id="method-select-label">Brewing Method</InputLabel>
       <MethodDropdown brewingMethod={brewingMethod} onChange={onChange} />
@@ -306,21 +306,21 @@ const SelectionSummary: React.FC<SelectionSummaryProps> = ({
     </Typography>
     <Grid container spacing={1}>
       {selectedBean && (
-        <Grid item xs={12} sm={4}>
+        <Grid size={{ xs: 12, sm: 4 }}>
           <Typography variant="body2">
             <strong>Bean:</strong> {selectedBean.name} ({selectedBean.origin})
           </Typography>
         </Grid>
       )}
       {selectedGrinder && (
-        <Grid item xs={12} sm={4}>
+        <Grid size={{ xs: 12, sm: 4 }}>
           <Typography variant="body2">
             <strong>Grinder:</strong> {selectedGrinder.brand} {selectedGrinder.model}
           </Typography>
         </Grid>
       )}
       {brewingMethod && (
-        <Grid item xs={12} sm={4}>
+        <Grid size={{ xs: 12, sm: 4 }}>
           <Typography variant="body2">
             <strong>Method:</strong> {brewingMethod}
           </Typography>
