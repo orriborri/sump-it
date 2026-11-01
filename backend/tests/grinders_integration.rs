@@ -25,8 +25,9 @@
 //! `RETURNING`/`FromRow` mappings and the hard-delete semantics that ship are
 //! tested. A column, filter or ordering drift in a real query now fails this
 //! test when a DB is available. The schema `CHECK` constraints
-//! (`max_setting > min_setting`, `min_setting >= 0`) are also verified through
-//! the service's create path.
+//! (`max_setting > min_setting`, `min_setting >= 0`) are verified with raw
+//! INSERTs, because the service rejects those inputs before any SQL runs (a
+//! separate test pins that the service returns `WriteError::Rule` for them).
 
 use sqlx::postgres::PgPoolOptions;
 use sqlx::PgPool;
@@ -39,6 +40,7 @@ use coffee_brewer_backend::models::{CreateGrinderRequest, GrinderType};
 // this test calls it directly rather than re-declaring the SQL. It exercises
 // the SAME compiled service the binary and the coverage gate measure.
 use coffee_brewer_backend::services::grinders::GrinderService;
+use coffee_brewer_backend::services::WriteError;
 
 /// Connects to `DATABASE_URL` (falling back to `TEST_DATABASE_URL`) and ensures
 /// the schema is present. Returns `None` when neither variable is set so the
@@ -289,34 +291,74 @@ async fn delete_grinder_removes_the_row() {
     cleanup(&pool, &[created.id]).await;
 }
 
+/// Inserts a grinder row with the given setting range via raw SQL, bypassing
+/// `GrinderService` (whose `validate_write` would reject an invalid range before
+/// any query runs), and returns the Postgres SQLSTATE of the failure, if any.
+/// The row is deleted afterwards so a regression that lets it through does not
+/// leak into other tests.
+async fn raw_insert_sqlstate(pool: &PgPool, min: i32, max: i32) -> Option<String> {
+    let id = Uuid::new_v4();
+    let result = sqlx::query(
+        r#"INSERT INTO grinders (id, brand, model, grinder_type, min_setting, max_setting)
+           VALUES ($1, 'Raw', 'C40', 'BurrConical', $2, $3)"#,
+    )
+    .bind(id)
+    .bind(min)
+    .bind(max)
+    .execute(pool)
+    .await;
+    cleanup(pool, &[id]).await;
+    result.err().and_then(|e| {
+        e.as_database_error()
+            .and_then(|d| d.code())
+            .map(|c| c.into_owned())
+    })
+}
+
 /// The schema `CHECK (max_setting > min_setting)` must reject an invalid range
-/// even when it reaches the database through the shipping `create_grinder`
-/// INSERT. This mirrors the API-level validation surfaced to the user.
+/// at the database itself. The service now rejects this input before the
+/// INSERT (`WriteError::Rule`), so the CHECK is exercised with a raw INSERT;
+/// `23514` is Postgres's `check_violation` SQLSTATE.
 #[tokio::test]
 #[ignore = "requires a live Postgres (DATABASE_URL); run with --ignored"]
 async fn schema_rejects_max_not_greater_than_min() {
     let Some(pool) = pool().await else { return };
-    let service = GrinderService::new(&pool);
 
-    let result = service
-        .create_grinder(grinder_request("Bad Range", 40, 40))
-        .await;
-    assert!(
-        result.is_err(),
-        "schema must reject max_setting <= min_setting"
+    assert_eq!(
+        raw_insert_sqlstate(&pool, 40, 40).await.as_deref(),
+        Some("23514")
     );
+    assert_eq!(raw_insert_sqlstate(&pool, 0, 40).await, None);
 }
 
-/// The schema `CHECK (min_setting >= 0)` must reject a negative minimum through
-/// the shipping `create_grinder` INSERT.
+/// The schema `CHECK (min_setting >= 0)` must reject a negative minimum at the
+/// database itself, via a raw INSERT that bypasses service validation.
 #[tokio::test]
 #[ignore = "requires a live Postgres (DATABASE_URL); run with --ignored"]
 async fn schema_rejects_negative_min_setting() {
     let Some(pool) = pool().await else { return };
+
+    assert_eq!(
+        raw_insert_sqlstate(&pool, -1, 40).await.as_deref(),
+        Some("23514")
+    );
+}
+
+/// The service's own validation sits in front of those CHECKs: an invalid
+/// range never reaches the INSERT and surfaces as `WriteError::Rule`, not as
+/// a database error.
+#[tokio::test]
+#[ignore = "requires a live Postgres (DATABASE_URL); run with --ignored"]
+async fn service_rejects_invalid_range_before_the_database() {
+    let Some(pool) = pool().await else { return };
     let service = GrinderService::new(&pool);
 
-    let result = service
+    let equal = service
+        .create_grinder(grinder_request("Bad Range", 40, 40))
+        .await;
+    assert!(matches!(equal, Err(WriteError::Rule(_))));
+    let negative = service
         .create_grinder(grinder_request("Negative", -1, 40))
         .await;
-    assert!(result.is_err(), "schema must reject negative min_setting");
+    assert!(matches!(negative, Err(WriteError::Rule(_))));
 }

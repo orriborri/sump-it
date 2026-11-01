@@ -184,17 +184,20 @@ than excluding it.
 `cargo-llvm-cov` requires a nightly toolchain with `llvm-tools-preview`, plus
 `cargo install cargo-llvm-cov`. The backend gate compiles the full dependency
 tree (including `sqlx`) and measures the whole application (library core plus
-the DB-backed handlers/services via the integration tests), so the nightly has
-to sit inside a compatibility window:
+the DB-backed handlers/services via the integration tests), so the nightly must
+be new enough for the dependency tree:
 
-- A very recent nightly fails to compile `sqlx-postgres 0.7.4` (a Rust
-  type-inference change around the `!` never type, rust-lang#148922).
 - A too-old nightly (before ~2025-06) cannot build newer transitive
   dependencies that need `edition2024` (`icu_properties_data`) or the
   stabilized AVX-512 intrinsics (`zerocopy`'s `simd` feature).
 
-The Makefile therefore pins a dated nightly that satisfies both ends. Install
-it and run the gate:
+There used to be an upper bound too: recent nightlies failed to compile
+`sqlx-postgres 0.7.4` (a Rust type-inference change around the `!` never type,
+rust-lang#148922). That went away with the upgrade to `sqlx` 0.8 (#195), which
+builds on current nightlies.
+
+The Makefile still pins a known-good dated nightly so local and CI coverage
+runs are reproducible. Install it and run the gate:
 
 ```sh
 rustup toolchain install nightly-2025-10-01 --component llvm-tools-preview

@@ -2,9 +2,10 @@
 //!
 //! Follows the same runtime-sqlx pattern as `services/beans.rs` (connection via
 //! `PgPool`, `sqlx::query_as`, `anyhow` results) so the crate builds without a
-//! live database. The pure grinder business logic (validation, setting range
-//! checks, full name) lives on `crate::models::Grinder` in the library crate
-//! and is unit-tested there; this service only owns the SQL.
+//! live database. The pure grinder rules (field lengths via `#[validate]`, the
+//! setting range via `crate::validation::validate_grinder_setting_range`) are
+//! defined and unit-tested in the library; `create_grinder`/`update_grinder`
+//! enforce them BEFORE any SQL so the service owns the write invariants.
 
 use chrono::Utc;
 use sqlx::PgPool;
@@ -12,6 +13,14 @@ use uuid::Uuid;
 use anyhow::{Result, Context};
 
 use crate::models::{Grinder, CreateGrinderRequest};
+use crate::services::{validate_write, WriteError};
+use crate::validation::{validate_grinder_setting_range, ValidationErrorType};
+
+/// The grinder write rule: the setting range must be valid
+/// (`min_setting >= 0`, `max_setting > min_setting`).
+fn grinder_rule(request: &CreateGrinderRequest) -> std::result::Result<(), ValidationErrorType> {
+    validate_grinder_setting_range(request.min_setting, request.max_setting)
+}
 
 /// Service for managing grinders.
 pub struct GrinderService<'a> {
@@ -65,7 +74,14 @@ impl<'a> GrinderService<'a> {
     }
 
     /// Create a new grinder.
-    pub async fn create_grinder(&self, request: CreateGrinderRequest) -> Result<Grinder> {
+    ///
+    /// Validates the request (field lengths, then the setting range) BEFORE
+    /// any database access.
+    pub async fn create_grinder(
+        &self,
+        request: CreateGrinderRequest,
+    ) -> std::result::Result<Grinder, WriteError> {
+        validate_write(&request, grinder_rule)?;
         let now = Utc::now();
 
         let grinder = sqlx::query_as::<_, Grinder>(
@@ -93,7 +109,8 @@ impl<'a> GrinderService<'a> {
         .bind(now)
         .fetch_one(self.pool)
         .await
-        .context("Failed to create grinder")?;
+        .context("Failed to create grinder")
+        .map_err(WriteError::Database)?;
 
         Ok(grinder)
     }
@@ -120,11 +137,15 @@ impl<'a> GrinderService<'a> {
 
 
     /// Update an existing grinder.
+    ///
+    /// Applies the same validation as [`Self::create_grinder`] BEFORE any
+    /// database access.
     pub async fn update_grinder(
         &self,
         id: Uuid,
         request: CreateGrinderRequest,
-    ) -> Result<Option<Grinder>> {
+    ) -> std::result::Result<Option<Grinder>, WriteError> {
+        validate_write(&request, grinder_rule)?;
         let now = Utc::now();
 
         let grinder = sqlx::query_as::<_, Grinder>(
@@ -157,7 +178,8 @@ impl<'a> GrinderService<'a> {
         .bind(now)
         .fetch_optional(self.pool)
         .await
-        .context("Failed to update grinder")?;
+        .context("Failed to update grinder")
+        .map_err(WriteError::Database)?;
 
         Ok(grinder)
     }
@@ -171,5 +193,93 @@ impl<'a> GrinderService<'a> {
             .context("Failed to delete grinder")?;
 
         Ok(result.rows_affected() > 0)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    //! Service-seam tests: invalid grinder data is rejected by
+    //! `GrinderService` itself, without going through the HTTP router and
+    //! BEFORE any database round trip (the pool points at an unreachable
+    //! address and is never connected).
+    use super::*;
+    use crate::models::GrinderType;
+    use crate::services::WriteError;
+    use sqlx::postgres::PgPoolOptions;
+
+    fn unreachable_pool() -> PgPool {
+        PgPoolOptions::new()
+            .connect_lazy("postgres://nobody@127.0.0.1:1/unreachable")
+            .expect("lazy pool")
+    }
+
+    fn valid_request() -> CreateGrinderRequest {
+        CreateGrinderRequest {
+            brand: "Comandante".to_string(),
+            model: "C40".to_string(),
+            grinder_type: GrinderType::BurrConical,
+            min_setting: 0,
+            max_setting: 40,
+            scale_type: None,
+            description: None,
+        }
+    }
+
+    #[tokio::test]
+    async fn create_grinder_rejects_max_not_above_min_as_rule_violation() {
+        let pool = unreachable_pool();
+        let request = CreateGrinderRequest { min_setting: 40, max_setting: 40, ..valid_request() };
+
+        let err = GrinderService::new(&pool).create_grinder(request).await.unwrap_err();
+
+        assert!(
+            matches!(
+                &err,
+                WriteError::Rule(ValidationErrorType::Validation(message))
+                    if message == "Maximum setting (40) must be greater than minimum setting (40)"
+            )
+        );
+    }
+
+    #[tokio::test]
+    async fn create_grinder_rejects_empty_brand_as_invalid_fields() {
+        let pool = unreachable_pool();
+        let request = CreateGrinderRequest { brand: String::new(), ..valid_request() };
+
+        let err = GrinderService::new(&pool).create_grinder(request).await.unwrap_err();
+
+        assert!(matches!(err, WriteError::InvalidFields(ref details) if details.contains("brand")));
+    }
+
+    #[tokio::test]
+    async fn update_grinder_rejects_negative_min_setting_as_rule_violation() {
+        let pool = unreachable_pool();
+        let request = CreateGrinderRequest { min_setting: -1, ..valid_request() };
+
+        let err = GrinderService::new(&pool)
+            .update_grinder(Uuid::new_v4(), request)
+            .await
+            .unwrap_err();
+
+        assert!(
+            matches!(
+                &err,
+                WriteError::Rule(ValidationErrorType::Validation(message))
+                    if message == "Minimum setting must be non-negative"
+            )
+        );
+    }
+
+    #[tokio::test]
+    async fn update_grinder_rejects_overlong_model_as_invalid_fields() {
+        let pool = unreachable_pool();
+        let request = CreateGrinderRequest { model: "x".repeat(101), ..valid_request() };
+
+        let err = GrinderService::new(&pool)
+            .update_grinder(Uuid::new_v4(), request)
+            .await
+            .unwrap_err();
+
+        assert!(matches!(err, WriteError::InvalidFields(ref details) if details.contains("model")));
     }
 }

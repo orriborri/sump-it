@@ -1,5 +1,7 @@
 //! Bean service combining features from BeanIt and rustyCoffy
-//! Includes inventory management, validation, and comprehensive business logic
+//! Includes inventory management, validation, and comprehensive business logic.
+//! `create_bean`/`update_bean` own the bean write invariants (see
+//! [`crate::services::WriteError`]).
 
 use chrono::Utc;
 use sqlx::PgPool;
@@ -7,6 +9,7 @@ use uuid::Uuid;
 use anyhow::{Result, Context};
 
 use crate::models::{BeanUsageRecord, CoffeeBean, CreateCoffeeBeanRequest};
+use crate::services::{validate_write, WriteError};
 
 /// Service for managing coffee beans
 pub struct BeanService<'a> {
@@ -60,8 +63,16 @@ impl<'a> BeanService<'a> {
         Ok((beans, total))
     }
     
-    /// Create a new coffee bean
-    pub async fn create_bean(&self, request: CreateCoffeeBeanRequest) -> Result<CoffeeBean> {
+    /// Create a new coffee bean.
+    ///
+    /// Validates the request (field lengths, then the bean business rules)
+    /// BEFORE any database access, so invalid data cannot be persisted by any
+    /// caller.
+    pub async fn create_bean(
+        &self,
+        request: CreateCoffeeBeanRequest,
+    ) -> std::result::Result<CoffeeBean, WriteError> {
+        validate_write(&request, CreateCoffeeBeanRequest::validate_comprehensive)?;
         let now = Utc::now();
         
         let bean = sqlx::query_as::<_, CoffeeBean>(
@@ -91,7 +102,8 @@ impl<'a> BeanService<'a> {
         .bind(now)
         .fetch_one(self.pool)
         .await
-        .context("Failed to create bean")?;
+        .context("Failed to create bean")
+        .map_err(WriteError::Database)?;
         
         Ok(bean)
     }
@@ -116,8 +128,16 @@ impl<'a> BeanService<'a> {
         Ok(bean)
     }
     
-    /// Update a coffee bean
-    pub async fn update_bean(&self, id: Uuid, request: CreateCoffeeBeanRequest) -> Result<Option<CoffeeBean>> {
+    /// Update a coffee bean.
+    ///
+    /// Applies the same validation as [`Self::create_bean`] BEFORE any
+    /// database access.
+    pub async fn update_bean(
+        &self,
+        id: Uuid,
+        request: CreateCoffeeBeanRequest,
+    ) -> std::result::Result<Option<CoffeeBean>, WriteError> {
+        validate_write(&request, CreateCoffeeBeanRequest::validate_comprehensive)?;
         let now = Utc::now();
         
         let bean = sqlx::query_as::<_, CoffeeBean>(
@@ -150,7 +170,8 @@ impl<'a> BeanService<'a> {
         .bind(now)
         .fetch_optional(self.pool)
         .await
-        .context("Failed to update bean")?;
+        .context("Failed to update bean")
+        .map_err(WriteError::Database)?;
         
         Ok(bean)
     }
@@ -218,5 +239,95 @@ impl<'a> BeanService<'a> {
         .context("Failed to fetch bean usage history")?;
         
         Ok(history)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    //! Service-seam tests: invalid bean data is rejected by `BeanService`
+    //! itself, without going through the HTTP router and BEFORE any database
+    //! round trip (the pool points at an unreachable address and is never
+    //! connected).
+    use super::*;
+    use crate::services::WriteError;
+    use crate::validation::ValidationErrorType;
+    use chrono::{Duration, NaiveDate};
+    use sqlx::postgres::PgPoolOptions;
+
+    fn unreachable_pool() -> PgPool {
+        PgPoolOptions::new()
+            .connect_lazy("postgres://nobody@127.0.0.1:1/unreachable")
+            .expect("lazy pool")
+    }
+
+    fn valid_request() -> CreateCoffeeBeanRequest {
+        CreateCoffeeBeanRequest {
+            name: "Yirgacheffe".to_string(),
+            origin: "Ethiopia".to_string(),
+            roast_date: NaiveDate::from_ymd_opt(2024, 1, 1).expect("date"),
+            purchase_date: NaiveDate::from_ymd_opt(2024, 1, 3).expect("date"),
+            remaining_grams: Some(250.0),
+            variety: None,
+            processing_method: None,
+        }
+    }
+
+    #[tokio::test]
+    async fn create_bean_rejects_empty_name_as_invalid_fields() {
+        let pool = unreachable_pool();
+        let request = CreateCoffeeBeanRequest { name: String::new(), ..valid_request() };
+
+        let err = BeanService::new(&pool).create_bean(request).await.unwrap_err();
+
+        assert!(matches!(err, WriteError::InvalidFields(ref details) if details.contains("name")));
+    }
+
+    #[tokio::test]
+    async fn create_bean_rejects_future_roast_date_as_rule_violation() {
+        let pool = unreachable_pool();
+        let request = CreateCoffeeBeanRequest {
+            roast_date: Utc::now().date_naive() + Duration::days(5),
+            ..valid_request()
+        };
+
+        let err = BeanService::new(&pool).create_bean(request).await.unwrap_err();
+
+        assert!(matches!(err, WriteError::Rule(ValidationErrorType::RoastDateInFuture)));
+    }
+
+    #[tokio::test]
+    async fn create_bean_rejects_whitespace_name_as_rule_violation() {
+        let pool = unreachable_pool();
+        let request = CreateCoffeeBeanRequest { name: "   ".to_string(), ..valid_request() };
+
+        let err = BeanService::new(&pool).create_bean(request).await.unwrap_err();
+
+        assert!(matches!(err, WriteError::Rule(ValidationErrorType::BeanNameEmpty)));
+    }
+
+    #[tokio::test]
+    async fn update_bean_rejects_negative_remaining_grams_as_rule_violation() {
+        let pool = unreachable_pool();
+        let request = CreateCoffeeBeanRequest { remaining_grams: Some(-1.0), ..valid_request() };
+
+        let err = BeanService::new(&pool)
+            .update_bean(Uuid::new_v4(), request)
+            .await
+            .unwrap_err();
+
+        assert!(matches!(err, WriteError::Rule(ValidationErrorType::NegativeRemainingGrams { .. })));
+    }
+
+    #[tokio::test]
+    async fn update_bean_rejects_overlong_origin_as_invalid_fields() {
+        let pool = unreachable_pool();
+        let request = CreateCoffeeBeanRequest { origin: "x".repeat(101), ..valid_request() };
+
+        let err = BeanService::new(&pool)
+            .update_bean(Uuid::new_v4(), request)
+            .await
+            .unwrap_err();
+
+        assert!(matches!(err, WriteError::InvalidFields(ref details) if details.contains("origin")));
     }
 }
