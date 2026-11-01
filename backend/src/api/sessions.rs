@@ -85,9 +85,7 @@ fn save_error_response(err: SaveError) -> axum::response::Response {
         } => (
             StatusCode::CONFLICT,
             Json(ErrorResponse::with_details(
-                format!(
-                    "Insufficient bean quantity: {available}g available, {required}g required"
-                ),
+                format!("Insufficient bean quantity: {available}g available, {required}g required"),
                 vec![
                     format!("available: {available}g"),
                     format!("required: {required}g"),
@@ -104,9 +102,7 @@ fn save_error_response(err: SaveError) -> axum::response::Response {
             .into_response(),
         SaveError::SessionNotFound => (
             StatusCode::NOT_FOUND,
-            Json(ErrorResponse::new(
-                "Brewing session not found".to_string(),
-            )),
+            Json(ErrorResponse::new("Brewing session not found".to_string())),
         )
             .into_response(),
         SaveError::GrinderNotFound => (

@@ -3,10 +3,10 @@
 //! `create_bean`/`update_bean` own the bean write invariants (see
 //! [`crate::services::WriteError`]).
 
+use anyhow::{Context, Result};
 use chrono::Utc;
 use sqlx::PgPool;
 use uuid::Uuid;
-use anyhow::{Result, Context};
 
 use crate::models::{BeanUsageRecord, CoffeeBean, CreateCoffeeBeanRequest};
 use crate::services::{validate_write, WriteError};
@@ -20,9 +20,13 @@ impl<'a> BeanService<'a> {
     pub fn new(pool: &'a PgPool) -> Self {
         Self { pool }
     }
-    
+
     /// List all coffee beans with pagination
-    pub async fn list_beans(&self, page: Option<i32>, limit: Option<i32>) -> Result<(Vec<CoffeeBean>, i64)> {
+    pub async fn list_beans(
+        &self,
+        page: Option<i32>,
+        limit: Option<i32>,
+    ) -> Result<(Vec<CoffeeBean>, i64)> {
         // Clamp through the single source of truth (`crate::pagination`) rather
         // than hand-written literals, so the policy (DEFAULT_LIMIT=50,
         // MAX_LIMIT=100) can never silently drift from the module the handler
@@ -32,15 +36,14 @@ impl<'a> BeanService<'a> {
         let pagination = crate::pagination::Pagination::from_page(page, limit);
         let limit = pagination.limit;
         let offset = pagination.offset;
-        
+
         // Get total count
-        let total: i64 = sqlx::query_scalar(
-            r#"SELECT COUNT(*) FROM coffee_beans WHERE is_active = true"#
-        )
-        .fetch_one(self.pool)
-        .await
-        .context("Failed to count beans")?;
-        
+        let total: i64 =
+            sqlx::query_scalar(r#"SELECT COUNT(*) FROM coffee_beans WHERE is_active = true"#)
+                .fetch_one(self.pool)
+                .await
+                .context("Failed to count beans")?;
+
         // Get paginated results
         let beans = sqlx::query_as::<_, CoffeeBean>(
             r#"
@@ -52,17 +55,17 @@ impl<'a> BeanService<'a> {
             WHERE is_active = true
             ORDER BY roast_date DESC, name ASC
             LIMIT $1 OFFSET $2
-            "#
+            "#,
         )
         .bind(limit as i64)
         .bind(offset as i64)
         .fetch_all(self.pool)
         .await
         .context("Failed to fetch beans")?;
-        
+
         Ok((beans, total))
     }
-    
+
     /// Create a new coffee bean.
     ///
     /// Validates the request (field lengths, then the bean business rules)
@@ -74,7 +77,7 @@ impl<'a> BeanService<'a> {
     ) -> std::result::Result<CoffeeBean, WriteError> {
         validate_write(&request, CreateCoffeeBeanRequest::validate_comprehensive)?;
         let now = Utc::now();
-        
+
         let bean = sqlx::query_as::<_, CoffeeBean>(
             r#"
             INSERT INTO coffee_beans (
@@ -87,7 +90,7 @@ impl<'a> BeanService<'a> {
                 id, name, origin, roast_date, purchase_date, 
                 remaining_grams, variety, processing_method, is_active,
                 created_at, updated_at
-            "#
+            "#,
         )
         .bind(Uuid::new_v4())
         .bind(request.name)
@@ -104,10 +107,10 @@ impl<'a> BeanService<'a> {
         .await
         .context("Failed to create bean")
         .map_err(WriteError::Database)?;
-        
+
         Ok(bean)
     }
-    
+
     /// Get a specific coffee bean by ID
     pub async fn get_bean(&self, id: Uuid) -> Result<Option<CoffeeBean>> {
         let bean = sqlx::query_as::<_, CoffeeBean>(
@@ -118,16 +121,16 @@ impl<'a> BeanService<'a> {
                 created_at, updated_at
             FROM coffee_beans
             WHERE id = $1 AND is_active = true
-            "#
+            "#,
         )
         .bind(id)
         .fetch_optional(self.pool)
         .await
         .context("Failed to fetch bean")?;
-        
+
         Ok(bean)
     }
-    
+
     /// Update a coffee bean.
     ///
     /// Applies the same validation as [`Self::create_bean`] BEFORE any
@@ -139,7 +142,7 @@ impl<'a> BeanService<'a> {
     ) -> std::result::Result<Option<CoffeeBean>, WriteError> {
         validate_write(&request, CreateCoffeeBeanRequest::validate_comprehensive)?;
         let now = Utc::now();
-        
+
         let bean = sqlx::query_as::<_, CoffeeBean>(
             r#"
             UPDATE coffee_beans
@@ -157,7 +160,7 @@ impl<'a> BeanService<'a> {
                 id, name, origin, roast_date, purchase_date, 
                 remaining_grams, variety, processing_method, is_active,
                 created_at, updated_at
-            "#
+            "#,
         )
         .bind(id)
         .bind(request.name)
@@ -172,10 +175,10 @@ impl<'a> BeanService<'a> {
         .await
         .context("Failed to update bean")
         .map_err(WriteError::Database)?;
-        
+
         Ok(bean)
     }
-    
+
     /// Delete a coffee bean (soft delete)
     pub async fn delete_bean(&self, id: Uuid) -> Result<bool> {
         let result = sqlx::query(
@@ -183,17 +186,17 @@ impl<'a> BeanService<'a> {
             UPDATE coffee_beans
             SET is_active = false, updated_at = $2
             WHERE id = $1 AND is_active = true
-            "#
+            "#,
         )
         .bind(id)
         .bind(Utc::now())
         .execute(self.pool)
         .await
         .context("Failed to delete bean")?;
-        
+
         Ok(result.rows_affected() > 0)
     }
-    
+
     /// Get only active beans with remaining quantity > 0
     pub async fn get_active_beans(&self) -> Result<Vec<CoffeeBean>> {
         let beans = sqlx::query_as::<_, CoffeeBean>(
@@ -206,15 +209,15 @@ impl<'a> BeanService<'a> {
             WHERE is_active = true 
             AND (remaining_grams > 0 OR remaining_grams IS NULL)
             ORDER BY name ASC
-            "#
+            "#,
         )
         .fetch_all(self.pool)
         .await
         .context("Failed to fetch active beans")?;
-        
+
         Ok(beans)
     }
-    
+
     /// Get usage history for a bean (from rustyCoffy)
     pub async fn get_bean_usage_history(&self, bean_id: Uuid) -> Result<Vec<BeanUsageRecord>> {
         let history = sqlx::query_as::<_, BeanUsageRecord>(
@@ -231,13 +234,13 @@ impl<'a> BeanService<'a> {
             JOIN grinders g ON bs.grinder_id = g.id
             WHERE bs.bean_id = $1
             ORDER BY bs.created_at DESC
-            "#
+            "#,
         )
         .bind(bean_id)
         .fetch_all(self.pool)
         .await
         .context("Failed to fetch bean usage history")?;
-        
+
         Ok(history)
     }
 }
@@ -275,9 +278,15 @@ mod tests {
     #[tokio::test]
     async fn create_bean_rejects_empty_name_as_invalid_fields() {
         let pool = unreachable_pool();
-        let request = CreateCoffeeBeanRequest { name: String::new(), ..valid_request() };
+        let request = CreateCoffeeBeanRequest {
+            name: String::new(),
+            ..valid_request()
+        };
 
-        let err = BeanService::new(&pool).create_bean(request).await.unwrap_err();
+        let err = BeanService::new(&pool)
+            .create_bean(request)
+            .await
+            .unwrap_err();
 
         assert!(matches!(err, WriteError::InvalidFields(ref details) if details.contains("name")));
     }
@@ -290,44 +299,70 @@ mod tests {
             ..valid_request()
         };
 
-        let err = BeanService::new(&pool).create_bean(request).await.unwrap_err();
+        let err = BeanService::new(&pool)
+            .create_bean(request)
+            .await
+            .unwrap_err();
 
-        assert!(matches!(err, WriteError::Rule(ValidationErrorType::RoastDateInFuture)));
+        assert!(matches!(
+            err,
+            WriteError::Rule(ValidationErrorType::RoastDateInFuture)
+        ));
     }
 
     #[tokio::test]
     async fn create_bean_rejects_whitespace_name_as_rule_violation() {
         let pool = unreachable_pool();
-        let request = CreateCoffeeBeanRequest { name: "   ".to_string(), ..valid_request() };
+        let request = CreateCoffeeBeanRequest {
+            name: "   ".to_string(),
+            ..valid_request()
+        };
 
-        let err = BeanService::new(&pool).create_bean(request).await.unwrap_err();
+        let err = BeanService::new(&pool)
+            .create_bean(request)
+            .await
+            .unwrap_err();
 
-        assert!(matches!(err, WriteError::Rule(ValidationErrorType::BeanNameEmpty)));
+        assert!(matches!(
+            err,
+            WriteError::Rule(ValidationErrorType::BeanNameEmpty)
+        ));
     }
 
     #[tokio::test]
     async fn update_bean_rejects_negative_remaining_grams_as_rule_violation() {
         let pool = unreachable_pool();
-        let request = CreateCoffeeBeanRequest { remaining_grams: Some(-1.0), ..valid_request() };
+        let request = CreateCoffeeBeanRequest {
+            remaining_grams: Some(-1.0),
+            ..valid_request()
+        };
 
         let err = BeanService::new(&pool)
             .update_bean(Uuid::new_v4(), request)
             .await
             .unwrap_err();
 
-        assert!(matches!(err, WriteError::Rule(ValidationErrorType::NegativeRemainingGrams { .. })));
+        assert!(matches!(
+            err,
+            WriteError::Rule(ValidationErrorType::NegativeRemainingGrams { .. })
+        ));
     }
 
     #[tokio::test]
     async fn update_bean_rejects_overlong_origin_as_invalid_fields() {
         let pool = unreachable_pool();
-        let request = CreateCoffeeBeanRequest { origin: "x".repeat(101), ..valid_request() };
+        let request = CreateCoffeeBeanRequest {
+            origin: "x".repeat(101),
+            ..valid_request()
+        };
 
         let err = BeanService::new(&pool)
             .update_bean(Uuid::new_v4(), request)
             .await
             .unwrap_err();
 
-        assert!(matches!(err, WriteError::InvalidFields(ref details) if details.contains("origin")));
+        assert!(
+            matches!(err, WriteError::InvalidFields(ref details) if details.contains("origin"))
+        );
     }
 }

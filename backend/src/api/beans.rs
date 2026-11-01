@@ -5,14 +5,14 @@ use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
     response::IntoResponse,
-    Json, Router,
     routing::get,
+    Json, Router,
 };
 use uuid::Uuid;
 
 use crate::{
     api::{write_error_response, AppState},
-    models::{CreateCoffeeBeanRequest, PaginatedResponse, ErrorResponse},
+    models::{CreateCoffeeBeanRequest, ErrorResponse, PaginatedResponse},
     pagination::Pagination,
     services::beans::BeanService,
 };
@@ -48,11 +48,13 @@ async fn list_beans(
             page: pagination.page(),
             page_size: pagination.page_size(),
             has_more: pagination.has_more(total),
-        }).into_response(),
+        })
+        .into_response(),
         Err(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(ErrorResponse::new(format!("Failed to list beans: {}", e))),
-        ).into_response(),
+        )
+            .into_response(),
     }
 }
 
@@ -64,7 +66,7 @@ async fn create_bean(
     // Validation (field lengths, non-empty name/origin, no future roast or
     // purchase dates, non-negative remaining grams) is owned by the service.
     let service = BeanService::new(&state.pool);
-    
+
     match service.create_bean(payload).await {
         Ok(bean) => (StatusCode::CREATED, Json(bean)).into_response(),
         Err(e) => write_error_response(e, "Failed to create bean"),
@@ -72,22 +74,21 @@ async fn create_bean(
 }
 
 /// Get a specific coffee bean by ID
-async fn get_bean(
-    State(state): State<AppState>,
-    Path(id): Path<Uuid>,
-) -> impl IntoResponse {
+async fn get_bean(State(state): State<AppState>, Path(id): Path<Uuid>) -> impl IntoResponse {
     let service = BeanService::new(&state.pool);
-    
+
     match service.get_bean(id).await {
         Ok(Some(bean)) => Json(bean).into_response(),
         Ok(None) => (
             StatusCode::NOT_FOUND,
             Json(ErrorResponse::new("Coffee bean not found".to_string())),
-        ).into_response(),
+        )
+            .into_response(),
         Err(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(ErrorResponse::new(format!("Failed to get bean: {}", e))),
-        ).into_response(),
+        )
+            .into_response(),
     }
 }
 
@@ -99,65 +100,68 @@ async fn update_bean(
 ) -> impl IntoResponse {
     // Validation (same rules as create) is owned by the service.
     let service = BeanService::new(&state.pool);
-    
+
     match service.update_bean(id, payload).await {
         Ok(Some(bean)) => Json(bean).into_response(),
         Ok(None) => (
             StatusCode::NOT_FOUND,
             Json(ErrorResponse::new("Coffee bean not found".to_string())),
-        ).into_response(),
+        )
+            .into_response(),
         Err(e) => write_error_response(e, "Failed to update bean"),
     }
 }
 
 /// Delete a coffee bean
-async fn delete_bean(
-    State(state): State<AppState>,
-    Path(id): Path<Uuid>,
-) -> impl IntoResponse {
+async fn delete_bean(State(state): State<AppState>, Path(id): Path<Uuid>) -> impl IntoResponse {
     let service = BeanService::new(&state.pool);
-    
+
     match service.delete_bean(id).await {
         Ok(true) => (StatusCode::NO_CONTENT, ()).into_response(),
         Ok(false) => (
             StatusCode::NOT_FOUND,
             Json(ErrorResponse::new("Coffee bean not found".to_string())),
-        ).into_response(),
+        )
+            .into_response(),
         Err(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(ErrorResponse::new(format!("Failed to delete bean: {}", e))),
-        ).into_response(),
+        )
+            .into_response(),
     }
 }
 
 /// Get only active beans (with remaining quantity > 0)
-async fn get_active_beans(
-    State(state): State<AppState>,
-) -> impl IntoResponse {
+async fn get_active_beans(State(state): State<AppState>) -> impl IntoResponse {
     let service = BeanService::new(&state.pool);
-    
+
     match service.get_active_beans().await {
         Ok(beans) => Json(beans).into_response(),
         Err(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ErrorResponse::new(format!("Failed to get active beans: {}", e))),
-        ).into_response(),
+            Json(ErrorResponse::new(format!(
+                "Failed to get active beans: {}",
+                e
+            ))),
+        )
+            .into_response(),
     }
 }
 
 /// Get usage history for a bean
-async fn get_bean_usage(
-    State(state): State<AppState>,
-    Path(id): Path<Uuid>,
-) -> impl IntoResponse {
+async fn get_bean_usage(State(state): State<AppState>, Path(id): Path<Uuid>) -> impl IntoResponse {
     let service = BeanService::new(&state.pool);
-    
+
     match service.get_bean_usage_history(id).await {
         Ok(history) => Json(history).into_response(),
         Err(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ErrorResponse::new(format!("Failed to get bean usage: {}", e))),
-        ).into_response(),
+            Json(ErrorResponse::new(format!(
+                "Failed to get bean usage: {}",
+                e
+            ))),
+        )
+            .into_response(),
     }
 }
 
@@ -172,4 +176,3 @@ struct ListParams {
     page: Option<i32>,
     limit: Option<i32>,
 }
-

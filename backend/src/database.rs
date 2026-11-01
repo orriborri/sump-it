@@ -2,8 +2,8 @@
 //! Handles connection pooling and applies the sqlx migrations that live under
 //! `backend/migrations/`, which are the single source of truth for the schema.
 
-use sqlx::{PgPool, postgres::PgPoolOptions};
-use anyhow::{Result, Context};
+use anyhow::{Context, Result};
+use sqlx::{postgres::PgPoolOptions, PgPool};
 use tracing::info;
 
 // coverage: process bootstrap - creates the Postgres connection pool and runs
@@ -12,8 +12,7 @@ use tracing::info;
 #[cfg_attr(coverage_nightly, coverage(off))]
 /// Initialize database connection pool and apply pending migrations.
 pub async fn init_pool() -> Result<PgPool> {
-    let database_url = std::env::var("DATABASE_URL")
-        .context("DATABASE_URL must be set")?;
+    let database_url = std::env::var("DATABASE_URL").context("DATABASE_URL must be set")?;
 
     info!("Connecting to database...");
 

@@ -65,8 +65,7 @@ impl Pagination {
         // OFFSET is represented as i32 throughout the request model. Clamp the
         // effective page before multiplying so even i32::MAX input stays total
         // and can never wrap into a negative SQL offset.
-        let max_page = (i64::from(i32::MAX) / i64::from(limit) + 1)
-            .min(i64::from(i32::MAX)) as i32;
+        let max_page = (i64::from(i32::MAX) / i64::from(limit) + 1).min(i64::from(i32::MAX)) as i32;
         let page = requested_page.min(max_page);
         let offset = (page - 1) * limit;
         Self {
@@ -87,8 +86,8 @@ impl Pagination {
         let offset = match (offset, page) {
             (Some(offset), _) => offset.max(0),
             (None, Some(page)) => {
-                let max_page = (i64::from(i32::MAX) / i64::from(limit) + 1)
-                    .min(i64::from(i32::MAX)) as i32;
+                let max_page =
+                    (i64::from(i32::MAX) / i64::from(limit) + 1).min(i64::from(i32::MAX)) as i32;
                 let page = page.clamp(1, max_page);
                 (page - 1) * limit
             }

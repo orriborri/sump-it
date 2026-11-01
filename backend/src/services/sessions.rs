@@ -224,10 +224,7 @@ impl<'a> SessionService<'a> {
     /// and the transactional inventory decrement, and can fail with
     /// [`SaveError::InsufficientQuantity`] exactly like a new brew. The
     /// original row is never copy-inserted directly.
-    pub async fn duplicate(
-        &self,
-        id: Uuid,
-    ) -> std::result::Result<BrewingSession, SaveError> {
+    pub async fn duplicate(&self, id: Uuid) -> std::result::Result<BrewingSession, SaveError> {
         let original = self
             .get_session(id)
             .await
@@ -310,7 +307,9 @@ fn db_error(e: sqlx::Error, context: &'static str) -> SaveError {
 // by construction once we hold a live pool. Excluded per docs/coverage.md
 // (defensive, genuinely-unreachable branch). The happy path returns the tx.
 #[cfg_attr(coverage_nightly, coverage(off))]
-async fn begin_tx(pool: &PgPool) -> std::result::Result<sqlx::Transaction<'_, sqlx::Postgres>, SaveError> {
+async fn begin_tx(
+    pool: &PgPool,
+) -> std::result::Result<sqlx::Transaction<'_, sqlx::Postgres>, SaveError> {
     pool.begin()
         .await
         .map_err(|e| db_error(e, "Failed to begin transaction"))

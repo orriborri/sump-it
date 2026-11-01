@@ -3,15 +3,15 @@
 //! From rustyCoffy: Business logic methods and inventory management
 //! From sump-it: UI-friendly field names and structures
 
-use chrono::{DateTime, Utc, NaiveDate};
+use chrono::{DateTime, NaiveDate, Utc};
 use serde::{Deserialize, Serialize};
-use validator::Validate;
-use uuid::Uuid;
 use ts_rs::TS;
+use uuid::Uuid;
+use validator::Validate;
 
 use crate::validation::{
-    validate_bean_name, validate_bean_origin, validate_remaining_grams,
-    validate_grinder_brand, validate_grinder_setting_range, ValidationErrorType,
+    validate_bean_name, validate_bean_origin, validate_grinder_brand,
+    validate_grinder_setting_range, validate_remaining_grams, ValidationErrorType,
 };
 
 /// Coffee bean with inventory tracking (from rustyCoffy + BeanIt)
@@ -20,20 +20,20 @@ use crate::validation::{
 #[ts(export)]
 pub struct CoffeeBean {
     pub id: Uuid,
-    
+
     #[validate(length(min = 1, max = 100))]
     pub name: String,
-    
+
     #[validate(length(min = 1, max = 100))]
     pub origin: String,
-    
+
     pub roast_date: NaiveDate,
     pub purchase_date: NaiveDate,
     pub remaining_grams: Option<f32>,
     pub variety: Option<String>,
     pub processing_method: Option<String>,
     pub is_active: bool,
-    
+
     // Timestamps
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -96,10 +96,10 @@ pub fn validate_bean_fields(
 pub struct CreateCoffeeBeanRequest {
     #[validate(length(min = 1, max = 100))]
     pub name: String,
-    
+
     #[validate(length(min = 1, max = 100))]
     pub origin: String,
-    
+
     pub roast_date: NaiveDate,
     pub purchase_date: NaiveDate,
     pub remaining_grams: Option<f32>,
@@ -128,19 +128,19 @@ impl CreateCoffeeBeanRequest {
 #[ts(export)]
 pub struct Grinder {
     pub id: Uuid,
-    
+
     #[validate(length(min = 1, max = 100))]
     pub brand: String,
-    
+
     #[validate(length(min = 1, max = 100))]
     pub model: String,
-    
+
     pub grinder_type: GrinderType,
     pub min_setting: i32,
     pub max_setting: i32,
     pub scale_type: Option<String>, // "step" or "sliding" (from BeanIt)
     pub description: Option<String>,
-    
+
     // Timestamps
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -151,12 +151,12 @@ impl Grinder {
     pub fn full_name(&self) -> String {
         format!("{} {}", self.brand, self.model)
     }
-    
+
     /// Validates if a grind setting is within this grinder's range (from rustyCoffy)
     pub fn is_valid_setting(&self, setting: i32) -> bool {
         setting >= self.min_setting && setting <= self.max_setting
     }
-    
+
     /// Comprehensive validation
     pub fn validate_comprehensive(&self) -> Result<(), ValidationErrorType> {
         validate_grinder_brand(&self.brand)?;
@@ -172,10 +172,10 @@ impl Grinder {
 pub struct CreateGrinderRequest {
     #[validate(length(min = 1, max = 100))]
     pub brand: String,
-    
+
     #[validate(length(min = 1, max = 100))]
     pub model: String,
-    
+
     pub grinder_type: GrinderType,
     pub min_setting: i32,
     pub max_setting: i32,
@@ -219,9 +219,10 @@ impl GrinderType {
             "Blade" => Ok(GrinderType::Blade),
             "Manual" => Ok(GrinderType::Manual),
             "Electric" => Ok(GrinderType::Electric),
-            _ => Err(ValidationErrorType::Validation(
-                format!("Invalid grinder type: {}", s)
-            )),
+            _ => Err(ValidationErrorType::Validation(format!(
+                "Invalid grinder type: {}",
+                s
+            ))),
         }
     }
 }
@@ -271,9 +272,10 @@ impl BrewingMethod {
             "Moka" => Ok(BrewingMethod::Moka),
             "ColdBrew" => Ok(BrewingMethod::ColdBrew),
             "Other" => Ok(BrewingMethod::Other),
-            _ => Err(ValidationErrorType::Validation(
-                format!("Invalid brewing method: {}", s)
-            )),
+            _ => Err(ValidationErrorType::Validation(format!(
+                "Invalid brewing method: {}",
+                s
+            ))),
         }
     }
 }
@@ -284,29 +286,29 @@ impl BrewingMethod {
 #[ts(export)]
 pub struct BrewingSession {
     pub id: Uuid,
-    
+
     // Equipment selection (from sump-it)
     pub bean_id: Uuid,
     pub grinder_id: Uuid,
     pub brewing_method: BrewingMethod,
-    
+
     // Brewing parameters (from rustyCoffy)
     pub grind_setting: i32,
     pub water_temp_celsius: Option<i32>,
     pub brew_time_seconds: Option<i32>,
     pub coffee_grams: f32,
     pub water_grams: f32,
-    
+
     // Results and feedback (from BeanIt + sump-it)
     pub rating: Option<f32>,
     pub tasting_notes: Option<String>,
     pub feedback: Option<String>,
     pub suggestions: Option<String>,
     pub is_template: bool,
-    
+
     // Calculated field
     pub coffee_ratio: Option<f32>,
-    
+
     // Timestamps
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -520,7 +522,7 @@ impl ErrorResponse {
             details: None,
         }
     }
-    
+
     pub fn with_details(error: String, details: Vec<String>) -> Self {
         Self {
             error,
@@ -663,14 +665,20 @@ mod tests {
         assert!(base.validate_comprehensive().is_ok());
 
         // Empty name rejected.
-        let bad_name = CreateCoffeeBeanRequest { name: "  ".to_string(), ..base.clone() };
+        let bad_name = CreateCoffeeBeanRequest {
+            name: "  ".to_string(),
+            ..base.clone()
+        };
         assert!(matches!(
             bad_name.validate_comprehensive(),
             Err(ValidationErrorType::BeanNameEmpty)
         ));
 
         // Empty origin rejected.
-        let bad_origin = CreateCoffeeBeanRequest { origin: "".to_string(), ..base.clone() };
+        let bad_origin = CreateCoffeeBeanRequest {
+            origin: "".to_string(),
+            ..base.clone()
+        };
         assert!(matches!(
             bad_origin.validate_comprehensive(),
             Err(ValidationErrorType::BeanOriginEmpty)
@@ -707,7 +715,10 @@ mod tests {
         ));
 
         // Untracked quantity validates.
-        let untracked = CreateCoffeeBeanRequest { remaining_grams: None, ..base.clone() };
+        let untracked = CreateCoffeeBeanRequest {
+            remaining_grams: None,
+            ..base.clone()
+        };
         assert!(untracked.validate_comprehensive().is_ok());
     }
 
@@ -823,10 +834,8 @@ mod tests {
         assert_eq!(simple.error, "boom");
         assert!(simple.details.is_none());
 
-        let detailed = ErrorResponse::with_details(
-            "bad".to_string(),
-            vec!["field: invalid".to_string()],
-        );
+        let detailed =
+            ErrorResponse::with_details("bad".to_string(), vec!["field: invalid".to_string()]);
         assert_eq!(detailed.error, "bad");
         assert_eq!(detailed.details.unwrap().len(), 1);
     }
@@ -898,7 +907,10 @@ mod tests {
         let enriched = apply_notes_to_session(base, &request);
         assert_eq!(enriched.tasting_notes.as_deref(), Some("Syrupy, chocolate"));
         assert_eq!(enriched.feedback.as_deref(), Some("Even extraction"));
-        assert_eq!(enriched.suggestions.as_deref(), Some("Grind one step finer"));
+        assert_eq!(
+            enriched.suggestions.as_deref(),
+            Some("Grind one step finer")
+        );
         assert!(enriched.is_template);
     }
 

@@ -200,7 +200,10 @@ async fn duplicate_rebrew_decrements_and_drops_results() {
         .expect("grams before");
 
     // The duplicate re-runs the recipe + inventory path, dropping rating/notes.
-    let dup = service.duplicate(original).await.expect("duplicate via service");
+    let dup = service
+        .duplicate(original)
+        .await
+        .expect("duplicate via service");
     assert!(dup.rating.is_none(), "duplicate drops rating");
     assert!(dup.tasting_notes.is_none(), "duplicate drops tasting notes");
     assert_eq!(dup.coffee_grams, 20.0, "duplicate re-brews the same dose");
@@ -210,7 +213,10 @@ async fn duplicate_rebrew_decrements_and_drops_results() {
         .fetch_one(&pool)
         .await
         .expect("grams after");
-    assert!((before - after - 20.0).abs() < f32::EPSILON, "grams drop by dose");
+    assert!(
+        (before - after - 20.0).abs() < f32::EPSILON,
+        "grams drop by dose"
+    );
 
     cleanup(&pool, &[bean], &[grinder]).await;
 }
@@ -233,9 +239,39 @@ async fn list_is_newest_first_with_paging() {
     let service = SessionService::new(&pool);
 
     // Three sessions, logged oldest-to-newest so the last is the newest.
-    let _oldest = log_brew(&service, bean, grinder, BrewingMethod::V60, 20.0, 320.0, Some(6.0), None).await;
-    let middle = log_brew(&service, bean, grinder, BrewingMethod::V60, 20.0, 320.0, Some(7.0), None).await;
-    let newest = log_brew(&service, bean, grinder, BrewingMethod::V60, 20.0, 320.0, Some(8.0), None).await;
+    let _oldest = log_brew(
+        &service,
+        bean,
+        grinder,
+        BrewingMethod::V60,
+        20.0,
+        320.0,
+        Some(6.0),
+        None,
+    )
+    .await;
+    let middle = log_brew(
+        &service,
+        bean,
+        grinder,
+        BrewingMethod::V60,
+        20.0,
+        320.0,
+        Some(7.0),
+        None,
+    )
+    .await;
+    let newest = log_brew(
+        &service,
+        bean,
+        grinder,
+        BrewingMethod::V60,
+        20.0,
+        320.0,
+        Some(8.0),
+        None,
+    )
+    .await;
 
     // Page size 2, offset 0 -> newest two in order.
     let filter = SessionFilter {
@@ -267,8 +303,28 @@ async fn filters_narrow_results() {
     let ken = insert_bean(&pool, "Nyeri", "Kenya", 40).await;
     let service = SessionService::new(&pool);
 
-    let eth_v60 = log_brew(&service, eth, burr, BrewingMethod::V60, 20.0, 320.0, Some(9.0), None).await;
-    log_brew(&service, ken, blade, BrewingMethod::Espresso, 18.0, 36.0, Some(4.0), None).await;
+    let eth_v60 = log_brew(
+        &service,
+        eth,
+        burr,
+        BrewingMethod::V60,
+        20.0,
+        320.0,
+        Some(9.0),
+        None,
+    )
+    .await;
+    log_brew(
+        &service,
+        ken,
+        blade,
+        BrewingMethod::Espresso,
+        18.0,
+        36.0,
+        Some(4.0),
+        None,
+    )
+    .await;
 
     // Filter: Ethiopia + BurrConical + V60 + rating >= 8 -> only the first.
     let filter = SessionFilter {
@@ -282,7 +338,10 @@ async fn filters_narrow_results() {
         .list_filtered(&filter, None)
         .await
         .expect("filtered list");
-    assert_eq!(total, 1, "only the Ethiopia/Burr/V60/high-rating session matches");
+    assert_eq!(
+        total, 1,
+        "only the Ethiopia/Burr/V60/high-rating session matches"
+    );
     assert_eq!(sessions.len(), 1);
     assert_eq!(sessions[0].id, eth_v60);
 
@@ -320,14 +379,20 @@ async fn search_matches_across_four_columns() {
         .list_filtered(&SessionFilter::default(), Some("jasmine"))
         .await
         .expect("search notes");
-    assert!(sessions.iter().any(|s| s.id == by_notes), "matches tasting notes");
+    assert!(
+        sessions.iter().any(|s| s.id == by_notes),
+        "matches tasting notes"
+    );
 
     // Query hits the grinder brand.
     let (sessions, _total) = service
         .list_filtered(&SessionFilter::default(), Some("niche"))
         .await
         .expect("search brand");
-    assert!(sessions.iter().any(|s| s.id == by_notes), "matches grinder brand");
+    assert!(
+        sessions.iter().any(|s| s.id == by_notes),
+        "matches grinder brand"
+    );
 
     cleanup(&pool, &[bean], &[grinder]).await;
 }

@@ -178,7 +178,9 @@ fn espresso_body(bean: Uuid, grinder: Uuid) -> Value {
 #[tokio::test]
 #[ignore = "requires a live Postgres (DATABASE_URL); run with --ignored"]
 async fn grinder_crud_through_router() {
-    let Some(pool) = setup_pool().await else { return };
+    let Some(pool) = setup_pool().await else {
+        return;
+    };
 
     // Empty list first.
     let (status, body) = send(&pool, "GET", "/grinders", None).await;
@@ -251,7 +253,9 @@ async fn grinder_crud_through_router() {
 #[tokio::test]
 #[ignore = "requires a live Postgres (DATABASE_URL); run with --ignored"]
 async fn grinder_validation_errors_through_router() {
-    let Some(pool) = setup_pool().await else { return };
+    let Some(pool) = setup_pool().await else {
+        return;
+    };
 
     // Derive-based field validation failure (empty brand) -> 400 with details.
     let (status, body) = send(
@@ -345,7 +349,9 @@ async fn grinder_validation_errors_through_router() {
 #[tokio::test]
 #[ignore = "requires a live Postgres (DATABASE_URL); run with --ignored"]
 async fn bean_crud_and_active_and_usage_through_router() {
-    let Some(pool) = setup_pool().await else { return };
+    let Some(pool) = setup_pool().await else {
+        return;
+    };
 
     // Empty list.
     let (status, body) = send(&pool, "GET", "/beans", None).await;
@@ -393,7 +399,13 @@ async fn bean_crud_and_active_and_usage_through_router() {
 
     // Usage history: brew once so there is a record, then read it back.
     let grinder = create_grinder(&pool).await;
-    let (status, body) = send(&pool, "POST", "/sessions", Some(espresso_body(tracked, grinder))).await;
+    let (status, body) = send(
+        &pool,
+        "POST",
+        "/sessions",
+        Some(espresso_body(tracked, grinder)),
+    )
+    .await;
     assert_eq!(status, StatusCode::CREATED, "usage brew: {body}");
     let (status, body) = send(&pool, "GET", &format!("/beans/{tracked}/usage"), None).await;
     assert_eq!(status, StatusCode::OK);
@@ -429,7 +441,9 @@ async fn bean_crud_and_active_and_usage_through_router() {
 #[tokio::test]
 #[ignore = "requires a live Postgres (DATABASE_URL); run with --ignored"]
 async fn bean_validation_errors_through_router() {
-    let Some(pool) = setup_pool().await else { return };
+    let Some(pool) = setup_pool().await else {
+        return;
+    };
 
     // Derive-validation failure (empty name) -> 400 with details.
     let (status, body) = send(
@@ -470,7 +484,10 @@ async fn bean_validation_errors_through_router() {
     )
     .await;
     assert_eq!(status, StatusCode::BAD_REQUEST);
-    assert_eq!(body, json!({ "error": "Roast date cannot be in the future", "details": null }));
+    assert_eq!(
+        body,
+        json!({ "error": "Roast date cannot be in the future", "details": null })
+    );
 
     let id = create_bean(&pool, Some(100.0)).await;
 
@@ -518,12 +535,20 @@ async fn bean_validation_errors_through_router() {
 #[tokio::test]
 #[ignore = "requires a live Postgres (DATABASE_URL); run with --ignored"]
 async fn session_create_list_duplicate_through_router() {
-    let Some(pool) = setup_pool().await else { return };
+    let Some(pool) = setup_pool().await else {
+        return;
+    };
     let grinder = create_grinder(&pool).await;
     let bean = create_bean(&pool, Some(100.0)).await;
 
     // Create a valid session.
-    let (status, body) = send(&pool, "POST", "/sessions", Some(espresso_body(bean, grinder))).await;
+    let (status, body) = send(
+        &pool,
+        "POST",
+        "/sessions",
+        Some(espresso_body(bean, grinder)),
+    )
+    .await;
     assert_eq!(status, StatusCode::CREATED, "create session: {body}");
     let session_id = parse_id(&body);
     assert_eq!(body["coffeeRatio"], 2.0);
@@ -584,7 +609,9 @@ async fn session_create_list_duplicate_through_router() {
 #[tokio::test]
 #[ignore = "requires a live Postgres (DATABASE_URL); run with --ignored"]
 async fn session_error_mapping_through_router() {
-    let Some(pool) = setup_pool().await else { return };
+    let Some(pool) = setup_pool().await else {
+        return;
+    };
     let grinder = create_grinder(&pool).await;
 
     // (a) Request-shape validation failure (negative grind setting) -> 400.
@@ -658,17 +685,17 @@ async fn session_error_mapping_through_router() {
 
 /// Drops every application table so subsequent service queries fail at the DB.
 async fn drop_all_tables(pool: &PgPool) {
-    pool.execute(
-        "DROP TABLE IF EXISTS brewing_sessions, coffee_beans, grinders CASCADE",
-    )
-    .await
-    .expect("drop tables");
+    pool.execute("DROP TABLE IF EXISTS brewing_sessions, coffee_beans, grinders CASCADE")
+        .await
+        .expect("drop tables");
 }
 
 #[tokio::test]
 #[ignore = "requires a live Postgres (DATABASE_URL); run with --ignored"]
 async fn every_handler_maps_db_errors_to_500() {
-    let Some(pool) = setup_pool().await else { return };
+    let Some(pool) = setup_pool().await else {
+        return;
+    };
 
     // Pre-create a grinder and a bean (used to reach the `log_brew` internal
     // query-failure branches) BEFORE the tables are dropped where needed.
@@ -689,9 +716,17 @@ async fn every_handler_maps_db_errors_to_500() {
     // table and map the service error to 500.
     for (method, uri, body) in [
         ("GET", "/grinders".to_string(), None),
-        ("POST", "/grinders".to_string(), Some(create_grinder_body.clone())),
+        (
+            "POST",
+            "/grinders".to_string(),
+            Some(create_grinder_body.clone()),
+        ),
         ("GET", format!("/grinders/{id}"), None),
-        ("PUT", format!("/grinders/{id}"), Some(create_grinder_body.clone())),
+        (
+            "PUT",
+            format!("/grinders/{id}"),
+            Some(create_grinder_body.clone()),
+        ),
         ("DELETE", format!("/grinders/{id}"), None),
     ] {
         let (status, _) = send(&pool, method, &uri, body).await;
@@ -703,7 +738,11 @@ async fn every_handler_maps_db_errors_to_500() {
         ("GET", "/beans".to_string(), None),
         ("POST", "/beans".to_string(), Some(create_bean_body.clone())),
         ("GET", format!("/beans/{id}"), None),
-        ("PUT", format!("/beans/{id}"), Some(create_bean_body.clone())),
+        (
+            "PUT",
+            format!("/beans/{id}"),
+            Some(create_bean_body.clone()),
+        ),
         ("DELETE", format!("/beans/{id}"), None),
         ("GET", "/beans/active".to_string(), None),
         ("GET", format!("/beans/{id}/usage"), None),
@@ -718,13 +757,7 @@ async fn every_handler_maps_db_errors_to_500() {
 
     // Session create -> `log_brew` fails on the FIRST query (`get_grinder`),
     // which maps to `SaveError::Database` -> 500 via `save_error_response`.
-    let (status, body) = send(
-        &pool,
-        "POST",
-        "/sessions",
-        Some(espresso_body(id, id)),
-    )
-    .await;
+    let (status, body) = send(&pool, "POST", "/sessions", Some(espresso_body(id, id))).await;
     assert_eq!(status, StatusCode::INTERNAL_SERVER_ERROR);
     assert!(
         body["error"]
@@ -746,7 +779,9 @@ async fn log_brew_internal_query_failures_map_to_database_error() {
     //     `get_grinder` load succeeds and the transaction begins, then the
     //     `SELECT ... FOR UPDATE` on `coffee_beans` fails.
     {
-        let Some(pool) = setup_pool().await else { return };
+        let Some(pool) = setup_pool().await else {
+            return;
+        };
         let grinder = create_grinder(&pool).await;
         pool.execute("DROP TABLE coffee_beans CASCADE")
             .await
@@ -759,14 +794,20 @@ async fn log_brew_internal_query_failures_map_to_database_error() {
             Some(espresso_body(Uuid::new_v4(), grinder)),
         )
         .await;
-        assert_eq!(status, StatusCode::INTERNAL_SERVER_ERROR, "lock failure: {body}");
+        assert_eq!(
+            status,
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "lock failure: {body}"
+        );
     }
 
     // (2) Insert failure: grinder AND a tracked bean exist, but
     //     `brewing_sessions` is gone. Validation passes, the bean row locks and
     //     has enough grams, then the session INSERT fails.
     {
-        let Some(pool) = setup_pool().await else { return };
+        let Some(pool) = setup_pool().await else {
+            return;
+        };
         let grinder = create_grinder(&pool).await;
         let bean = create_bean(&pool, Some(100.0)).await;
         pool.execute("DROP TABLE brewing_sessions CASCADE")
@@ -780,6 +821,10 @@ async fn log_brew_internal_query_failures_map_to_database_error() {
             Some(espresso_body(bean, grinder)),
         )
         .await;
-        assert_eq!(status, StatusCode::INTERNAL_SERVER_ERROR, "insert failure: {body}");
+        assert_eq!(
+            status,
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "insert failure: {body}"
+        );
     }
 }

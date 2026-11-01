@@ -7,12 +7,12 @@
 //! defined and unit-tested in the library; `create_grinder`/`update_grinder`
 //! enforce them BEFORE any SQL so the service owns the write invariants.
 
+use anyhow::{Context, Result};
 use chrono::Utc;
 use sqlx::PgPool;
 use uuid::Uuid;
-use anyhow::{Result, Context};
 
-use crate::models::{Grinder, CreateGrinderRequest};
+use crate::models::{CreateGrinderRequest, Grinder};
 use crate::services::{validate_write, WriteError};
 use crate::validation::{validate_grinder_setting_range, ValidationErrorType};
 
@@ -135,7 +135,6 @@ impl<'a> GrinderService<'a> {
         Ok(grinder)
     }
 
-
     /// Update an existing grinder.
     ///
     /// Applies the same validation as [`Self::create_grinder`] BEFORE any
@@ -228,25 +227,36 @@ mod tests {
     #[tokio::test]
     async fn create_grinder_rejects_max_not_above_min_as_rule_violation() {
         let pool = unreachable_pool();
-        let request = CreateGrinderRequest { min_setting: 40, max_setting: 40, ..valid_request() };
+        let request = CreateGrinderRequest {
+            min_setting: 40,
+            max_setting: 40,
+            ..valid_request()
+        };
 
-        let err = GrinderService::new(&pool).create_grinder(request).await.unwrap_err();
+        let err = GrinderService::new(&pool)
+            .create_grinder(request)
+            .await
+            .unwrap_err();
 
-        assert!(
-            matches!(
-                &err,
-                WriteError::Rule(ValidationErrorType::Validation(message))
-                    if message == "Maximum setting (40) must be greater than minimum setting (40)"
-            )
-        );
+        assert!(matches!(
+            &err,
+            WriteError::Rule(ValidationErrorType::Validation(message))
+                if message == "Maximum setting (40) must be greater than minimum setting (40)"
+        ));
     }
 
     #[tokio::test]
     async fn create_grinder_rejects_empty_brand_as_invalid_fields() {
         let pool = unreachable_pool();
-        let request = CreateGrinderRequest { brand: String::new(), ..valid_request() };
+        let request = CreateGrinderRequest {
+            brand: String::new(),
+            ..valid_request()
+        };
 
-        let err = GrinderService::new(&pool).create_grinder(request).await.unwrap_err();
+        let err = GrinderService::new(&pool)
+            .create_grinder(request)
+            .await
+            .unwrap_err();
 
         assert!(matches!(err, WriteError::InvalidFields(ref details) if details.contains("brand")));
     }
@@ -254,26 +264,30 @@ mod tests {
     #[tokio::test]
     async fn update_grinder_rejects_negative_min_setting_as_rule_violation() {
         let pool = unreachable_pool();
-        let request = CreateGrinderRequest { min_setting: -1, ..valid_request() };
+        let request = CreateGrinderRequest {
+            min_setting: -1,
+            ..valid_request()
+        };
 
         let err = GrinderService::new(&pool)
             .update_grinder(Uuid::new_v4(), request)
             .await
             .unwrap_err();
 
-        assert!(
-            matches!(
-                &err,
-                WriteError::Rule(ValidationErrorType::Validation(message))
-                    if message == "Minimum setting must be non-negative"
-            )
-        );
+        assert!(matches!(
+            &err,
+            WriteError::Rule(ValidationErrorType::Validation(message))
+                if message == "Minimum setting must be non-negative"
+        ));
     }
 
     #[tokio::test]
     async fn update_grinder_rejects_overlong_model_as_invalid_fields() {
         let pool = unreachable_pool();
-        let request = CreateGrinderRequest { model: "x".repeat(101), ..valid_request() };
+        let request = CreateGrinderRequest {
+            model: "x".repeat(101),
+            ..valid_request()
+        };
 
         let err = GrinderService::new(&pool)
             .update_grinder(Uuid::new_v4(), request)

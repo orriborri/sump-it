@@ -9,8 +9,8 @@ use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
     response::IntoResponse,
-    Json, Router,
     routing::get,
+    Json, Router,
 };
 use uuid::Uuid;
 
@@ -24,7 +24,10 @@ use crate::{
 pub fn router() -> Router<AppState> {
     Router::new()
         .route("/", get(list_grinders).post(create_grinder))
-        .route("/:id", get(get_grinder).put(update_grinder).delete(delete_grinder))
+        .route(
+            "/:id",
+            get(get_grinder).put(update_grinder).delete(delete_grinder),
+        )
 }
 
 /// List grinders with pagination.
@@ -52,7 +55,10 @@ async fn list_grinders(
         .into_response(),
         Err(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ErrorResponse::new(format!("Failed to list grinders: {}", e))),
+            Json(ErrorResponse::new(format!(
+                "Failed to list grinders: {}",
+                e
+            ))),
         )
             .into_response(),
     }
@@ -72,10 +78,7 @@ async fn create_grinder(
 }
 
 /// Get a specific grinder by ID.
-async fn get_grinder(
-    State(state): State<AppState>,
-    Path(id): Path<Uuid>,
-) -> impl IntoResponse {
+async fn get_grinder(State(state): State<AppState>, Path(id): Path<Uuid>) -> impl IntoResponse {
     let service = GrinderService::new(&state.pool);
 
     match service.get_grinder(id).await {
@@ -113,10 +116,7 @@ async fn update_grinder(
 }
 
 /// Delete (remove) a grinder.
-async fn delete_grinder(
-    State(state): State<AppState>,
-    Path(id): Path<Uuid>,
-) -> impl IntoResponse {
+async fn delete_grinder(State(state): State<AppState>, Path(id): Path<Uuid>) -> impl IntoResponse {
     let service = GrinderService::new(&state.pool);
 
     match service.delete_grinder(id).await {
@@ -128,7 +128,10 @@ async fn delete_grinder(
             .into_response(),
         Err(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ErrorResponse::new(format!("Failed to delete grinder: {}", e))),
+            Json(ErrorResponse::new(format!(
+                "Failed to delete grinder: {}",
+                e
+            ))),
         )
             .into_response(),
     }
