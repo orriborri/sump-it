@@ -277,7 +277,10 @@ async fn active_list_excludes_soft_deleted_and_empty_bags() {
         .map(|b| b.id)
         .collect();
 
-    assert!(ids.contains(&active.id), "active, in-stock bean must appear");
+    assert!(
+        ids.contains(&active.id),
+        "active, in-stock bean must appear"
+    );
     assert!(
         ids.contains(&untracked.id),
         "untracked (NULL grams) bean must appear"

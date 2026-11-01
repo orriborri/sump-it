@@ -1,7 +1,8 @@
 name: Contract + coverage gates
 
 # Enforces the full spec in CI:
-#   contract          - regenerate the TS types from the Rust models (ts-rs) and
+#   contract          - check backend formatting (cargo fmt --check),
+#                       regenerate the TS types from the Rust models (ts-rs) and
 #                       fail on a stale diff under frontend/lib/generated (US38),
 #                       then run a strict frontend type-check (tsc --noEmit).
 #   backend-coverage  - run the whole backend (DB-free library core + DB-backed
@@ -41,6 +42,14 @@ jobs:
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      # Keep backend formatting enforced (#195: "Backend formatting, Clippy,
+      # and tests pass").
+      - name: Backend formatting
+        working-directory: backend
+        run: cargo fmt --check
 
       - name: Cache cargo
         uses: actions/cache@v4

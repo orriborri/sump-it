@@ -162,7 +162,11 @@ async fn espresso_logs_and_decrements_atomically() {
     assert_eq!(session.bean_id, bean);
     assert_eq!(session.coffee_grams, 18.0);
     assert_eq!(session.water_grams, 36.0);
-    assert_eq!(session.coffee_ratio, Some(2.0), "generated coffee_ratio must be 2.0");
+    assert_eq!(
+        session.coffee_ratio,
+        Some(2.0),
+        "generated coffee_ratio must be 2.0"
+    );
 
     // The session is persisted and readable back through the service.
     let fetched = service
@@ -216,7 +220,10 @@ async fn insufficient_quantity_rolls_back_entire_save() {
         .fetch_one(&pool)
         .await
         .expect("count sessions");
-    assert_eq!(count, 0, "no session may be inserted on insufficient quantity");
+    assert_eq!(
+        count, 0,
+        "no session may be inserted on insufficient quantity"
+    );
 
     let after: Option<f32> =
         sqlx::query_scalar("SELECT remaining_grams FROM coffee_beans WHERE id = $1")

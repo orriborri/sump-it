@@ -251,7 +251,11 @@ async fn list_grinders_is_newest_first_with_paging() {
         .copied()
         .filter(|id| ids.contains(id))
         .collect();
-    assert_eq!(mine.len(), 3, "all three of this test's grinders are listed");
+    assert_eq!(
+        mine.len(),
+        3,
+        "all three of this test's grinders are listed"
+    );
     assert_eq!(
         mine,
         vec![ids[2], ids[1], ids[0]],

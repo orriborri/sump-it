@@ -17,33 +17,58 @@ pub const RATING_MAX: f32 = 10.0;
 pub enum ValidationErrorType {
     #[error("Validation failed: {0}")]
     Validation(String),
-    
+
     #[error("Quality rating must be in 0.5 increments between {min:.1}-{max:.1}, got: {rating}")]
     InvalidQualityRating { rating: f32, min: f32, max: f32 },
 
     #[error("Grind setting {setting} outside range {min}-{max} for {grinder}")]
-    GrindSettingOutOfRange { 
-        setting: i32, 
-        min: i32, 
-        max: i32, 
-        grinder: String 
+    GrindSettingOutOfRange {
+        setting: i32,
+        min: i32,
+        max: i32,
+        grinder: String,
     },
 
     #[error("Coffee ratio {ratio:.1} outside range {min:.1}-{max:.1} for {method}")]
-    MethodCoffeeRatioInvalid { method: String, ratio: f32, min: f32, max: f32 },
+    MethodCoffeeRatioInvalid {
+        method: String,
+        ratio: f32,
+        min: f32,
+        max: f32,
+    },
 
     #[error("Coffee amount {amount}g outside range {min}-{max}g for {method}")]
-    MethodCoffeeAmountInvalid { method: String, amount: f32, min: f32, max: f32 },
+    MethodCoffeeAmountInvalid {
+        method: String,
+        amount: f32,
+        min: f32,
+        max: f32,
+    },
 
     #[error("Water amount {amount}g outside range {min}-{max}g for {method}")]
-    MethodWaterAmountInvalid { method: String, amount: f32, min: f32, max: f32 },
+    MethodWaterAmountInvalid {
+        method: String,
+        amount: f32,
+        min: f32,
+        max: f32,
+    },
 
     #[error("Water temperature {temp}°C outside range {min}-{max}°C for {method}")]
-    MethodWaterTemperatureInvalid { method: String, temp: i32, min: i32, max: i32 },
+    MethodWaterTemperatureInvalid {
+        method: String,
+        temp: i32,
+        min: i32,
+        max: i32,
+    },
 
     #[error("Brew time {time}s outside range {min}-{max}s for {method}")]
-    MethodBrewTimeInvalid { method: String, time: i32, min: i32, max: i32 },
-    
+    MethodBrewTimeInvalid {
+        method: String,
+        time: i32,
+        min: i32,
+        max: i32,
+    },
+
     #[error("Bean name cannot be empty")]
     BeanNameEmpty,
 
@@ -58,7 +83,7 @@ pub enum ValidationErrorType {
 
     #[error("Remaining grams cannot be negative, got: {grams}")]
     NegativeRemainingGrams { grams: f32 },
-    
+
     #[error("Grinder brand cannot be empty")]
     GrinderBrandEmpty,
 }
@@ -72,7 +97,7 @@ pub fn validate_rating(rating: f32) -> Result<(), ValidationErrorType> {
             max: RATING_MAX,
         });
     }
-    
+
     // Check if rating is in 0.5 increments
     let scaled = rating * 2.0;
     if (scaled - scaled.floor()).abs() > f32::EPSILON {
@@ -82,7 +107,7 @@ pub fn validate_rating(rating: f32) -> Result<(), ValidationErrorType> {
             max: RATING_MAX,
         });
     }
-    
+
     Ok(())
 }
 
@@ -91,14 +116,14 @@ pub fn validate_bean_name(name: &str) -> Result<(), ValidationErrorType> {
     if name.trim().is_empty() {
         return Err(ValidationErrorType::BeanNameEmpty);
     }
-    
+
     // Additional validation from sump-it patterns
     if name.len() > 100 {
         return Err(ValidationErrorType::Validation(
-            "Bean name must be 100 characters or less".to_string()
+            "Bean name must be 100 characters or less".to_string(),
         ));
     }
-    
+
     Ok(())
 }
 
@@ -165,13 +190,13 @@ pub fn validate_grinder_brand(brand: &str) -> Result<(), ValidationErrorType> {
     if brand.trim().is_empty() {
         return Err(ValidationErrorType::GrinderBrandEmpty);
     }
-    
+
     if brand.len() > 100 {
         return Err(ValidationErrorType::Validation(
-            "Grinder brand must be 100 characters or less".to_string()
+            "Grinder brand must be 100 characters or less".to_string(),
         ));
     }
-    
+
     Ok(())
 }
 
@@ -189,10 +214,7 @@ pub fn validation_errors_to_string(errors: &ValidationErrors) -> String {
 
     for (field, field_errors) in errors.field_errors() {
         for error in field_errors {
-            let message = error
-                .message
-                .as_deref()
-                .unwrap_or("invalid");
+            let message = error.message.as_deref().unwrap_or("invalid");
             messages.push(format!("{}: {}", field, message));
         }
     }
@@ -210,7 +232,7 @@ mod tests {
         assert!(validate_rating(1.0).is_ok());
         assert!(validate_rating(5.5).is_ok());
         assert!(validate_rating(10.0).is_ok());
-        
+
         // Invalid ratings
         assert!(validate_rating(0.5).is_err()); // Below minimum
         assert!(validate_rating(10.5).is_err()); // Above maximum
@@ -278,13 +300,47 @@ mod tests {
         // error-mapping formatting is covered.
         let errors = vec![
             ValidationErrorType::Validation("boom".to_string()),
-            ValidationErrorType::InvalidQualityRating { rating: 5.3, min: RATING_MIN, max: RATING_MAX },
-            ValidationErrorType::GrindSettingOutOfRange { setting: 99, min: 0, max: 40, grinder: "C40".to_string() },
-            ValidationErrorType::MethodCoffeeRatioInvalid { method: "Espresso".to_string(), ratio: 10.0, min: 1.5, max: 3.0 },
-            ValidationErrorType::MethodCoffeeAmountInvalid { method: "Espresso".to_string(), amount: 5.0, min: 7.0, max: 25.0 },
-            ValidationErrorType::MethodWaterAmountInvalid { method: "Espresso".to_string(), amount: 5.0, min: 10.0, max: 75.0 },
-            ValidationErrorType::MethodWaterTemperatureInvalid { method: "Espresso".to_string(), temp: 50, min: 88, max: 96 },
-            ValidationErrorType::MethodBrewTimeInvalid { method: "Espresso".to_string(), time: 5, min: 15, max: 60 },
+            ValidationErrorType::InvalidQualityRating {
+                rating: 5.3,
+                min: RATING_MIN,
+                max: RATING_MAX,
+            },
+            ValidationErrorType::GrindSettingOutOfRange {
+                setting: 99,
+                min: 0,
+                max: 40,
+                grinder: "C40".to_string(),
+            },
+            ValidationErrorType::MethodCoffeeRatioInvalid {
+                method: "Espresso".to_string(),
+                ratio: 10.0,
+                min: 1.5,
+                max: 3.0,
+            },
+            ValidationErrorType::MethodCoffeeAmountInvalid {
+                method: "Espresso".to_string(),
+                amount: 5.0,
+                min: 7.0,
+                max: 25.0,
+            },
+            ValidationErrorType::MethodWaterAmountInvalid {
+                method: "Espresso".to_string(),
+                amount: 5.0,
+                min: 10.0,
+                max: 75.0,
+            },
+            ValidationErrorType::MethodWaterTemperatureInvalid {
+                method: "Espresso".to_string(),
+                temp: 50,
+                min: 88,
+                max: 96,
+            },
+            ValidationErrorType::MethodBrewTimeInvalid {
+                method: "Espresso".to_string(),
+                time: 5,
+                min: 15,
+                max: 60,
+            },
             ValidationErrorType::BeanNameEmpty,
             ValidationErrorType::BeanOriginEmpty,
             ValidationErrorType::RoastDateInFuture,
@@ -311,11 +367,17 @@ mod tests {
         let mut msg_err = ValidationError::new("length");
         msg_err.message = Some("too short".into());
         with_message.add("name", msg_err);
-        assert_eq!(validation_errors_to_string(&with_message), "name: too short");
+        assert_eq!(
+            validation_errors_to_string(&with_message),
+            "name: too short"
+        );
 
         // A field error without a message falls back to "invalid".
         let mut without_message = ValidationErrors::new();
         without_message.add("origin", ValidationError::new("required"));
-        assert_eq!(validation_errors_to_string(&without_message), "origin: invalid");
+        assert_eq!(
+            validation_errors_to_string(&without_message),
+            "origin: invalid"
+        );
     }
 }
