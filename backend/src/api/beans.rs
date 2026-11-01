@@ -9,14 +9,12 @@ use axum::{
     routing::get,
 };
 use uuid::Uuid;
-use validator::Validate;
 
 use crate::{
-    api::AppState,
+    api::{write_error_response, AppState},
     models::{CreateCoffeeBeanRequest, PaginatedResponse, ErrorResponse},
     pagination::Pagination,
     services::beans::BeanService,
-    validation::validation_errors_to_string,
 };
 
 pub fn router() -> Router<AppState> {
@@ -63,35 +61,13 @@ async fn create_bean(
     State(state): State<AppState>,
     Json(payload): Json<CreateCoffeeBeanRequest>,
 ) -> impl IntoResponse {
-    // Validate input
-    if let Err(validation_errors) = payload.validate() {
-        return (
-            StatusCode::BAD_REQUEST,
-            Json(ErrorResponse::with_details(
-                "Validation failed".to_string(),
-                vec![validation_errors_to_string(&validation_errors)],
-            )),
-        ).into_response();
-    }
-    
-    // Business-rule validation: non-empty name/origin, no future roast or
-    // purchase dates, and non-negative remaining grams. Each error names the
-    // offending field clearly.
-    if let Err(e) = payload.validate_comprehensive() {
-        return (
-            StatusCode::BAD_REQUEST,
-            Json(ErrorResponse::new(e.to_string())),
-        ).into_response();
-    }
-    
+    // Validation (field lengths, non-empty name/origin, no future roast or
+    // purchase dates, non-negative remaining grams) is owned by the service.
     let service = BeanService::new(&state.pool);
     
     match service.create_bean(payload).await {
         Ok(bean) => (StatusCode::CREATED, Json(bean)).into_response(),
-        Err(e) => (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ErrorResponse::new(format!("Failed to create bean: {}", e))),
-        ).into_response(),
+        Err(e) => write_error_response(e, "Failed to create bean"),
     }
 }
 
@@ -121,25 +97,7 @@ async fn update_bean(
     Path(id): Path<Uuid>,
     Json(payload): Json<CreateCoffeeBeanRequest>,
 ) -> impl IntoResponse {
-    // Validate input
-    if let Err(validation_errors) = payload.validate() {
-        return (
-            StatusCode::BAD_REQUEST,
-            Json(ErrorResponse::with_details(
-                "Validation failed".to_string(),
-                vec![validation_errors_to_string(&validation_errors)],
-            )),
-        ).into_response();
-    }
-
-    // Business-rule validation (same rules as create): clear, named errors.
-    if let Err(e) = payload.validate_comprehensive() {
-        return (
-            StatusCode::BAD_REQUEST,
-            Json(ErrorResponse::new(e.to_string())),
-        ).into_response();
-    }
-    
+    // Validation (same rules as create) is owned by the service.
     let service = BeanService::new(&state.pool);
     
     match service.update_bean(id, payload).await {
@@ -148,10 +106,7 @@ async fn update_bean(
             StatusCode::NOT_FOUND,
             Json(ErrorResponse::new("Coffee bean not found".to_string())),
         ).into_response(),
-        Err(e) => (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ErrorResponse::new(format!("Failed to update bean: {}", e))),
-        ).into_response(),
+        Err(e) => write_error_response(e, "Failed to update bean"),
     }
 }
 
