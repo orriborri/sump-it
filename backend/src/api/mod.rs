@@ -5,8 +5,10 @@ mod beans;
 mod grinders;
 mod sessions;
 
-use axum::Router;
+use axum::{http::StatusCode, response::IntoResponse, Json, Router};
 use sqlx::PgPool;
+
+use crate::{models::ErrorResponse, services::WriteError};
 
 /// Application state shared across all routes.
 ///
@@ -26,4 +28,33 @@ pub fn router(pool: PgPool) -> Router {
         .nest("/grinders", grinders::router())
         .nest("/sessions", sessions::router())
         .with_state(state)
+}
+
+/// Maps a bean/grinder [`WriteError`] to its HTTP response. This is the single
+/// mapping site for those writes (mirroring `sessions::save_error_response`):
+///
+/// - `InvalidFields` -> `400` `{"error": "Validation failed", "details": [..]}`
+/// - `Rule` -> `400` `{"error": "<rule message>"}`
+/// - `Database` -> `500` `{"error": "<context>: <error>"}`
+pub(super) fn write_error_response(err: WriteError, context: &str) -> axum::response::Response {
+    match err {
+        WriteError::InvalidFields(details) => (
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse::with_details(
+                "Validation failed".to_string(),
+                vec![details],
+            )),
+        )
+            .into_response(),
+        WriteError::Rule(e) => (
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse::new(e.to_string())),
+        )
+            .into_response(),
+        WriteError::Database(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ErrorResponse::new(format!("{context}: {e}"))),
+        )
+            .into_response(),
+    }
 }

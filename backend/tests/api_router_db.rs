@@ -273,9 +273,10 @@ async fn grinder_validation_errors_through_router() {
     assert_eq!(body["error"], "Validation failed");
     assert!(body["details"].is_array());
 
-    // Domain setting-range failure (max <= min) -> 400. This hits
-    // `validate_grinder_request`'s second branch for both create and update.
-    let (status, _) = send(
+    // Domain setting-range failure (max <= min) -> 400 with the rule message.
+    // `GrinderService` rejects it (`WriteError::Rule`) on both create and
+    // update; `api::write_error_response` maps it to this body.
+    let (status, body) = send(
         &pool,
         "POST",
         "/grinders",
@@ -291,6 +292,13 @@ async fn grinder_validation_errors_through_router() {
     )
     .await;
     assert_eq!(status, StatusCode::BAD_REQUEST);
+    assert_eq!(
+        body,
+        json!({
+            "error": "Validation failed: Maximum setting (40) must be greater than minimum setting (40)",
+            "details": null
+        })
+    );
 
     let id = create_grinder(&pool).await;
     let (status, _) = send(
@@ -310,8 +318,8 @@ async fn grinder_validation_errors_through_router() {
     .await;
     assert_eq!(status, StatusCode::BAD_REQUEST);
 
-    // Update with an empty brand -> the derive-validation branch of
-    // `validate_grinder_request` on the update path.
+    // Update with an empty brand -> the service's derive-validation
+    // (`WriteError::InvalidFields`) on the update path.
     let (status, _) = send(
         &pool,
         "PUT",
@@ -442,10 +450,11 @@ async fn bean_validation_errors_through_router() {
     assert_eq!(status, StatusCode::BAD_REQUEST);
     assert_eq!(body["error"], "Validation failed");
 
-    // Business-rule failure (future roast date) -> 400 via
-    // `validate_comprehensive` on both create and update.
+    // Business-rule failure (future roast date) -> 400 with the rule message,
+    // rejected by `BeanService` via `validate_comprehensive` on both create
+    // and update.
     let future = (chrono::Utc::now().date_naive() + chrono::Duration::days(5)).to_string();
-    let (status, _) = send(
+    let (status, body) = send(
         &pool,
         "POST",
         "/beans",
@@ -461,6 +470,7 @@ async fn bean_validation_errors_through_router() {
     )
     .await;
     assert_eq!(status, StatusCode::BAD_REQUEST);
+    assert_eq!(body, json!({ "error": "Roast date cannot be in the future", "details": null }));
 
     let id = create_bean(&pool, Some(100.0)).await;
 
