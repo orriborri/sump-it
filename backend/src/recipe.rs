@@ -377,6 +377,15 @@ mod tests {
         ]
     }
 
+    /// Asserts `ok`, reporting `context` on failure. The context is an eagerly
+    /// built argument rather than lazy `assert!` format args, so a rustfmt line
+    /// break inside it cannot leave a never-executed line under the 100% line
+    /// coverage gate (see docs/coverage.md).
+    #[track_caller]
+    fn assert_ctx(ok: bool, context: String) {
+        assert!(ok, "{context}");
+    }
+
     #[test]
     fn every_method_accepts_a_valid_recipe() {
         let g = grinder(0, 40);
@@ -421,6 +430,8 @@ mod tests {
 
     #[test]
     fn ratio_boundaries_per_method() {
+        use ValidationErrorType::MethodCoffeeRatioInvalid;
+
         let g = grinder(0, 40);
         for method in all_methods() {
             let rules = rules_for(&method);
@@ -439,38 +450,34 @@ mod tests {
             // The in-band waters must also sit inside the water-amount range for
             // this assertion to isolate the ratio check; all chosen doses do.
             let low_ok = validate(valid_params(method.clone(), coffee, water_low_ok), &g);
-            assert!(
+            assert_ctx(
                 low_ok.is_ok(),
-                "{method:?}: ratio just above min should pass"
+                format!("{method:?}: ratio just above min should pass"),
             );
             let high_ok = validate(valid_params(method.clone(), coffee, water_high_ok), &g);
-            assert!(
+            assert_ctx(
                 high_ok.is_ok(),
-                "{method:?}: ratio just below max should pass"
+                format!("{method:?}: ratio just below max should pass"),
             );
 
             let below = validate(valid_params(method.clone(), coffee, water_low_bad), &g);
-            assert!(
-                matches!(
-                    below,
-                    Err(ValidationErrorType::MethodCoffeeRatioInvalid { .. })
-                ),
-                "{method:?}: ratio below min should fail with ratio error, got {below:?}"
+            assert_ctx(
+                matches!(below, Err(MethodCoffeeRatioInvalid { .. })),
+                format!("{method:?}: ratio below min should fail with ratio error, got {below:?}"),
             );
 
             let above = validate(valid_params(method.clone(), coffee, water_high_bad), &g);
-            assert!(
-                matches!(
-                    above,
-                    Err(ValidationErrorType::MethodCoffeeRatioInvalid { .. })
-                ),
-                "{method:?}: ratio above max should fail with ratio error, got {above:?}"
+            assert_ctx(
+                matches!(above, Err(MethodCoffeeRatioInvalid { .. })),
+                format!("{method:?}: ratio above max should fail with ratio error, got {above:?}"),
             );
         }
     }
 
     #[test]
     fn coffee_amount_boundaries_per_method() {
+        use ValidationErrorType::MethodCoffeeAmountInvalid;
+
         let g = grinder(0, 40);
         for method in all_methods() {
             let rules = rules_for(&method);
@@ -511,12 +518,9 @@ mod tests {
                 ),
                 &g,
             );
-            assert!(
-                matches!(
-                    under,
-                    Err(ValidationErrorType::MethodCoffeeAmountInvalid { .. })
-                ),
-                "{method:?}: coffee below min should fail, got {under:?}"
+            assert_ctx(
+                matches!(under, Err(MethodCoffeeAmountInvalid { .. })),
+                format!("{method:?}: coffee below min should fail, got {under:?}"),
             );
             let over = validate(
                 valid_params(
@@ -526,12 +530,9 @@ mod tests {
                 ),
                 &g,
             );
-            assert!(
-                matches!(
-                    over,
-                    Err(ValidationErrorType::MethodCoffeeAmountInvalid { .. })
-                ),
-                "{method:?}: coffee above max should fail, got {over:?}"
+            assert_ctx(
+                matches!(over, Err(MethodCoffeeAmountInvalid { .. })),
+                format!("{method:?}: coffee above max should fail, got {over:?}"),
             );
         }
     }
@@ -582,19 +583,17 @@ mod tests {
                 water_temp_celsius: Some(rules.water_temp_celsius.min),
                 ..valid_params(method.clone(), coffee, water)
             };
-            assert!(
+            assert_ctx(
                 validate(at_min, &g).is_ok(),
-                "{:?}: min temp should pass",
-                method
+                format!("{method:?}: min temp should pass"),
             );
             let at_max = BrewParams {
                 water_temp_celsius: Some(rules.water_temp_celsius.max),
                 ..valid_params(method.clone(), coffee, water)
             };
-            assert!(
+            assert_ctx(
                 validate(at_max, &g).is_ok(),
-                "{:?}: max temp should pass",
-                method
+                format!("{method:?}: max temp should pass"),
             );
 
             // Just outside fails with the temperature error.
@@ -620,10 +619,9 @@ mod tests {
                 water_temp_celsius: None,
                 ..valid_params(method.clone(), coffee, water)
             };
-            assert!(
+            assert_ctx(
                 validate(no_temp, &g).is_ok(),
-                "{:?}: absent temp should pass",
-                method
+                format!("{method:?}: absent temp should pass"),
             );
         }
     }
@@ -639,19 +637,17 @@ mod tests {
                 brew_time_seconds: Some(rules.brew_time_seconds.min),
                 ..valid_params(method.clone(), coffee, water)
             };
-            assert!(
+            assert_ctx(
                 validate(at_min, &g).is_ok(),
-                "{:?}: min time should pass",
-                method
+                format!("{method:?}: min time should pass"),
             );
             let at_max = BrewParams {
                 brew_time_seconds: Some(rules.brew_time_seconds.max),
                 ..valid_params(method.clone(), coffee, water)
             };
-            assert!(
+            assert_ctx(
                 validate(at_max, &g).is_ok(),
-                "{:?}: max time should pass",
-                method
+                format!("{method:?}: max time should pass"),
             );
 
             let too_short = BrewParams {
@@ -675,10 +671,9 @@ mod tests {
                 brew_time_seconds: None,
                 ..valid_params(method.clone(), coffee, water)
             };
-            assert!(
+            assert_ctx(
                 validate(no_time, &g).is_ok(),
-                "{:?}: absent time should pass",
-                method
+                format!("{method:?}: absent time should pass"),
             );
         }
     }
@@ -694,10 +689,9 @@ mod tests {
                 grind_setting: setting,
                 ..valid_params(BrewingMethod::V60, coffee, water)
             };
-            assert!(
+            assert_ctx(
                 validate(params, &g).is_ok(),
-                "setting {} should pass",
-                setting
+                format!("setting {setting} should pass"),
             );
         }
 
@@ -809,9 +803,9 @@ mod tests {
             // Highest achievable ratio: max water over min coffee.
             let max_ratio = r.water_grams.max / r.coffee_grams.min;
             // The achievable ratio window must overlap the method's ratio band.
-            assert!(
+            assert_ctx(
                 min_ratio <= r.ratio.max && max_ratio >= r.ratio.min,
-                "{method:?}: amount ranges cannot reach the ratio band"
+                format!("{method:?}: amount ranges cannot reach the ratio band"),
             );
             // Ranges must be well-formed.
             assert!(r.ratio.min <= r.ratio.max);
