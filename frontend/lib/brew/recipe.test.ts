@@ -8,6 +8,7 @@ import {
   formToSessionRequest,
   isEquipmentComplete,
   liveCoffeeRatio,
+  parseBrewingMethod,
   parseNumber,
   parseOptionalNumber,
   RATING_MAX,
@@ -94,7 +95,7 @@ describe('clampGrindSetting', () => {
   const grinder = { minSetting: 5, maxSetting: 30 };
 
   it('returns the value unchanged when no grinder is selected', () => {
-    expect(clampGrindSetting(999, undefined)).toBe(999);
+    expect(clampGrindSetting(999)).toBe(999);
   });
 
   it('clamps below the minimum up to the minimum', () => {
@@ -114,7 +115,7 @@ describe('clampGrindSetting', () => {
 
 describe('validateRating', () => {
   it('accepts an absent rating', () => {
-    expect(validateRating(undefined)).toBeNull();
+    expect(validateRating()).toBeNull();
   });
 
   it('accepts in-band 0.5-step ratings', () => {
@@ -177,6 +178,10 @@ describe('parseOptionalNumber', () => {
 });
 
 describe('formToSessionRequest', () => {
+  it('rejects a form without a selected brewing method', () => {
+    expect(() => formToSessionRequest(form())).toThrow('Choose a brewing method');
+  });
+
   it('maps numeric fields and collapses empty optionals to null', () => {
     const request = formToSessionRequest(
       form({
@@ -226,5 +231,18 @@ describe('formToSessionRequest', () => {
     expect(request.feedback).toBe('Balanced');
     // Whitespace-only suggestions collapse to null.
     expect(request.suggestions).toBeNull();
+  });
+});
+
+describe('parseBrewingMethod', () => {
+  it.each(BREWING_METHODS)('preserves $value through parsing and request creation', ({ value }) => {
+    const brewingMethod = parseBrewingMethod(value);
+    expect(brewingMethod).toBe(value);
+    expect(formToSessionRequest(form({ brewingMethod })).brewingMethod).toBe(value);
+  });
+
+  it('keeps blank and unknown values unselected', () => {
+    expect(parseBrewingMethod('')).toBe('');
+    expect(parseBrewingMethod('French Press')).toBe('');
   });
 });
