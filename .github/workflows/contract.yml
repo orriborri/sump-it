@@ -28,8 +28,8 @@ permissions:
 env:
   # Keep in sync with the Makefile's RUST_NIGHTLY default. cargo-llvm-cov needs
   # a nightly (for the `coverage_nightly` cfg / `#[coverage(off)]` and
-  # llvm-tools); this dated nightly compiles the full dependency tree (newer
-  # `nightly` currently fails to build sqlx-postgres 0.7.4). See docs/coverage.md.
+  # llvm-tools); this known-good dated nightly keeps coverage runs
+  # reproducible. See docs/coverage.md.
   RUST_NIGHTLY: nightly-2025-10-01
 
 jobs:
