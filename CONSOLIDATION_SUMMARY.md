@@ -14,7 +14,7 @@ coffee-brewer-consolidated/
 │   │   ├── services/         # Business logic layer
 │   │   ├── database/         # Database setup with PostgreSQL enums
 │   │   └── validation/       # Combined validation from all three apps
-│   ├── prisma/               # Database schema with constraints
+│   ├── migrations/           # SQLx migrations (database schema source of truth)
 │   └── Cargo.toml
 │
 ├── frontend/                  # Next.js 15 frontend
@@ -44,7 +44,7 @@ coffee-brewer-consolidated/
 - **Bean inventory management**: Automatic quantity tracking and decrementing
 - **Session filtering**: Advanced filtering by origin, date ranges, ratings
 - **Session duplication**: Easy reproduction of successful brews
-- **Database constraints**: CHECK constraints for ratio validation (15.0-17.0)
+- **Recipe validation**: Per-method ratio, dose, water weight, temperature, and brew-time bands in `rules_for` (`backend/src/recipe.rs`); the database retains method-invariant CHECK constraints
 
 ### ✅ Preserved from BeanIt
 - **Type safety**: Full TypeScript/Rust type safety throughout
@@ -61,13 +61,13 @@ coffee-brewer-consolidated/
 - **Comprehensive validation** combining regex patterns, domain constraints, and business rules
 - **Connection pooling** for efficient database access
 - **Proper error handling** with detailed error responses
-- **Database migrations** with PostgreSQL enums and CHECK constraints
+- **SQLx migrations** in `backend/migrations/` are the sole database schema source of truth, including PostgreSQL enums and CHECK constraints
 
 ### Frontend (Next.js 15)
 - **App Router** for modern routing
 - **Material-UI** with custom coffee theme
 - **React Query** for data fetching and caching
-- **Thin typed fetch client** using ts-rs-generated types
+- **Thin typed REST client** wrapping `fetch` with ts-rs-generated types (`frontend/lib/trpc/client.ts`; the directory name is historical, with no tRPC server or router)
 - **Vertical stepper component** preserved from sump-it
 - **Responsive design** for all device sizes
 
