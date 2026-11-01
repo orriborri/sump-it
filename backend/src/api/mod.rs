@@ -36,7 +36,7 @@ pub fn router(pool: PgPool) -> Router {
 /// - `InvalidFields` -> `400` `{"error": "Validation failed", "details": [..]}`
 /// - `Rule` -> `400` `{"error": "<rule message>"}`
 /// - `Database` -> `500` `{"error": "<context>: <error>"}`
-fn write_error_response(err: WriteError, context: &str) -> axum::response::Response {
+pub(super) fn write_error_response(err: WriteError, context: &str) -> axum::response::Response {
     match err {
         WriteError::InvalidFields(details) => (
             StatusCode::BAD_REQUEST,

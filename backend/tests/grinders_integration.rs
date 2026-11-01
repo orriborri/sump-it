@@ -328,6 +328,11 @@ async fn schema_rejects_max_not_greater_than_min() {
         raw_insert_sqlstate(&pool, 40, 40).await.as_deref(),
         Some("23514")
     );
+    assert_eq!(
+        raw_insert_sqlstate(&pool, 5, 3).await.as_deref(),
+        Some("23514"),
+        "max < min should violate CHECK"
+    );
     assert_eq!(raw_insert_sqlstate(&pool, 0, 40).await, None);
 }
 
