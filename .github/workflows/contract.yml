@@ -33,6 +33,39 @@ env:
   RUST_NIGHTLY: nightly-2025-10-01
 
 jobs:
+  instruction-log:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Require an instruction-log update
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if [ ! -s docs/instruction-log.md ]; then
+            echo "::error::The instruction log must exist and contain entries."
+            exit 1
+          fi
+          changed=$(git diff --name-only "$BASE_SHA...$HEAD_SHA" -- docs/instruction-log.md)
+          if [ -z "$changed" ]; then
+            echo "::error::Update docs/instruction-log.md with the request and relevant clarifications."
+            exit 1
+          fi
+          if git cat-file -e "$BASE_SHA:docs/instruction-log.md" 2>/dev/null; then
+            previous_log=$(mktemp)
+            trap 'rm -f "$previous_log"' EXIT
+            git show "$BASE_SHA:docs/instruction-log.md" > "$previous_log"
+            previous_size=$(wc -c < "$previous_log")
+            current_size=$(wc -c < docs/instruction-log.md)
+            if [ "$current_size" -le "$previous_size" ] || ! cmp -n "$previous_size" "$previous_log" docs/instruction-log.md; then
+              echo "::error::Preserve existing instruction-log entries and append new ones."
+              exit 1
+            fi
+          fi
+
   # US38: the generated TS contract stays fresh and the frontend type-checks.
   contract:
     runs-on: ubuntu-latest
@@ -74,6 +107,10 @@ jobs:
       - name: Strict frontend type-check
         working-directory: frontend
         run: npx tsc --noEmit
+
+      - name: Check frontend dependency cycles
+        working-directory: frontend
+        run: npm run check:dependencies
 
   # US43 + US45: the whole backend at 100% line coverage against a real Postgres.
   # Mirrors `make coverage-backend` (and thus `make coverage`).
