@@ -34,13 +34,27 @@ jobs:
               ['git', 'diff', '--no-renames', '--name-only', '-z',
                '--diff-filter=ACMRTD',
                f"{os.environ['BASE_SHA']}...{os.environ['HEAD_SHA']}", '--',
-               ':(glob)docs/adr/*.md', ':(exclude)docs/adr/README.md'],
+               ':(glob)docs/adr/**', ':(exclude)docs/adr/README.md'],
               check=True, stdout=subprocess.PIPE,
           )
-          changed = set(result.stdout.decode('utf-8').split('\0')) - {''}
+          changed = {path for path in result.stdout.decode('utf-8').split('\0')
+                     if path.lower().endswith('.md')}
           adr_path_pattern = r'docs/adr/[0-9]{4}-[a-z0-9]+(?:-[a-z0-9]+)*\.md'
           if any(not re.fullmatch(adr_path_pattern, path) for path in changed):
               fail('ADR files must use docs/adr/0001-short-title.md; README.md is reserved for guidance.')
+          numbers = set()
+          for file in Path('docs/adr').rglob('*'):
+              if not file.is_file() or file.suffix.lower() != '.md':
+                  continue
+              path = file.as_posix()
+              if path == 'docs/adr/README.md':
+                  continue
+              if not re.fullmatch(adr_path_pattern, path):
+                  fail('ADR Markdown files must be numbered and stored directly under docs/adr/.')
+              number = file.name[:4]
+              if number in numbers:
+                  fail(f'ADR number {number} is used more than once.')
+              numbers.add(number)
           assessments = [line for line in os.environ.get('PR_BODY', '').splitlines()
                          if line.startswith('ADR:')]
           if not assessments:

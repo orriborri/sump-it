@@ -10,11 +10,12 @@ for example, changes to module boundaries, data ownership, interfaces,
 technology, or deployment. A routine change that follows existing decisions
 does not need a new ADR.
 
-Use one file per decision with four digits, a hyphen, then a lowercase name made
-of letters or digits separated by single hyphens, for example
-`0001-short-title.md`. Apart from this README, Markdown files in `docs/adr/`
-follow that naming rule. Use a short MADR-inspired format with the following
-exact headings so CI can check it:
+Use one file per decision with four digits, a hyphen, then a name made of ASCII
+lowercase letters (`a`–`z`) or digits separated by single hyphens, for example
+`0001-short-title.md`. Apart from this README, Markdown files under `docs/adr/`
+must be direct children of that directory and follow that naming rule. Each
+four-digit number must be unique. Use a short MADR-inspired format with the
+following exact headings so CI can check it:
 
 ```markdown
 # 0001: Decision title
