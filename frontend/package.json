@@ -11,6 +11,7 @@
     "type-check": "tsc --noEmit",
     "generate-types": "cd ../backend && cargo test export_bindings",
     "check-types-fresh": "npm run generate-types && git diff --exit-code -- lib/generated",
+    "check:dependencies": "depcruise --config .dependency-cruiser.cjs app lib",
     "test": "vitest run",
     "test:watch": "vitest",
     "coverage": "vitest run --coverage"
@@ -34,6 +35,7 @@
     "@types/react-dom": "^18.2.0",
     "@vitest/coverage-v8": "^4.1.11",
     "autoprefixer": "^10.0.0",
+    "dependency-cruiser": "16.10.4",
     "eslint": "^8.0.0",
     "eslint-config-next": "15.0.0",
     "jsdom": "^25.0.1",

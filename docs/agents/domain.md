@@ -9,7 +9,8 @@ This repository uses a single-context documentation approach.
 3. **`docs/` directory** - Additional documentation
 
 ### Domain-Specific Files
-- **Architecture decisions**: Recorded in code comments and README
+- **Architecture decisions**: Follow the [ADR workflow](../adr/README.md) and
+  record significant decisions in `docs/adr/`.
 - **API documentation**: Inline in Rust/TypeScript code
 - **Configuration**: `.env.example`, `docker-compose.yml`
 

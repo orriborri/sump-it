@@ -1,0 +1,99 @@
+name: ADR assessment
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+
+permissions:
+  contents: read
+
+jobs:
+  adr-assessment:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check architecture-decision assessment
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          python3 - <<'PY'
+          import os
+          import re
+          import subprocess
+          from pathlib import Path
+
+          def fail(message):
+              print(f'::error::{message}')
+              raise SystemExit(1)
+
+          result = subprocess.run(
+              ['git', 'diff', '--no-renames', '--name-only', '-z',
+               '--diff-filter=ACMRTD',
+               f"{os.environ['BASE_SHA']}...{os.environ['HEAD_SHA']}", '--',
+               ':(glob)docs/adr/**', ':(exclude)docs/adr/README.md'],
+              check=True, stdout=subprocess.PIPE,
+          )
+          changed = {path for path in result.stdout.decode('utf-8').split('\0')
+                     if path.lower().endswith('.md')}
+          adr_path_pattern = r'docs/adr/[0-9]{4}-[a-z0-9]+(?:-[a-z0-9]+)*\.md'
+          if any(not re.fullmatch(adr_path_pattern, path) for path in changed):
+              fail('ADR files must use docs/adr/0001-short-title.md; README.md is reserved for guidance.')
+          numbers = set()
+          for file in Path('docs/adr').rglob('*'):
+              if not file.is_file() or file.suffix.lower() != '.md':
+                  continue
+              path = file.as_posix()
+              if path == 'docs/adr/README.md':
+                  continue
+              if not re.fullmatch(adr_path_pattern, path):
+                  fail('ADR Markdown files must be numbered and stored directly under docs/adr/.')
+              number = file.name[:4]
+              if number in numbers:
+                  fail(f'ADR number {number} is used more than once.')
+              numbers.add(number)
+          assessments = [line for line in os.environ.get('PR_BODY', '').splitlines()
+                         if line.startswith('ADR:')]
+          if not assessments:
+              fail('Provide an ADR assessment in the pull request description.')
+
+          paths = set()
+          for assessment in assessments:
+              if assessment.startswith('ADR: none - '):
+                  reason = assessment.removeprefix('ADR: none - ').strip()
+                  if len(assessments) != 1 or changed:
+                      fail('An ADR: none assessment cannot accompany ADR references or changed ADRs.')
+                  if len(reason) < 8 or not reason[0].isalnum():
+                      fail('Explain why no ADR is needed in at least eight characters.')
+                  continue
+              match = re.fullmatch(rf'ADR: ({adr_path_pattern})', assessment)
+              if not match:
+                  fail('Use ADR: docs/adr/0001-short-title.md or ADR: none - a reason.')
+              paths.add(match.group(1))
+
+          missing = changed - paths
+          if missing:
+              fail('Every changed numbered ADR must be referenced in the pull request.')
+
+          required_sections = ('Context', 'Options considered', 'Decision', 'Consequences', 'Verification')
+          for path in sorted(paths):
+              file = Path(path)
+              if not file.is_file() or not file.stat().st_size:
+                  fail(f'The referenced ADR must exist and be nonempty: {path}')
+              text = re.sub(r'<!--.*?-->', '', file.read_text(encoding='utf-8'), flags=re.S)
+              active = re.search(r'^- Status: (Proposed|Accepted)$', text, re.I | re.M)
+              retired = re.search(r'^- Status: (Deprecated|Superseded by \S.+)$', text, re.I | re.M)
+              if not active and not (path in changed and retired):
+                  fail(f'ADR must be Proposed or Accepted; changed records may be retired: {path}')
+              headings = list(re.finditer(r'^## ([^\n]+?)[ \t]*$', text, re.M))
+              sections = {}
+              for i, heading in enumerate(headings):
+                  end = headings[i + 1].start() if i + 1 < len(headings) else len(text)
+                  sections[heading.group(1)] = text[heading.end():end].strip()
+              for section in required_sections:
+                  if not sections.get(section):
+                      fail(f'The referenced ADR needs a nonempty {section} section: {path}')
+          PY
