@@ -71,6 +71,11 @@ Only method-invariant checks stay global:
 - **CLI**: `gh` for GitHub operations
 
 ## Development Guidelines
+Follow [`docs/engineering-practices.md`](docs/engineering-practices.md) for
+every change, including the red → green → refactor loop, feature organization,
+one commit per step, and the instruction log. These project instructions take
+precedence over conflicting sequencing in a bundled skill.
+
 1. **Start with `grill-me`** for requirements alignment
 2. **Use `tdd`** for test-driven development
 3. **Apply `code-review`** before committing

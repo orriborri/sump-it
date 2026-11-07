@@ -71,6 +71,11 @@ This repository has Matt Pocock's complete skill set installed (38 skills) inclu
 - Triage labels: Standard GitHub + custom labels
 
 ## Code Style Guidelines
+Follow [`docs/engineering-practices.md`](docs/engineering-practices.md) for
+each change, including the instruction log, red → green → refactor loop,
+feature organization, and one commit per step. These project instructions take
+precedence over conflicting sequencing in a bundled skill.
+
 - **TypeScript**: Strict mode, explicit types, no `any`
 - **Rust**: Clippy clean, proper error handling
 - **SQL**: Use migrations, proper indexes, constraints
