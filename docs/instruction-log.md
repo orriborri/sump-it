@@ -40,3 +40,15 @@ The screenshot asks for:
 [frontend dependency rules](../frontend/.dependency-cruiser.cjs), and the
 [CI workflow](../.github/workflows/contract.yml), as well as the pull request
 containing this entry.
+
+## 2026-11-07 — ADR workflow
+
+**Source:** User requests in this conversation.
+
+**Requests:** “Should we document changes in adr under a docs adr? Is there any
+good standards” and “Add this as a skill and somehow enforce it”.
+
+**Implementation:** Use a reusable architecture-decision skill and the
+[ADR workflow](adr/README.md), with a pull-request assessment checked in CI.
+The first proposed decision records [feature-oriented modules and acyclic
+dependencies](adr/0001-feature-modules-and-acyclic-dependencies.md).

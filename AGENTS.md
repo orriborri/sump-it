@@ -76,6 +76,12 @@ every change, including the red → green → refactor loop, feature organizatio
 one commit per step, and the instruction log. These project instructions take
 precedence over conflicting sequencing in a bundled skill.
 
+For every change, follow [`docs/adr/README.md`](docs/adr/README.md): review
+relevant decisions, record significant new ones, and assess the need for an ADR
+in the pull request. Use the `record-architecture-decisions` skill when it is
+available; the repository workflow also applies when that personal skill is not.
+The project ADR workflow overrides conflicting ADR guidance in bundled skills.
+
 1. **Start with `grill-me`** for requirements alignment
 2. **Use `tdd`** for test-driven development
 3. **Apply `code-review`** before committing

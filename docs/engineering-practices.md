@@ -53,6 +53,9 @@ by this check. Because existing frontend features can span multiple folders,
 folder-level cycle detection can also miss cycles between logical features.
 Review those dependencies until the affected code is colocated.
 
+Review relevant [architecture decisions](adr/README.md) for each change and
+record significant new or changed decisions there.
+
 ## Commits and reviews
 
 Make one commit per small, coherent step so the step can be reviewed or reverted

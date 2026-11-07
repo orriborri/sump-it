@@ -5,6 +5,9 @@ For every change, follow the repository's
 instruction log and red → green → refactor sequence. Those practices take
 precedence over conflicting sequencing in a bundled skill.
 
+Review and record architecture decisions using the
+[ADR workflow](../../docs/adr/README.md) for every change.
+
 ## Ticket Implementation Policy
 All tickets (GitHub issues) MUST be implemented using the `/implement-spec` skill.
 
