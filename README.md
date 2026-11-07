@@ -160,6 +160,9 @@ The database schema is defined solely by the SQLx migrations in `backend/migrati
 
 ## 🔄 Development Workflow
 
+See [engineering practices](docs/engineering-practices.md) for behavior-first
+development, feature organization, commits, and the instruction log.
+
 1. **Type Safety**: All changes automatically validated by TypeScript and Rust
 2. **Typed Contract**: End-to-end type safety between frontend and backend via ts-rs-generated types consumed by a thin typed fetch client
 3. **Auto-generation**: TypeScript types generated from Rust models

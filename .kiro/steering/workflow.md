@@ -1,5 +1,10 @@
 # Coffee Brewer - Ticket Implementation Workflow
 
+For every change, follow the repository's
+[engineering practices](../../docs/engineering-practices.md), including its
+instruction log and red → green → refactor sequence. Those practices take
+precedence over conflicting sequencing in a bundled skill.
+
 ## Ticket Implementation Policy
 All tickets (GitHub issues) MUST be implemented using the `/implement-spec` skill.
 
