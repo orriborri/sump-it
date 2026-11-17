@@ -31,6 +31,7 @@
 use sqlx::postgres::PgPoolOptions;
 use sqlx::PgPool;
 use uuid::Uuid;
+use coffee_brewer_backend::pagination::Pagination;
 
 // Use the models from the library crate.
 use coffee_brewer_backend::models::{CreateGrinderRequest, GrinderType};
@@ -200,7 +201,7 @@ async fn list_grinders_is_newest_first_with_paging() {
     // `COUNT(*)` total to check the reassembled pages against.
     const LIMIT: i32 = 2;
     let (page1, total) = service
-        .list_grinders(Some(1), Some(LIMIT))
+        .list_grinders(Pagination::from_page(Some(1), Some(LIMIT)))
         .await
         .expect("list grinders");
     assert!(total >= 3, "total counts at least this test's three rows");
@@ -214,7 +215,7 @@ async fn list_grinders_is_newest_first_with_paging() {
     let mut all_ids: Vec<Uuid> = page1.iter().map(|g| g.id).collect();
     for page in 2..=pages {
         let (rows, page_total) = service
-            .list_grinders(Some(page), Some(LIMIT))
+            .list_grinders(Pagination::from_page(Some(page), Some(LIMIT)))
             .await
             .expect("list grinders page");
         assert_eq!(page_total, total, "COUNT(*) total is stable across pages");

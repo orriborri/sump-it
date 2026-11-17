@@ -26,18 +26,10 @@ impl<'a> GrinderService<'a> {
     /// List grinders with pagination, newest first.
     pub async fn list_grinders(
         &self,
-        page: Option<i32>,
-        limit: Option<i32>,
+        pagination: crate::pagination::Pagination,
     ) -> Result<(Vec<Grinder>, i64)> {
-        // Clamp through the single source of truth (`crate::pagination`) rather
-        // than hand-written literals, so the policy (DEFAULT_LIMIT=50,
-        // MAX_LIMIT=100) can never silently drift from the module the handler
-        // uses to derive page_size/has_more. The handler already passes
-        // normalized values, so this call is idempotent; keeping it means the
-        // SQL window stays correct even if the service is called with raw values.
-        let pagination = crate::pagination::Pagination::from_page(page, limit);
-        let limit = pagination.limit;
-        let offset = pagination.offset;
+        let limit = pagination.page_size();
+        let offset = pagination.offset();
 
         let total: i64 = sqlx::query_scalar(r#"SELECT COUNT(*) FROM grinders"#)
             .fetch_one(self.pool)

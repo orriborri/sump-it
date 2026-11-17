@@ -41,7 +41,7 @@ async fn list_grinders(
     // (even for limit=0, negative, or >100).
     let pagination = Pagination::from_page(params.page, params.limit);
     match service
-        .list_grinders(Some(pagination.page), Some(pagination.limit))
+        .list_grinders(pagination)
         .await
     {
         Ok((grinders, total)) => Json(PaginatedResponse {

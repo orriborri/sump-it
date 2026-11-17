@@ -1,4 +1,4 @@
-//! Pure, DB-free pagination normalization and response metadata (ticket #167).
+//! Shared pagination normalization and response metadata.
 //!
 //! This module is the SINGLE source of truth for how the list endpoints clamp
 //! pagination inputs and derive the response metadata (`page`, `page_size`,
@@ -47,11 +47,11 @@ pub fn normalize_offset(offset: Option<i32>) -> i32 {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Pagination {
     /// 1-based page number (always `>= 1`).
-    pub page: i32,
+    page: i32,
     /// Page size, clamped to `[1, MAX_LIMIT]`.
-    pub limit: i32,
+    limit: i32,
     /// Row offset, floored to `>= 0`.
-    pub offset: i32,
+    offset: i32,
 }
 
 impl Pagination {
@@ -65,8 +65,7 @@ impl Pagination {
         // OFFSET is represented as i32 throughout the request model. Clamp the
         // effective page before multiplying so even i32::MAX input stays total
         // and can never wrap into a negative SQL offset.
-        let max_page = (i64::from(i32::MAX) / i64::from(limit) + 1)
-            .min(i64::from(i32::MAX)) as i32;
+        let max_page = (i64::from(i32::MAX) / i64::from(limit) + 1).min(i64::from(i32::MAX)) as i32;
         let page = requested_page.min(max_page);
         let offset = (page - 1) * limit;
         Self {
@@ -83,22 +82,20 @@ impl Pagination {
     /// derived from the resolved offset/limit so the metadata is internally
     /// consistent regardless of which input style the client used.
     pub fn from_offset(limit: Option<i32>, offset: Option<i32>, page: Option<i32>) -> Self {
-        let limit = normalize_limit(limit);
-        let offset = match (offset, page) {
-            (Some(offset), _) => offset.max(0),
-            (None, Some(page)) => {
-                let max_page = (i64::from(i32::MAX) / i64::from(limit) + 1)
-                    .min(i64::from(i32::MAX)) as i32;
-                let page = page.clamp(1, max_page);
-                (page - 1) * limit
+        match offset {
+            Some(offset) => {
+                let limit = normalize_limit(limit);
+                let offset = normalize_offset(Some(offset));
+                // The final i32 offset at limit=1 corresponds to page 2^31.
+                // Keep the exact SQL offset and saturate only the page label.
+                let page = (offset / limit).saturating_add(1);
+                Self {
+                    page,
+                    limit,
+                    offset,
+                }
             }
-            (None, None) => 0,
-        };
-        let page = offset / limit + 1;
-        Self {
-            page,
-            limit,
-            offset,
+            None => Self::from_page(page, limit),
         }
     }
 
@@ -110,6 +107,11 @@ impl Pagination {
     /// Normalized 1-based page number for the response.
     pub fn page(&self) -> i32 {
         self.page
+    }
+
+    /// Normalized row offset for the SQL query.
+    pub fn offset(&self) -> i32 {
+        self.offset
     }
 
     /// Whether more rows exist beyond the current window, given the total match
@@ -196,6 +198,15 @@ mod tests {
     }
 
     #[test]
+    fn maximum_offset_with_minimum_limit_does_not_overflow() {
+        let p = Pagination::from_offset(Some(1), Some(i32::MAX), None);
+        assert_eq!(p.offset, i32::MAX);
+        assert_eq!(p.page(), i32::MAX);
+        assert!(!p.has_more(2_147_483_648));
+        assert!(p.has_more(2_147_483_649));
+    }
+
+    #[test]
     fn from_offset_defaults() {
         let p = Pagination::from_offset(None, None, None);
         assert_eq!(p.page, 1);
@@ -264,6 +275,27 @@ mod tests {
         assert!(p.has_more(21));
         // Zero total never has more.
         assert!(!Pagination::from_page(None, None).has_more(0));
+    }
+
+    #[test]
+    fn normalized_metadata_is_consistent_for_page_and_offset_requests() {
+        for (raw_limit, expected_size, expected_offset) in [
+            (0, 1, 1),
+            (-5, 1, 1),
+            (101, 100, 100),
+            (i32::MIN, 1, 1),
+            (i32::MAX, 100, 100),
+        ] {
+            let by_page = Pagination::from_page(Some(2), Some(raw_limit));
+            let by_offset =
+                Pagination::from_offset(Some(raw_limit), Some(expected_offset), Some(99));
+            assert_eq!(by_page, by_offset);
+            assert_eq!(by_page.page(), 2);
+            assert_eq!(by_page.page_size(), expected_size);
+            let end = i64::from(expected_offset + expected_size);
+            assert!(!by_page.has_more(end));
+            assert!(by_page.has_more(end + 1));
+        }
     }
 
     #[test]
