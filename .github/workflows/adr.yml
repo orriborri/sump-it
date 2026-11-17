@@ -19,6 +19,7 @@ jobs:
           PR_BODY: ${{ github.event.pull_request.body }}
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
         run: |
           python3 - <<'PY'
           import os
@@ -37,8 +38,8 @@ jobs:
                ':(glob)docs/adr/**', ':(exclude)docs/adr/README.md'],
               check=True, stdout=subprocess.PIPE,
           )
-          changed = {path for path in result.stdout.decode('utf-8').split('\0')
-                     if path.lower().endswith('.md')}
+          changed_paths = {path for path in result.stdout.decode('utf-8').split('\0') if path}
+          changed = {path for path in changed_paths if path.lower().endswith('.md')}
           adr_path_pattern = r'docs/adr/[0-9]{4}-[a-z0-9]+(?:-[a-z0-9]+)*\.md'
           if any(not re.fullmatch(adr_path_pattern, path) for path in changed):
               fail('ADR files must use docs/adr/0001-short-title.md; README.md is reserved for guidance.')
@@ -55,6 +56,14 @@ jobs:
               if number in numbers:
                   fail(f'ADR number {number} is used more than once.')
               numbers.add(number)
+          # Dependency-bot PRs normally have no ADR assessment in their body.
+          # Allow them only when they do not change ADR files; still validate the
+          # repository's existing ADR naming and numbering above.
+          if (os.environ.get('PR_AUTHOR') == 'dependabot[bot]'
+                  and not changed_paths):
+              print('Dependabot PR does not modify ADR files; assessment is not required.')
+              raise SystemExit(0)
+
           assessments = [line for line in os.environ.get('PR_BODY', '').splitlines()
                          if line.startswith('ADR:')]
           if not assessments:

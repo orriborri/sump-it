@@ -52,3 +52,16 @@ good standards” and “Add this as a skill and somehow enforce it”.
 [ADR workflow](adr/README.md), with a pull-request assessment checked in CI.
 The first proposed decision records [feature-oriented modules and acyclic
 dependencies](adr/0001-feature-modules-and-acyclic-dependencies.md).
+
+## 2026-11-17 — Dependabot ADR assessment
+
+**Source:** Independent review of this pull request.
+
+**Finding:** Dependabot PRs generally do not include an `ADR:` line, so the ADR
+workflow would fail them even when they do not modify architecture decisions.
+
+**Decision:** Skip only the PR-body assessment for Dependabot PRs that make no
+ADR changes. Preserve ADR path/numbering validation and require the normal
+assessment whenever an ADR file changes.
+
+**Implementation:** Updated the ADR workflow in this pull request.
