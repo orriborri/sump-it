@@ -12,7 +12,8 @@ use tracing::info;
 #[cfg_attr(coverage_nightly, coverage(off))]
 /// Initialize database connection pool and apply pending migrations.
 pub async fn init_pool() -> Result<PgPool> {
-    let database_url = std::env::var("DATABASE_URL").context("DATABASE_URL must be set")?;
+    const DATABASE_URL: &str = "DATABASE_URL";
+    let database_url = std::env::var(DATABASE_URL).context("DATABASE_URL must be set")?;
 
     info!("Connecting to database...");
 

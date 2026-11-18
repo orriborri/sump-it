@@ -129,3 +129,6 @@ in the contract job without weakening coverage.
 **Integration:** Move the PR from the superseded #206 branch to `main`. Run
 rustfmt on current sources, retain the recipe assertions and coverage threshold,
 and leave the service validation and dependency upgrades already on `main` intact.
+Use a named constant for the runtime `DATABASE_URL` lookup after rustfmt surfaced
+the existing string literal in DeepSource. Keep the variable and error message
+unchanged.
