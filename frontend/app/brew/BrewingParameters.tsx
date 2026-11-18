@@ -8,7 +8,7 @@
 'use client';
 
 import React from 'react';
-import { Alert, Box, Grid, InputAdornment, TextField, Typography } from '@mui/material';
+import { Alert, Box, Grid2, InputAdornment, TextField, Typography } from '@mui/material';
 import type { BrewingSession, Grinder } from '@/lib/api/types';
 import {
   clampGrindSetting,
@@ -62,8 +62,8 @@ export function BrewingParameters({
         Brewing Parameters
       </Typography>
 
-      <Grid container spacing={3}>
-        <Grid item xs={12} sm={6}>
+      <Grid2 container spacing={3}>
+        <Grid2 size={{ xs: 12, sm: 6 }}>
           <TextField
             label="Coffee"
             type="number"
@@ -72,8 +72,8 @@ export function BrewingParameters({
             onChange={(e) => updateFormData({ coffeeGrams: parseNumber(e.target.value) })}
             InputProps={{ endAdornment: <InputAdornment position="end">g</InputAdornment> }}
           />
-        </Grid>
-        <Grid item xs={12} sm={6}>
+        </Grid2>
+        <Grid2 size={{ xs: 12, sm: 6 }}>
           <TextField
             label="Water"
             type="number"
@@ -82,9 +82,9 @@ export function BrewingParameters({
             onChange={(e) => updateFormData({ waterGrams: parseNumber(e.target.value) })}
             InputProps={{ endAdornment: <InputAdornment position="end">g</InputAdornment> }}
           />
-        </Grid>
+        </Grid2>
 
-        <Grid item xs={12} sm={6}>
+        <Grid2 size={{ xs: 12, sm: 6 }}>
           <TextField
             label="Grind setting"
             type="number"
@@ -98,8 +98,8 @@ export function BrewingParameters({
                 : {}
             }
           />
-        </Grid>
-        <Grid item xs={12} sm={6}>
+        </Grid2>
+        <Grid2 size={{ xs: 12, sm: 6 }}>
           <TextField
             label="Water temperature"
             type="number"
@@ -108,8 +108,8 @@ export function BrewingParameters({
             onChange={(e) => updateFormData({ waterTempCelsius: parseOptionalNumber(e.target.value) })}
             InputProps={{ endAdornment: <InputAdornment position="end">°C</InputAdornment> }}
           />
-        </Grid>
-        <Grid item xs={12} sm={6}>
+        </Grid2>
+        <Grid2 size={{ xs: 12, sm: 6 }}>
           <TextField
             label="Brew time"
             type="number"
@@ -118,8 +118,8 @@ export function BrewingParameters({
             onChange={(e) => updateFormData({ brewTimeSeconds: parseOptionalNumber(e.target.value) })}
             InputProps={{ endAdornment: <InputAdornment position="end">s</InputAdornment> }}
           />
-        </Grid>
-      </Grid>
+        </Grid2>
+      </Grid2>
 
       {/* Live coffee ratio, recomputed as coffee/water change. */}
       <Box sx={{ mt: 3, p: 2, bgcolor: '#F5F5F5', borderRadius: 1 }}>

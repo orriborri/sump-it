@@ -14,7 +14,7 @@
 - **State Management**: React Query for server state
 - **Styling**: Emotion with CSS-in-JS
 - **Form Handling**: React Hook Form with Zod validation
-- **API Client**: Thin typed fetch client (`lib/trpc/client.ts`) using ts-rs-generated types
+- **API Client**: Thin typed REST client (`lib/trpc/client.ts`) wrapping `fetch` with ts-rs-generated types; `trpc/` is a historical directory name, with no tRPC server or router
 
 ## Backend Stack
 - **Language**: Rust 2021 edition
@@ -30,7 +30,7 @@
 - **Features**: Custom enum types, CHECK constraints, generated columns
 - **Constraints**: Data integrity validation at database level
 - **Indexing**: Optimized for common query patterns
-- **Migrations**: SQLx migrations with version control
+- **Migrations**: Versioned SQLx SQL migrations in `backend/migrations/` are the sole database schema source of truth
 
 ## Development Tools
 - **Version Control**: Git with conventional commits

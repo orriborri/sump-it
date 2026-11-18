@@ -9,7 +9,8 @@ This repository uses a single-context documentation approach.
 3. **`docs/` directory** - Additional documentation
 
 ### Domain-Specific Files
-- **Architecture decisions**: Recorded in code comments and README
+- **Architecture decisions**: Follow the [ADR workflow](../adr/README.md) and
+  record significant decisions in `docs/adr/`.
 - **API documentation**: Inline in Rust/TypeScript code
 - **Configuration**: `.env.example`, `docker-compose.yml`
 
@@ -31,4 +32,4 @@ This is a consolidated coffee brewing application that combines three separate r
 - Brewing sessions with comprehensive parameters
 - Brewing methods (V60, Chemex, French Press, etc.)
 - Feedback and tasting notes
-- Coffee-to-water ratio validation (15.0-17.0)
+- Per-method recipe bands for water:coffee ratio, coffee dose, water weight, temperature, and brew time; `rules_for` in `backend/src/recipe.rs` is the single source of truth

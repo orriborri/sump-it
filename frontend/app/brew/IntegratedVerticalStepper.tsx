@@ -11,7 +11,7 @@ import {
   Paper,
   Collapse,
 } from '@mui/material';
-import { Check } from '@mui/icons-material';
+import Check from '@mui/icons-material/Check';
 
 /** Props for {@link IntegratedVerticalStepper}. */
 interface IntegratedVerticalStepperProps {

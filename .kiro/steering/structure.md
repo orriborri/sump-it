@@ -13,7 +13,7 @@ coffee-brewer-consolidated/
 │   │   ├── services/       # Business logic layer
 │   │   ├── database/       # Database operations
 │   │   └── validation/     # Comprehensive validation logic
-│   ├── prisma/             # Database schema and migrations
+│   ├── migrations/         # SQLx migrations (database schema source of truth)
 │   └── Cargo.toml
 ├── frontend/                # Next.js 15 frontend
 │   ├── app/
@@ -60,6 +60,10 @@ Vertical stepper UI components (from original sump-it):
 
 ## Module Boundaries
 
+The following describes the current layout. For new and changed code, follow
+the feature-placement and dependency rules in
+[engineering practices](../../docs/engineering-practices.md).
+
 ### Frontend Modules
 1. **Brewing Workflow** (`app/brew/`) - Core brewing interface
 2. **Inventory Management** (`app/beans/`, `app/grinders/`) - Equipment tracking
@@ -74,7 +78,7 @@ Vertical stepper UI components (from original sump-it):
 
 ## Data Flow
 1. User interacts with vertical stepper in frontend
-2. Frontend makes type-safe API calls to backend
+2. Frontend calls the Axum REST API through `frontend/lib/trpc/client.ts`, a thin `fetch` wrapper using ts-rs-generated types (the `trpc/` name is historical; there is no tRPC server or router)
 3. Backend validates input using comprehensive validation
 4. Business logic executes with proper error handling
 5. Data persisted to PostgreSQL with constraints
@@ -82,7 +86,7 @@ Vertical stepper UI components (from original sump-it):
 
 ## Configuration Files
 - **Environment**: `.env` (created from `.env.example`)
-- **Database**: `backend/prisma/schema.prisma`
+- **Database**: `backend/migrations/` (SQLx SQL migrations; sole database schema source of truth)
 - **Dependencies**: `package.json`, `Cargo.toml`
 - **Development**: `docker-compose.yml`
 - **Documentation**: `CLAUDE.md`, `GLOSSARY.md`, `CONSOLIDATION_SUMMARY.md`
@@ -90,5 +94,5 @@ Vertical stepper UI components (from original sump-it):
 ## Build Output
 - **Frontend**: `.next/` directory (Next.js build)
 - **Backend**: `target/` directory (Rust build)
-- **Database**: Generated migration files
+- **Database**: Schema applied from the versioned SQLx migrations in `backend/migrations/`
 - **Docker**: Container images for each service
