@@ -254,7 +254,10 @@ mod tests {
         assert_eq!(normalize_search(None), None);
         assert_eq!(normalize_search(Some("")), None);
         assert_eq!(normalize_search(Some("   ")), None);
-        assert_eq!(normalize_search(Some("  floral ")), Some("floral".to_string()));
+        assert_eq!(
+            normalize_search(Some("  floral ")),
+            Some("floral".to_string())
+        );
         assert_eq!(normalize_search(Some("v60")), Some("v60".to_string()));
     }
 
@@ -299,7 +302,10 @@ mod tests {
         let (predicates, binds) = build_predicates(&filter, None, 1);
         assert_eq!(
             predicates,
-            vec!["b.roast_date >= $1".to_string(), "b.roast_date <= $2".to_string()]
+            vec![
+                "b.roast_date >= $1".to_string(),
+                "b.roast_date <= $2".to_string()
+            ]
         );
         assert_eq!(binds, vec![QueryBind::Date(from), QueryBind::Date(to)]);
     }
@@ -409,7 +415,9 @@ mod tests {
     fn list_sql_no_filters_has_join_order_limit_offset() {
         let built = list_sessions_sql(&empty_filter(), None);
         assert!(built.sql.contains("FROM brewing_sessions s"));
-        assert!(built.sql.contains("JOIN coffee_beans b ON s.bean_id = b.id"));
+        assert!(built
+            .sql
+            .contains("JOIN coffee_beans b ON s.bean_id = b.id"));
         assert!(built.sql.contains("JOIN grinders g ON s.grinder_id = g.id"));
         // No WHERE when there are no predicates.
         assert!(!built.sql.contains(" WHERE "));
@@ -418,10 +426,7 @@ mod tests {
         // Only the pagination binds, defaulted.
         assert_eq!(
             built.binds,
-            vec![
-                QueryBind::Int(DEFAULT_LIMIT as i64),
-                QueryBind::Int(0),
-            ]
+            vec![QueryBind::Int(DEFAULT_LIMIT as i64), QueryBind::Int(0),]
         );
     }
 

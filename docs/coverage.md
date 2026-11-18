@@ -126,6 +126,10 @@ The `coverage_nightly` cfg is set by the coverage command
 crate roots enable the attribute with
 `#![cfg_attr(coverage_nightly, feature(coverage_attribute))]`.
 
+Keep diagnostic assertions covered without adding exclusions. If rustfmt wraps
+an assertion's lazy failure-only format arguments onto a separate line, build
+the diagnostic before the assertion instead; see `assert_ctx` in `recipe.rs`.
+
 Real examples in the tree: `main()` / `health_check()` (`backend/src/main.rs`),
 `database::init_pool()` (`backend/src/database.rs`), and the defensive
 transaction-wiring helper `begin_tx` (`backend/src/services/sessions.rs`),
