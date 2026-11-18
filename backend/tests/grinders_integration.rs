@@ -46,8 +46,10 @@ use coffee_brewer_backend::services::WriteError;
 /// the schema is present. Returns `None` when neither variable is set so the
 /// (ignored) tests degrade cleanly.
 async fn pool() -> Option<PgPool> {
-    let url = std::env::var("DATABASE_URL")
-        .or_else(|_| std::env::var("TEST_DATABASE_URL"))
+    const DATABASE_URL: &str = "DATABASE_URL";
+    const TEST_DATABASE_URL: &str = "TEST_DATABASE_URL";
+    let url = std::env::var(DATABASE_URL)
+        .or_else(|_| std::env::var(TEST_DATABASE_URL))
         .ok()?;
     let pool = PgPoolOptions::new()
         .max_connections(2)

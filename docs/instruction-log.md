@@ -79,3 +79,6 @@ codes and error messages; leave recipe and session validation unchanged.
 existing rules. HTTP adapters translate service errors into the existing
 responses. Direct service tests cover invalid requests; database tests still
 check the grinder constraints independently of the service.
+
+**CI follow-up:** Addressed DeepSource documentation and test-style findings
+without changing validation or weakening the test assertions.

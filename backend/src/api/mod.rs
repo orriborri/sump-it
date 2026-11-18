@@ -16,6 +16,7 @@ use crate::{models::ErrorResponse, services::WriteError};
 /// clone because `PgPool` is internally reference counted.
 #[derive(Clone)]
 pub struct AppState {
+    /// Shared database pool used by route handlers.
     pub pool: PgPool,
 }
 

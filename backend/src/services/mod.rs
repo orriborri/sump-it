@@ -8,8 +8,11 @@
 //! the method, BEFORE any database access, so no caller (HTTP handler, CLI,
 //! background job, test) can persist invalid data by bypassing the handler.
 
+/// Bean inventory and write operations.
 pub mod beans;
+/// Grinder inventory and write operations.
 pub mod grinders;
+/// Brewing session storage and inventory accounting.
 pub mod sessions;
 
 use validator::Validate;

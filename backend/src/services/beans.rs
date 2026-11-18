@@ -17,6 +17,7 @@ pub struct BeanService<'a> {
 }
 
 impl<'a> BeanService<'a> {
+    /// Uses the given pool for bean queries.
     pub fn new(pool: &'a PgPool) -> Self {
         Self { pool }
     }
@@ -275,7 +276,7 @@ mod tests {
     #[tokio::test]
     async fn create_bean_rejects_empty_name_as_invalid_fields() {
         let pool = unreachable_pool();
-        let request = CreateCoffeeBeanRequest { name: String::new(), ..valid_request() };
+        let request = CreateCoffeeBeanRequest { name: String::default(), ..valid_request() };
 
         let err = BeanService::new(&pool).create_bean(request).await.unwrap_err();
 

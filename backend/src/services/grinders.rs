@@ -28,6 +28,7 @@ pub struct GrinderService<'a> {
 }
 
 impl<'a> GrinderService<'a> {
+    /// Uses the given pool for grinder queries.
     pub fn new(pool: &'a PgPool) -> Self {
         Self { pool }
     }
@@ -244,7 +245,7 @@ mod tests {
     #[tokio::test]
     async fn create_grinder_rejects_empty_brand_as_invalid_fields() {
         let pool = unreachable_pool();
-        let request = CreateGrinderRequest { brand: String::new(), ..valid_request() };
+        let request = CreateGrinderRequest { brand: String::default(), ..valid_request() };
 
         let err = GrinderService::new(&pool).create_grinder(request).await.unwrap_err();
 

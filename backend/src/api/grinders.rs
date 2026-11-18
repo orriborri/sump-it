@@ -21,6 +21,7 @@ use crate::{
     services::grinders::GrinderService,
 };
 
+/// Registers grinder collection and item routes.
 pub fn router() -> Router<AppState> {
     Router::new()
         .route("/", get(list_grinders).post(create_grinder))

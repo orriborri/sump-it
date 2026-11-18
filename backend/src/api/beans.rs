@@ -17,6 +17,7 @@ use crate::{
     services::beans::BeanService,
 };
 
+/// Registers bean collection and item routes.
 pub fn router() -> Router<AppState> {
     Router::new()
         .route("/", get(list_beans).post(create_bean))

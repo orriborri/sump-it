@@ -40,8 +40,10 @@ use coffee_brewer_backend::api;
 /// returns a pool connected to it. Returns `None` when no database URL is set
 /// so the (ignored) tests degrade cleanly if invoked without configuration.
 async fn setup_pool() -> Option<PgPool> {
-    let base_url = std::env::var("DATABASE_URL")
-        .or_else(|_| std::env::var("TEST_DATABASE_URL"))
+    const DATABASE_URL: &str = "DATABASE_URL";
+    const TEST_DATABASE_URL: &str = "TEST_DATABASE_URL";
+    let base_url = std::env::var(DATABASE_URL)
+        .or_else(|_| std::env::var(TEST_DATABASE_URL))
         .ok()?;
 
     let db_name = format!("api_router_test_{}", Uuid::new_v4().simple());
@@ -199,7 +201,7 @@ async fn grinder_crud_through_router() {
     let (status, body) = send(&pool, "GET", "/grinders?page=1&limit=1", None).await;
     assert_eq!(status, StatusCode::OK);
     assert_eq!(body["total"], 1);
-    assert_eq!(body["hasMore"], false);
+    assert_eq!(body["hasMore"], json!(false));
 
     // Update.
     let (status, body) = send(
@@ -360,7 +362,7 @@ async fn bean_crud_and_active_and_usage_through_router() {
     let (status, body) = send(&pool, "GET", "/beans?page=1&limit=1", None).await;
     assert_eq!(status, StatusCode::OK);
     assert_eq!(body["total"], 2);
-    assert_eq!(body["hasMore"], true);
+    assert_eq!(body["hasMore"], json!(true));
 
     // Get by id.
     let (status, body) = send(&pool, "GET", &format!("/beans/{tracked}"), None).await;
@@ -543,7 +545,7 @@ async fn session_create_list_duplicate_through_router() {
     .await;
     assert_eq!(status, StatusCode::OK);
     assert_eq!(body["total"], 1);
-    assert_eq!(body["hasMore"], false);
+    assert_eq!(body["hasMore"], json!(false));
 
     // `offset` branch of `to_filter` plus text search `q`.
     let (status, body) = send(&pool, "GET", "/sessions?offset=0&q=Ethiopia", None).await;
