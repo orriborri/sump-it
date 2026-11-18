@@ -14,10 +14,10 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 chrono = { version = "0.4", features = ["serde"] }
 uuid = { version = "1.0", features = ["v4", "serde"] }
-sqlx = { version = "0.7", features = ["runtime-tokio-native-tls", "postgres", "macros", "migrate", "chrono", "uuid"] }
+sqlx = { version = "0.8", features = ["runtime-tokio-native-tls", "postgres", "macros", "migrate", "chrono", "uuid"] }
 anyhow = "1.0"
 thiserror = "1.0"
-validator = { version = "0.18", features = ["derive"] }
+validator = { version = "0.20", features = ["derive"] }
 dotenv = "0.15"
 # Generates TypeScript types from the Rust request/response models so the
 # frontend consumes a single source of truth. `chrono-impl`/`uuid-impl` teach

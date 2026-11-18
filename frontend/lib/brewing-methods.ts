@@ -11,4 +11,3 @@ export const BREWING_METHODS: readonly { value: BrewingMethod; label: string }[]
   { value: 'ColdBrew', label: 'Cold Brew' },
   { value: 'Other', label: 'Other' },
 ] as const;
-

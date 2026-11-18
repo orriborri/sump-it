@@ -80,41 +80,6 @@ interface WorkflowFooterProps {
   onSubmit: () => void;
 }
 
-/**
- * The footer region below the stepper: a "complete required fields" hint, any
- * save error, and the Back/Next/Save navigation row.
- */
-const WorkflowFooter: React.FC<WorkflowFooterProps> = ({
-  currentStep,
-  canProceed,
-  saveError,
-  onBack,
-  onNext,
-  onSubmit,
-}) => (
-  <Box sx={{ mt: 6, pt: 3, borderTop: 1, borderColor: 'divider' }}>
-    {!canProceed && currentStep < 2 && (
-      <Alert severity="info" sx={{ mb: 2 }}>
-        Please complete all required fields before proceeding.
-      </Alert>
-    )}
-
-    {saveError && (
-      <Alert severity="error" sx={{ mb: 2 }}>
-        {saveError}
-      </Alert>
-    )}
-
-    <StepNavigation
-      currentStep={currentStep}
-      canProceed={canProceed}
-      onBack={onBack}
-      onNext={onNext}
-      onSubmit={onSubmit}
-    />
-  </Box>
-);
-
 /** Props for {@link StepNavigation}. */
 interface StepNavigationProps {
   /** The zero-based index of the current step. */
@@ -182,6 +147,41 @@ const StepNavigation: React.FC<StepNavigationProps> = ({
 );
 
 /**
+ * The footer region below the stepper: a "complete required fields" hint, any
+ * save error, and the Back/Next/Save navigation row.
+ */
+const WorkflowFooter: React.FC<WorkflowFooterProps> = ({
+  currentStep,
+  canProceed,
+  saveError,
+  onBack,
+  onNext,
+  onSubmit,
+}) => (
+  <Box sx={{ mt: 6, pt: 3, borderTop: 1, borderColor: 'divider' }}>
+    {!canProceed && currentStep < 2 && (
+      <Alert severity="info" sx={{ mb: 2 }}>
+        Please complete all required fields before proceeding.
+      </Alert>
+    )}
+
+    {saveError && (
+      <Alert severity="error" sx={{ mb: 2 }}>
+        {saveError}
+      </Alert>
+    )}
+
+    <StepNavigation
+      currentStep={currentStep}
+      canProceed={canProceed}
+      onBack={onBack}
+      onNext={onNext}
+      onSubmit={onSubmit}
+    />
+  </Box>
+);
+
+/**
  * The brew-logging workflow: ties equipment selection, parameter entry and
  * feedback into one vertical stepper and saves the brew through the typed
  * client. Pure logic (gating, live ratio, grind clamping, request mapping)
@@ -201,6 +201,7 @@ export function BrewWorkflow({ client = coffeeBrewerClient }: BrewWorkflowProps)
   const [saveError, setSaveError] = useState<string | null>(null);
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
 
+  /** Load beans, grinders, and previous sessions for the workflow. */
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
@@ -236,9 +237,10 @@ export function BrewWorkflow({ client = coffeeBrewerClient }: BrewWorkflowProps)
   }, [client]);
 
   useEffect(() => {
-    void loadData();
+    loadData();
   }, [loadData]);
 
+  /** Apply changes from the current brewing step. */
   const updateFormData = (updates: Partial<BrewFormData>) => {
     setFormData((prev) => ({ ...prev, ...updates }));
   };
@@ -249,23 +251,23 @@ export function BrewWorkflow({ client = coffeeBrewerClient }: BrewWorkflowProps)
   const parametersReady = areParametersComplete(formData);
   const canProceed = currentStep === 0 ? equipmentReady : currentStep === 1 ? parametersReady : true;
 
+  /** Advance from the current enabled step. */
   const handleNext = () => {
-    if (currentStep < 2) {
-      setCurrentStep((step) => step + 1);
-    }
+    setCurrentStep((step) => step + 1);
   };
 
+  /** Return to the previous brewing step. */
   const handleBack = () => {
-    if (currentStep > 0) {
-      setCurrentStep((step) => step - 1);
-    }
+    setCurrentStep((step) => step - 1);
   };
 
+  /** Clear the completed brew and return to equipment selection. */
   const resetForm = () => {
     setFormData(emptyBrewForm());
     setCurrentStep(0);
   };
 
+  /** Save the brew, report errors, and refresh equipment on success. */
   const handleSubmit = async () => {
     setSaveError(null);
 
@@ -291,7 +293,7 @@ export function BrewWorkflow({ client = coffeeBrewerClient }: BrewWorkflowProps)
 
     setSavedMessage('Brewing session saved.');
     resetForm();
-    void loadData();
+    loadData();
   };
 
   const steps = ['Equipment Selection', 'Brewing Parameters', 'Brew & Rate'];

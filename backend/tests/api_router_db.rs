@@ -40,8 +40,10 @@ use coffee_brewer_backend::api;
 /// returns a pool connected to it. Returns `None` when no database URL is set
 /// so the (ignored) tests degrade cleanly if invoked without configuration.
 async fn setup_pool() -> Option<PgPool> {
-    let base_url = std::env::var("DATABASE_URL")
-        .or_else(|_| std::env::var("TEST_DATABASE_URL"))
+    const DATABASE_URL: &str = "DATABASE_URL";
+    const TEST_DATABASE_URL: &str = "TEST_DATABASE_URL";
+    let base_url = std::env::var(DATABASE_URL)
+        .or_else(|_| std::env::var(TEST_DATABASE_URL))
         .ok()?;
 
     let db_name = format!("api_router_test_{}", Uuid::new_v4().simple());
@@ -199,7 +201,7 @@ async fn grinder_crud_through_router() {
     let (status, body) = send(&pool, "GET", "/grinders?page=1&limit=1", None).await;
     assert_eq!(status, StatusCode::OK);
     assert_eq!(body["total"], 1);
-    assert_eq!(body["hasMore"], false);
+    assert_eq!(body["hasMore"], json!(false));
 
     // Update.
     let (status, body) = send(
@@ -273,9 +275,10 @@ async fn grinder_validation_errors_through_router() {
     assert_eq!(body["error"], "Validation failed");
     assert!(body["details"].is_array());
 
-    // Domain setting-range failure (max <= min) -> 400. This hits
-    // `validate_grinder_request`'s second branch for both create and update.
-    let (status, _) = send(
+    // Domain setting-range failure (max <= min) -> 400 with the rule message.
+    // `GrinderService` rejects it (`WriteError::Rule`) on both create and
+    // update; `api::write_error_response` maps it to this body.
+    let (status, body) = send(
         &pool,
         "POST",
         "/grinders",
@@ -291,6 +294,13 @@ async fn grinder_validation_errors_through_router() {
     )
     .await;
     assert_eq!(status, StatusCode::BAD_REQUEST);
+    assert_eq!(
+        body,
+        json!({
+            "error": "Validation failed: Maximum setting (40) must be greater than minimum setting (40)",
+            "details": null
+        })
+    );
 
     let id = create_grinder(&pool).await;
     let (status, _) = send(
@@ -310,8 +320,8 @@ async fn grinder_validation_errors_through_router() {
     .await;
     assert_eq!(status, StatusCode::BAD_REQUEST);
 
-    // Update with an empty brand -> the derive-validation branch of
-    // `validate_grinder_request` on the update path.
+    // Update with an empty brand -> the service's derive-validation
+    // (`WriteError::InvalidFields`) on the update path.
     let (status, _) = send(
         &pool,
         "PUT",
@@ -352,7 +362,7 @@ async fn bean_crud_and_active_and_usage_through_router() {
     let (status, body) = send(&pool, "GET", "/beans?page=1&limit=1", None).await;
     assert_eq!(status, StatusCode::OK);
     assert_eq!(body["total"], 2);
-    assert_eq!(body["hasMore"], true);
+    assert_eq!(body["hasMore"], json!(true));
 
     // Get by id.
     let (status, body) = send(&pool, "GET", &format!("/beans/{tracked}"), None).await;
@@ -442,10 +452,11 @@ async fn bean_validation_errors_through_router() {
     assert_eq!(status, StatusCode::BAD_REQUEST);
     assert_eq!(body["error"], "Validation failed");
 
-    // Business-rule failure (future roast date) -> 400 via
-    // `validate_comprehensive` on both create and update.
+    // Business-rule failure (future roast date) -> 400 with the rule message,
+    // rejected by `BeanService` via `validate_comprehensive` on both create
+    // and update.
     let future = (chrono::Utc::now().date_naive() + chrono::Duration::days(5)).to_string();
-    let (status, _) = send(
+    let (status, body) = send(
         &pool,
         "POST",
         "/beans",
@@ -461,6 +472,7 @@ async fn bean_validation_errors_through_router() {
     )
     .await;
     assert_eq!(status, StatusCode::BAD_REQUEST);
+    assert_eq!(body, json!({ "error": "Roast date cannot be in the future", "details": null }));
 
     let id = create_bean(&pool, Some(100.0)).await;
 
@@ -533,7 +545,7 @@ async fn session_create_list_duplicate_through_router() {
     .await;
     assert_eq!(status, StatusCode::OK);
     assert_eq!(body["total"], 1);
-    assert_eq!(body["hasMore"], false);
+    assert_eq!(body["hasMore"], json!(false));
 
     // `offset` branch of `to_filter` plus text search `q`.
     let (status, body) = send(&pool, "GET", "/sessions?offset=0&q=Ethiopia", None).await;
