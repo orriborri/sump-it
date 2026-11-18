@@ -45,6 +45,7 @@ export default defineConfig({
         'app/beans/BeanManager.tsx',
         'app/beans/page.tsx',
         // Ticket #145: brew-logging workflow and its pure helpers.
+        'lib/brewing-methods.ts',
         'lib/brew/recipe.ts',
         'app/brew/BrewWorkflow.tsx',
         'app/brew/BrewingParameters.tsx',

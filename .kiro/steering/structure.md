@@ -60,6 +60,10 @@ Vertical stepper UI components (from original sump-it):
 
 ## Module Boundaries
 
+The following describes the current layout. For new and changed code, follow
+the feature-placement and dependency rules in
+[engineering practices](../../docs/engineering-practices.md).
+
 ### Frontend Modules
 1. **Brewing Workflow** (`app/brew/`) - Core brewing interface
 2. **Inventory Management** (`app/beans/`, `app/grinders/`) - Equipment tracking
