@@ -117,3 +117,15 @@ Grid API without changing responsive breakpoints or the brewing workflow.
 **Integration:** Keep the installed Material UI version and the lockfile from
 `main`. Use `Grid2` sizing with the same column spans and breakpoints. Keep the
 rating field's layout wrapper at the call site to address JSX nesting feedback.
+
+## 2026-11-18 — Backend formatting gate
+
+**Source:** [PR #207](https://github.com/orriborri/sump-it/pull/207)
+(the remaining formatting work from #195) and the delivery-loop request.
+
+**Request:** Close the backend formatting gap and enforce `cargo fmt --check`
+in the contract job without weakening coverage.
+
+**Integration:** Move the PR from the superseded #206 branch to `main`. Run
+rustfmt on current sources, retain the recipe assertions and coverage threshold,
+and leave the service validation and dependency upgrades already on `main` intact.

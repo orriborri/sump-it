@@ -11,8 +11,8 @@
 // binary only wires the process together (tracing, env, pool, router, listener).
 use coffee_brewer_backend::{api, database};
 
+use axum::{http::StatusCode, routing::get, Router};
 use std::net::SocketAddr;
-use axum::{Router, routing::get, http::StatusCode};
 use tower_http::cors::CorsLayer;
 
 // coverage: process bootstrap - wires tracing, env loading, the database pool,
