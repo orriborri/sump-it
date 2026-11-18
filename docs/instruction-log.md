@@ -82,3 +82,12 @@ check the grinder constraints independently of the service.
 
 **CI follow-up:** Addressed DeepSource documentation and test-style findings
 without changing validation or weakening the test assertions.
+
+## 2026-11-18 — Homelab deployment
+
+**Request:** Run Sump-it in the homelab cluster.
+
+**Implementation:** Build the current frontend and Rust API as separate
+commit-tagged images in the existing public Sump-it package. Route browser
+API requests under `/api` on the frontend origin. See
+[ADR 0003](adr/0003-publish-frontend-and-backend-images.md).
