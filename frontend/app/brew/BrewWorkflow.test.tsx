@@ -179,19 +179,21 @@ describe('BrewWorkflow', () => {
     expect(await screen.findByText(message)).toBeInTheDocument();
   });
 
-  it('does not stay stuck loading when an injected load call rejects', async () => {
-    // Defend the seam: the BrewClient contract says adapters never reject, but
-    // an injected adapter that rejects must not leave the workflow loading.
-    const { client } = makeClient({
-      getActive: vi.fn(() => Promise.reject(new Error('adapter blew up'))),
-    });
-    render(<BrewWorkflow client={client} />);
+  it.each(['getActive', 'listGrinders', 'listSessions'] as const)(
+    'clears loading and shows a friendly error when %s rejects', async (method) => {
+      // Defend the seam: the BrewClient contract says adapters never reject, but
+      // an injected adapter that rejects must not leave the workflow loading.
+      const { client } = makeClient({
+        [method]: vi.fn(() => Promise.reject(new Error('adapter blew up'))),
+      });
+      render(<BrewWorkflow client={client} />);
 
-    // Loading resolved: the equipment step renders rather than hanging...
-    await waitFor(() => expect(screen.getByLabelText('Coffee Bean')).toBeInTheDocument());
-    // ...and the rejection is surfaced as the friendly unreachable message.
-    expect(screen.getByText(UNREACHABLE_MESSAGE)).toBeInTheDocument();
-  });
+      // Loading resolved: the equipment step renders rather than hanging...
+      await waitFor(() => expect(screen.getByLabelText('Coffee Bean')).toBeInTheDocument());
+      // ...and the rejection is surfaced as the friendly unreachable message.
+      expect(screen.getByText(UNREACHABLE_MESSAGE)).toBeInTheDocument();
+    }
+  );
 
   it('routes a rejecting save through friendly error handling without success/reset', async () => {
     const user = userEvent.setup();

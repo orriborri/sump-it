@@ -49,8 +49,9 @@ import { BrewFeedback } from './BrewFeedback';
  * catching all fetch/parse failures and converting them into a resolved
  * `{ error }`. Because the client is injectable (tests, alternate adapters,
  * future wrappers), the workflow still defends the seam: should an adapter
- * reject anyway, both `loadData` and `handleSubmit` treat the thrown value as
- * an unreachable-backend error rather than letting it break the flow.
+ * reject anyway, `loadData` clears loading and shows the backend-unreachable
+ * message; `handleSubmit` routes the rejection through `toFriendlyError` and
+ * preserves the form so the user can retry.
  */
 export interface BrewClient {
   beans: Pick<typeof coffeeBrewerClient.beans, 'getActive'>;

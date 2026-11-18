@@ -117,3 +117,17 @@ Grid API without changing responsive breakpoints or the brewing workflow.
 **Integration:** Keep the installed Material UI version and the lockfile from
 `main`. Use `Grid2` sizing with the same column spans and breakpoints. Keep the
 rating field's layout wrapper at the call site to address JSX nesting feedback.
+
+## 2026-11-18 — Validate REST error envelopes
+
+**Source:** [Issue #170](https://github.com/orriborri/sump-it/issues/170) and
+[PR #198](https://github.com/orriborri/sump-it/pull/198).
+
+**Request:** Keep the workflow recoverable when a client fails. If validating
+response payloads, do so in the shared REST adapter, not in components.
+
+**Integration:** Preserve the rejection handling previously merged in #193.
+Validate non-success JSON at the REST boundary: use the HTTP status for a
+missing or malformed error message and discard non-string detail arrays.
+Successful payload typing is unchanged. Keep the generated Next.js declaration
+unchanged and retain the JavaScript analyzer fixes already on `main`.
