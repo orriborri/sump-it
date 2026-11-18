@@ -105,3 +105,15 @@ cast in session request conversion. Leave backend recipe rules unchanged.
 frontend dependencies, app shell, and unrelated documentation. Keep the
 method metadata shared by brew selection and session history, and include it
 in frontend coverage.
+
+## 2026-11-18 — Brew layout Grid2 migration
+
+**Source:** [Issue #174](https://github.com/orriborri/sump-it/issues/174) and
+[PR #201](https://github.com/orriborri/sump-it/pull/201).
+
+**Request:** Migrate brew equipment, parameters, and feedback to the current
+Grid API without changing responsive breakpoints or the brewing workflow.
+
+**Integration:** Keep the installed Material UI version and the lockfile from
+`main`. Use `Grid2` sizing with the same column spans and breakpoints. Keep the
+rating field's layout wrapper at the call site to address JSX nesting feedback.
