@@ -10,7 +10,7 @@ import React from 'react';
 import {
   Box,
   FormControl,
-  Grid,
+  Grid2,
   InputLabel,
   MenuItem,
   Select,
@@ -49,27 +49,25 @@ interface RatingFieldProps {
 
 /** The rating dropdown (1.0 to 10.0 in 0.5 steps, plus a "No rating" option). */
 const RatingField: React.FC<RatingFieldProps> = ({ rating, onChange }) => (
-  <Grid item xs={12} sm={6}>
-    <FormControl fullWidth>
-      <InputLabel id="rating-label">Rating</InputLabel>
-      <Select
-        labelId="rating-label"
-        id="rating-select"
-        label="Rating"
-        value={rating === undefined ? '' : String(rating)}
-        onChange={onChange}
-      >
-        <MenuItem value="">
-          <em>No rating</em>
+  <FormControl fullWidth>
+    <InputLabel id="rating-label">Rating</InputLabel>
+    <Select
+      labelId="rating-label"
+      id="rating-select"
+      label="Rating"
+      value={rating === undefined ? '' : String(rating)}
+      onChange={onChange}
+    >
+      <MenuItem value="">
+        <em>No rating</em>
+      </MenuItem>
+      {ratingOptions().map((value) => (
+        <MenuItem key={value} value={String(value)}>
+          {value.toFixed(1)}
         </MenuItem>
-        {ratingOptions().map((value) => (
-          <MenuItem key={value} value={String(value)}>
-            {value.toFixed(1)}
-          </MenuItem>
-        ))}
-      </Select>
-    </FormControl>
-  </Grid>
+      ))}
+    </Select>
+  </FormControl>
 );
 
 /** Props for {@link NotesField}. */
@@ -84,7 +82,7 @@ interface NotesFieldProps {
 
 /** A full-width multiline text field for one of the free-text note sections. */
 const NotesField: React.FC<NotesFieldProps> = ({ label, value, onChange }) => (
-  <Grid item xs={12}>
+  <Grid2 size={{ xs: 12 }}>
     <TextField
       label={label}
       fullWidth
@@ -93,7 +91,7 @@ const NotesField: React.FC<NotesFieldProps> = ({ label, value, onChange }) => (
       value={value}
       onChange={(e) => onChange(e.target.value)}
     />
-  </Grid>
+  </Grid2>
 );
 
 /**
@@ -102,6 +100,7 @@ const NotesField: React.FC<NotesFieldProps> = ({ label, value, onChange }) => (
  * suggestions, all persisted with the session.
  */
 export function BrewFeedback({ formData, updateFormData }: BrewFeedbackProps) {
+  /** Store the selected rating as a number, or clear it for the empty option. */
   const handleRatingChange = (event: SelectChangeEvent) => {
     const value = event.target.value;
     updateFormData({ rating: value === '' ? undefined : Number(value) });
@@ -113,8 +112,10 @@ export function BrewFeedback({ formData, updateFormData }: BrewFeedbackProps) {
         Brew &amp; Rate
       </Typography>
 
-      <Grid container spacing={3}>
-        <RatingField rating={formData.rating} onChange={handleRatingChange} />
+      <Grid2 container spacing={3}>
+        <Grid2 size={{ xs: 12, sm: 6 }}>
+          <RatingField rating={formData.rating} onChange={handleRatingChange} />
+        </Grid2>
 
         <NotesField
           label="Tasting notes"
@@ -131,7 +132,7 @@ export function BrewFeedback({ formData, updateFormData }: BrewFeedbackProps) {
           value={formData.suggestions ?? ''}
           onChange={(value) => updateFormData({ suggestions: value })}
         />
-      </Grid>
+      </Grid2>
     </Box>
   );
 }
