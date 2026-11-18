@@ -65,3 +65,20 @@ ADR changes. Preserve ADR path/numbering validation and require the normal
 assessment whenever an ADR file changes.
 
 **Implementation:** Updated the ADR workflow in this pull request.
+
+## 2026-11-18 — Bean and grinder service validation
+
+**Source:** [Issue #166](https://github.com/orriborri/sump-it/issues/166) and
+[PR #208](https://github.com/orriborri/sump-it/pull/208).
+
+**Request:** Enforce existing bean and grinder validation for all create and
+update callers, not just HTTP callers. Preserve the API's validation status
+codes and error messages; leave recipe and session validation unchanged.
+
+**Implementation:** The services validate before database access using the
+existing rules. HTTP adapters translate service errors into the existing
+responses. Direct service tests cover invalid requests; database tests still
+check the grinder constraints independently of the service.
+
+**CI follow-up:** Addressed DeepSource documentation and test-style findings
+without changing validation or weakening the test assertions.
