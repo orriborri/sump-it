@@ -91,3 +91,17 @@ without changing validation or weakening the test assertions.
 commit-tagged images in the existing public Sump-it package. Route browser
 API requests under `/api` on the frontend origin. See
 [ADR 0003](adr/0003-publish-frontend-and-backend-images.md).
+
+## 2026-11-18 — Type-safe brewing method selection
+
+**Source:** [Issue #169](https://github.com/orriborri/sump-it/issues/169) and
+[PR #197](https://github.com/orriborri/sump-it/pull/197).
+
+**Request:** Share one frontend brewing-method options list, restrict the form
+field to a generated method or an unselected state, and remove the unchecked
+cast in session request conversion. Leave backend recipe rules unchanged.
+
+**Integration:** Resolve the stale branch against `main`, keeping its current
+frontend dependencies, app shell, and unrelated documentation. Keep the
+method metadata shared by brew selection and session history, and include it
+in frontend coverage.
